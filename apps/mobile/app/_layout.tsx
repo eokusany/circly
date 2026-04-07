@@ -2,9 +2,12 @@ import { useEffect, useCallback } from 'react'
 import { Stack, router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useColorScheme } from 'react-native'
+import * as SplashScreen from 'expo-splash-screen'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import type { UserRole } from '../store/auth'
+
+SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
   const scheme = useColorScheme()
@@ -27,14 +30,12 @@ export default function RootLayout() {
       setLoading(false)
       router.replace(roleHome(data.role as UserRole))
     } else {
-      // User exists in auth but not in public.users yet — needs role selection
       setLoading(false)
       router.replace('/(auth)/role-select')
     }
   }, [setUser, setLoading])
 
   useEffect(() => {
-    // Restore session on mount
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         await loadUser(session.user.id)
@@ -42,9 +43,9 @@ export default function RootLayout() {
         setLoading(false)
         router.replace('/(auth)/sign-in')
       }
+      SplashScreen.hideAsync()
     })
 
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
