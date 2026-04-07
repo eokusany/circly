@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.local
+dist/
+build/
+.expo/
+*.tsbuildinfo
+
+# iOS
+apps/mobile/ios/
+apps/mobile/android/
+
+# Logs
+*.log
+npm-debug.log*

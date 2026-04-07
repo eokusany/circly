@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "reeco",
+    "slug": "reeco",
+    "version": "1.0.0",
+    "scheme": "reeco",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5F3F8"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.reeco.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F5F3F8"
+      },
+      "package": "com.reeco.app",
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ]
+  }
+}
