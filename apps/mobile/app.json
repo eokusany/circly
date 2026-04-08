@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "reeco",
-    "slug": "reeco",
+    "name": "circly",
+    "slug": "circly",
     "version": "1.0.0",
-    "scheme": "reeco",
+    "scheme": "circly",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -11,18 +11,18 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F5F3F8"
+      "backgroundColor": "#FBF9F4"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.reeco.app"
+      "bundleIdentifier": "com.circly.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F5F3F8"
+        "backgroundColor": "#FBF9F4"
       },
-      "package": "com.reeco.app",
+      "package": "com.circly.app",
       "edgeToEdgeEnabled": true
     },
     "plugins": [

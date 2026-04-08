@@ -1,29 +1,58 @@
+// Palette — warm, grounded, recovery-first.
+// Intentionally NOT a monochromatic purple ramp:
+// - background/surfaces are warm neutral (charcoal / cream), not purple-tinted
+// - primary accent is honey amber — evokes warmth and growth
+// - success is sage — used for reached milestones to read distinctly from CTA
+// - purple kept as a tertiary/informational accent, not dominant
+
 export const Colors = {
   light: {
-    background: '#F5F3F8',
+    background: '#FBF9F4',       // warm cream
     surface: '#FFFFFF',
-    surfaceRaised: '#EFECF5',
-    textPrimary: '#1A1625',
-    textSecondary: '#6B6480',
-    accent: '#7B5EA7',
-    accentLight: '#9B8EC4',
-    success: '#5CAF8A',
-    warning: '#E8A44A',
-    danger: '#D95F5F',
-    border: '#E2DCF0',
+    surfaceRaised: '#F3EFE6',    // sand
+    surfaceSunken: '#F0ECE2',
+
+    textPrimary: '#1C1A17',      // warm near-black
+    textSecondary: '#6B665C',    // warm gray
+    textMuted: '#A39E92',        // for disabled / far-future states
+
+    accent: '#C58A3F',            // honey amber — primary CTA
+    accentSoft: '#F5E9D4',       // tinted fill (8% feel)
+    accentPressed: '#A9721F',
+
+    success: '#5C9E7A',          // sage — reached milestones
+    successSoft: '#E2EFE6',
+    warning: '#D6923A',
+    danger: '#C65D52',
+    dangerSoft: '#F5E0DD',
+
+    border: '#E8E2D4',           // warm low-contrast divider
+    borderStrong: '#D6CFBE',
+    overlay: 'rgba(28,26,23,0.4)',
   },
   dark: {
-    background: '#16131E',
-    surface: '#1F1A2E',
-    surfaceRaised: '#2A2440',
-    textPrimary: '#F0EDF8',
-    textSecondary: '#9B93B4',
-    accent: '#9B8EC4',
-    accentLight: '#B8ADDA',
-    success: '#6DC9A0',
-    warning: '#F0B866',
-    danger: '#F07070',
-    border: '#2E2845',
+    background: '#12110F',       // warm charcoal, not purple
+    surface: '#1B1A17',
+    surfaceRaised: '#242220',
+    surfaceSunken: '#0E0D0B',
+
+    textPrimary: '#F4F1EA',      // warm off-white
+    textSecondary: '#9A958A',    // warm gray
+    textMuted: '#5E5B53',
+
+    accent: '#D9A766',            // honey amber, slightly lifted for dark
+    accentSoft: '#2E261A',       // deep amber tint
+    accentPressed: '#B4833F',
+
+    success: '#7DB896',          // sage
+    successSoft: '#1F2A24',
+    warning: '#E0A558',
+    danger: '#D9736A',
+    dangerSoft: '#2B1B19',
+
+    border: '#2A2825',
+    borderStrong: '#3A3733',
+    overlay: 'rgba(0,0,0,0.6)',
   },
 } as const
 

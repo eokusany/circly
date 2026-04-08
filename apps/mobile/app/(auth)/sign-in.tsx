@@ -35,10 +35,10 @@ export default function SignInScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <Text style={[styles.logo, { color: colors.accent }]}>reeco</Text>
+        <Text style={[styles.logo, { color: colors.accent }]}>circly</Text>
         <Text style={[styles.title, { color: colors.textPrimary }]}>welcome back</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {"keep going — you're doing great"}
+          {"keep going, you're doing great"}
         </Text>
       </View>
 
