@@ -186,6 +186,26 @@ reeco/
 **Cause:** Even after deleting the conflicting files, the error persisted because there was no `babel.config.js`. The `EXPO_ROUTER_APP_ROOT` env var is injected as a **static string literal** at Babel transform time by the `expo-router-plugin` inside `babel-preset-expo`. Without `babel.config.js`, the preset never runs, so `require.context` receives a dynamic `process.env.EXPO_ROUTER_APP_ROOT` expression that Metro rejects.
 **Fix:** Added `babel.config.js` using `babel-preset-expo`. This activates the plugin that rewrites `process.env.EXPO_ROUTER_APP_ROOT` to the correct relative path string before Metro processes the file.
 
+### 4. `EXPO_ROUTER_APP_ROOT` — persistent monorepo error (session 2)
+**Cause:** `babel-preset-expo` is hoisted to root `node_modules`, but `expo-router` is only in `apps/mobile/node_modules`. The preset calls `hasModule('expo-router')` via `require.resolve` from its own location (root), can't find it, and **never adds** `expoRouterBabelPlugin` to the Babel pipeline. So `process.env.EXPO_ROUTER_APP_ROOT` is never replaced with a string literal.
+**Fix:** Explicitly added the plugin in `apps/mobile/babel.config.js`:
+```js
+const { expoRouterBabelPlugin } = require('babel-preset-expo/build/expo-router-plugin')
+plugins: [expoRouterBabelPlugin]
+```
+Also set `process.env.EXPO_ROUTER_APP_ROOT = 'app'` at the top of `metro.config.js` as a belt-and-suspenders fallback.
+
+### 5. Duplicate React — invalid hook call / `useMemo` of null (session 2)
+**Cause:** npm workspaces installed two copies of React — 19.1.0 in `apps/mobile/node_modules/react` and 19.2.4 in root `node_modules/react`. Metro's default resolution walks up from the requiring file, so `react-native` (in root) resolved to root's React 19.2.4 while `expo-router` (in apps/mobile) resolved to 19.1.0. Two separate React instances = two separate `ReactCurrentDispatcher` objects = hooks fail because the renderer sets the dispatcher on one copy but components read from the other.
+**Fix:** Configured `metro.config.js` with a monorepo-aware setup:
+- `watchFolders` includes the workspace root so Metro can access root `node_modules`
+- `resolver.nodeModulesPaths` prioritizes `apps/mobile/node_modules` then root
+- `resolver.resolveRequest` forcibly returns the exact file path for `require('react')` → `apps/mobile/node_modules/react/index.js` (19.1.0), bypassing Metro's default node_modules traversal. Sub-path imports like `react/jsx-runtime` are also redirected. This ensures every module in the bundle — including `react-native`'s renderer — uses the same React instance.
+
+### 6. Xcode tooling errors (session 2)
+**Cause:** `xcode-select` was pointing to `/Library/Developer/CommandLineTools` instead of the full Xcode app, and the Xcode license hadn't been accepted.
+**Fix:** `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer` then `sudo xcodebuild -license accept`.
+
 ---
 
 ## File Inventory
@@ -194,8 +214,8 @@ reeco/
 | File | Purpose |
 |---|---|
 | `app.json` | Expo config — name "reeco", scheme, `userInterfaceStyle: automatic` |
-| `babel.config.js` | Babel preset — required for expo-router to inject EXPO_ROUTER_APP_ROOT |
-| `metro.config.js` | Metro config — uses `getDefaultConfig` from expo |
+| `babel.config.js` | Babel preset + explicit `expoRouterBabelPlugin` (workaround for monorepo hoisting) |
+| `metro.config.js` | Metro config — monorepo watchFolders, nodeModulesPaths, resolveRequest to force single React |
 | `tsconfig.json` | Strict TypeScript, path aliases |
 | `app/_layout.tsx` | Root layout — session guard, auth state listener, SplashScreen |
 | `app/index.tsx` | Loading spinner fallback while session check runs |
@@ -309,9 +329,73 @@ EXPO_PUBLIC_API_URL=http://localhost:3000
 
 - [ ] Do supporters need their own wellness/check-in feature, or is their dashboard purely about the recovery user?
 - [ ] Can supporters see each other (shared supporter view), or are all relationships private 1:recovery-to-supporter?
-- [ ] Current `npx expo start --clear` error still being resolved — `babel.config.js` fix committed, awaiting confirmation from device
+---
+
+### Monorepo Gotchas (Documented for Future Reference)
+
+These are non-obvious issues specific to running Expo in an npm workspaces monorepo:
+
+1. **`babel-preset-expo` can't detect `expo-router`** — The preset hoists to root `node_modules` but `expo-router` stays in `apps/mobile/node_modules`. The preset's `hasModule()` uses `require.resolve` from its own location and fails silently. Fix: explicitly add `expoRouterBabelPlugin` in `babel.config.js`.
+
+2. **Duplicate React instances** — npm installs React at both root and workspace level if versions differ even slightly (19.1.0 vs 19.2.4). Metro resolves `require('react')` by walking up from the requiring file, so different packages get different React copies. Fix: `resolver.resolveRequest` that returns an exact `filePath` for `require('react')` — delegation-based approaches (`extraNodeModules`, modified `nodeModulesPaths`) don't reliably override Metro's built-in node_modules traversal.
+
+3. **`react` and `react-native-renderer` must be exactly the same version** — React 19 enforces exact version matching between the `react` package and the renderer bundled inside `react-native`. Even 19.1.0 vs 19.2.4 causes a hard crash.
 
 ---
 
-*Session date: 2026-04-06 / 2026-04-07*
-*Commits: 7 (71e70c4 → d8684aa)*
+*Session dates: 2026-04-06 / 2026-04-07*
+*Commits: 7 (71e70c4 → d8684aa) + uncommitted monorepo fixes*
+
+---
+
+## Session 2026-04-08 — Rebrand to Circly + Profile Section
+
+### Product direction
+Reeco is being renamed **Circly** ("support that moves with you"). Same codebase, same data model, but onboarding now asks for a **context** (recovery vs family/elder-care). The app's copy, role labels, streak label, and check-in statuses adapt to the selected context via a single copy map. "Emergency" was relabeled to **"get support"** — works for both a recovery crisis and an elder who just needs someone to talk to.
+
+### Context system
+- **Migration `003_add_user_context.sql`** — adds `context` column to `public.users` (`recovery` | `family`, CHECK constrained). Applied.
+- **[apps/mobile/lib/copy.ts](apps/mobile/lib/copy.ts)** — single source of truth for every string that differs by context. Exports `COPY`, `useCopy()` hook, `DEFAULT_CONTEXT`. Family context hides the sponsor role and relabels "person in recovery" → "the person at the center", streak → "connected for", journal → "reflections", etc.
+- **[apps/mobile/app/(auth)/context-select.tsx](apps/mobile/app/(auth)/context-select.tsx)** — new first onboarding screen. Stashes selection in `auth.updateUser({ data: { context } })` metadata.
+- **[apps/mobile/app/(auth)/role-select.tsx](apps/mobile/app/(auth)/role-select.tsx)** — reads context from auth metadata via useEffect, renders labels from `COPY`, persists context onto the `public.users` row at insert time.
+- **[apps/mobile/app/_layout.tsx](apps/mobile/app/_layout.tsx)** — auth guard now routes sessions with no `public.users` row to `context-select`, and skips `sobriety-start` for non-recovery contexts.
+- **[apps/mobile/store/auth.ts](apps/mobile/store/auth.ts)** — `AppUser` gained a `context: AppContext | null` field; `AppContext` re-exported for consumers.
+- **[apps/mobile/app/(recovery)/index.tsx](apps/mobile/app/(recovery)/index.tsx)** — dashboard pulls streak label, check-in statuses, journal tile, get-support tile copy from `useCopy()`. Added profile button (circular initial avatar) in the header; removed the bottom sign-out link.
+- **Layout fix** — both `context-select` and `role-select` now use `justifyContent: 'space-between'` + bottom padding so the button anchors to the bottom and dead space disappears.
+
+### Profile section (new `(profile)` route group)
+Nine screens behind a gear icon on the dashboard:
+- **[_layout.tsx](apps/mobile/app/(profile)/_layout.tsx)** — stack layout.
+- **[index.tsx](apps/mobile/app/(profile)/index.tsx)** — grouped iOS-style settings list using new `SettingRow` / `SettingSection` components.
+- **edit-name.tsx** — edit display name.
+- **change-email.tsx** — change email via `supabase.auth.updateUser({ email })`.
+- **change-password.tsx** — change password via `supabase.auth.updateUser({ password })`.
+- **switch-context.tsx** — toggle between recovery/family contexts with a confirm alert; updates both `public.users.context` and auth metadata.
+- **reset-sobriety.tsx** — presets (today, yesterday, 1 week, 1 month) or custom date picker. Framed warmly: "starting over isn't starting from zero".
+- **notifications.tsx** — manage notification preferences jsonb on profiles.
+- **delete-account.tsx** — type-to-confirm destructive delete.
+
+### New shared components
+- **[apps/mobile/components/SettingRow.tsx](apps/mobile/components/SettingRow.tsx)** — reusable iOS-pattern row + section. Section auto-inserts 1px dividers between children using `Children.toArray` + Fragment.
+- **[apps/mobile/components/TextInput.tsx](apps/mobile/components/TextInput.tsx)** — made `label` optional, added `autoCorrect` passthrough.
+
+### Migrations added
+- **`003_add_user_context.sql`** — context column. Applied.
+- **`004_profile_additions.sql`** — `notification_preferences` jsonb on profiles + "users: delete own" policy. Applied.
+- **`005_self_delete_function.sql`** — `public.delete_self_account()` RPC. Needs to be applied in Supabase SQL editor.
+
+### Delete account bug fix
+After deleting an account, signing back in with the same credentials succeeded and created a fresh account. Root cause: the client was only removing the `public.users` row — the `auth.users` row persisted, so Supabase Auth happily re-authenticated the old session and the auth guard then re-ran onboarding.
+
+**Fix:** migration 005 adds `public.delete_self_account()`, a `SECURITY DEFINER` RPC pinned to `auth.uid()` so a caller can only delete themselves. It deletes from `auth.users`, which cascades through the FK chain from migration 001 (public.users → profiles, relationships, check_ins, journal_entries, milestones, messages, notifications). [delete-account.tsx](apps/mobile/app/(profile)/delete-account.tsx) now calls `supabase.rpc('delete_self_account')` then signs out. Execute grant is revoked from anon/public and granted only to authenticated.
+
+### Small cleanups
+- Delete confirmation phrase simplified from `"delete my account"` to just `"delete"`.
+- Removed em-dashes (`—`) from all user-facing strings across `copy.ts`, `sign-in`, `context-select`, `role-select`, `switch-context`, `reset-sobriety`, `journal`, `check-in`. Remaining em-dashes are only in code comments (not user-visible), left in place for readability. User feedback: em-dashes "give it an AI feel".
+
+### Verification
+- `apps/mobile` typecheck: clean.
+- `apps/mobile` lint: clean (0 warnings with `--max-warnings 0`).
+- **Pending user action:** run `supabase/migrations/005_self_delete_function.sql` in the Supabase SQL editor before exercising the delete-account flow.
+
+*Session date: 2026-04-08*
