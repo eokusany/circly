@@ -2,12 +2,15 @@ import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 
 export type UserRole = 'recovery' | 'supporter' | 'sponsor'
+export type AppContext = 'recovery' | 'family'
 
 export interface AppUser {
   id: string
   email: string
   displayName: string
   role: UserRole
+  context: AppContext | null
+  sobrietyStartDate: string | null
 }
 
 interface AuthState {

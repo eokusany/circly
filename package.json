@@ -1,5 +1,5 @@
 {
-  "name": "reeco",
+  "name": "circly",
   "private": true,
   "workspaces": [
     "apps/mobile",

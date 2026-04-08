@@ -35,7 +35,7 @@ export default function SignUpScreen() {
     if (data.user) {
       // Store name in session metadata for role-select to use
       await supabase.auth.updateUser({ data: { display_name: name.trim() } })
-      router.replace('/(auth)/role-select')
+      router.replace('/(auth)/context-select')
     }
   }
 
@@ -46,10 +46,10 @@ export default function SignUpScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <Text style={[styles.logo, { color: colors.accent }]}>reeco</Text>
+        <Text style={[styles.logo, { color: colors.accent }]}>circly</Text>
         <Text style={[styles.title, { color: colors.textPrimary }]}>create account</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          your recovery journey starts here
+          your circle starts here
         </Text>
       </View>
 

@@ -68,13 +68,13 @@ create table public.relationships (
 -- ============================================================
 
 create table public.check_ins (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid not null references public.users(id) on delete cascade,
-  status     check_in_status not null,
-  note       text,
-  created_at timestamptz not null default now(),
-  -- enforce one check-in per user per UTC calendar day
-  unique (user_id, (created_at::date))
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references public.users(id) on delete cascade,
+  status        check_in_status not null,
+  note          text,
+  check_in_date date not null default current_date,
+  created_at    timestamptz not null default now(),
+  unique (user_id, check_in_date)
 );
 
 -- ============================================================
@@ -145,7 +145,7 @@ create table public.notifications (
 -- INDEXES
 -- ============================================================
 
-create index on public.check_ins (user_id, created_at desc);
+create index on public.check_ins (user_id, check_in_date desc);
 create index on public.journal_entries (user_id, created_at desc);
 create index on public.milestones (user_id);
 create index on public.messages (conversation_id, created_at asc);

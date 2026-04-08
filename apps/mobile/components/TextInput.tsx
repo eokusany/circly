@@ -1,14 +1,16 @@
 import { TextInput as RNTextInput, View, Text, StyleSheet } from 'react-native'
 import { useColors } from '../hooks/useColors'
+import { radii, spacing, type as t } from '../constants/theme'
 
 interface Props {
-  label: string
+  label?: string
   value: string
   onChangeText: (text: string) => void
   placeholder?: string
   secureTextEntry?: boolean
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters'
   keyboardType?: 'default' | 'email-address'
+  autoCorrect?: boolean
 }
 
 export function TextInput({
@@ -19,12 +21,15 @@ export function TextInput({
   secureTextEntry = false,
   autoCapitalize = 'none',
   keyboardType = 'default',
+  autoCorrect = false,
 }: Props) {
   const colors = useColors()
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
+      {label ? (
+        <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
+      ) : null}
       <RNTextInput
         style={[
           styles.input,
@@ -37,24 +42,24 @@ export function TextInput({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.textSecondary}
+        placeholderTextColor={colors.textMuted}
         secureTextEntry={secureTextEntry}
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}
-        autoCorrect={false}
+        autoCorrect={autoCorrect}
       />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 6 },
-  label: { fontSize: 13, fontWeight: '500', letterSpacing: 0.3 },
+  container: { gap: spacing.sm },
+  label: { ...t.label },
   input: {
-    height: 52,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    paddingHorizontal: 16,
+    height: 54,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    paddingHorizontal: spacing.lg,
     fontSize: 16,
   },
 })
