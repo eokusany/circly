@@ -140,17 +140,30 @@ export default function RecoverySettings() {
             </View>
           ) : (
             supporters.map((s) => (
-              <View
+              <Pressable
                 key={s.relationship_id}
-                style={[
+                onPress={() =>
+                  router.push({
+                    pathname: '/(recovery)/supporter-settings',
+                    params: { id: s.relationship_id },
+                  })
+                }
+                style={({ pressed }) => [
                   styles.row,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    opacity: pressed ? 0.85 : 1,
+                  },
                 ]}
               >
                 <Text style={[styles.rowName, { color: colors.textPrimary }]}>
                   {s.display_name}
                 </Text>
-              </View>
+                <Text style={[styles.rowChevron, { color: colors.textMuted }]}>
+                  ›
+                </Text>
+              </Pressable>
             ))
           )}
         </View>
@@ -245,8 +258,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  rowName: { ...type.body, fontWeight: '600' },
+  rowName: { ...type.body, fontWeight: '600', flex: 1 },
+  rowChevron: { fontSize: 22, fontWeight: '300' },
   inviteCard: {
     borderRadius: radii.lg,
     borderWidth: 1,
