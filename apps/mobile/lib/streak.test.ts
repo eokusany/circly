@@ -122,6 +122,22 @@ describe('daysBetween', () => {
     const b = new Date(2024, 0, 2, 0, 0, 0, 0)
     expect(daysBetween(a, b)).toBe(1)
   })
+
+  it('handles DST spring-forward without undercounting', () => {
+    // In US timezones, March 10 2024 is the DST transition (2am → 3am).
+    // Naive getTime() subtraction would yield 47h and floor to 1.
+    expect(daysBetween(new Date(2024, 2, 9), new Date(2024, 2, 11))).toBe(2)
+  })
+
+  it('handles DST fall-back without overcounting', () => {
+    // November 3 2024 is US fall-back (2am → 1am = 25h local day).
+    expect(daysBetween(new Date(2024, 10, 2), new Date(2024, 10, 4))).toBe(2)
+  })
+
+  it('returns 1 for adjacent days across a DST boundary', () => {
+    expect(daysBetween(new Date(2024, 2, 9), new Date(2024, 2, 10))).toBe(1)
+    expect(daysBetween(new Date(2024, 2, 10), new Date(2024, 2, 11))).toBe(1)
+  })
 })
 
 describe('streakDays', () => {

@@ -31,11 +31,13 @@ export function toISODate(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
-/** Whole days between two dates (ignoring time of day). */
+/** Whole days between two dates (ignoring time of day). Uses UTC arithmetic
+ * so DST transitions don't introduce 23h/25h "days" that would make the
+ * streak silently lose a day twice a year. */
 export function daysBetween(start: Date, end: Date): number {
   const ms = 24 * 60 * 60 * 1000
-  const a = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime()
-  const b = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime()
+  const a = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())
+  const b = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate())
   return Math.floor((b - a) / ms)
 }
 

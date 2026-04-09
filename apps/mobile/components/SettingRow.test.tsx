@@ -48,15 +48,62 @@ describe('<SettingRow />', () => {
     expect(onPress).toHaveBeenCalledTimes(1)
   })
 
-  it('renders a disabled row without crashing', () => {
-    // Note: fireEvent.press in RN testing library walks up the tree and may
-    // still invoke the handler even when the Pressable has onPress=undefined.
-    // We verify the component renders correctly in the disabled state
-    // instead — the runtime disabled guard is exercised by real user taps.
-    const { getByText } = render(
-      <SettingRow label="Disabled" onPress={() => {}} disabled />,
+  // Reaches through UNSAFE_root to the first host descendant (the Pressable
+  // root that SettingRow renders). This asserts the component's actual
+  // wiring rather than relying on fireEvent.press, which walks the tree and
+  // can invoke handlers that aren't on the current element.
+  function findPressableHost(
+    node: { type: unknown; children: unknown[]; props: Record<string, unknown> },
+  ): Record<string, unknown> {
+    if (typeof node.type === 'string') return node.props
+    for (const child of node.children) {
+      if (typeof child === 'object' && child !== null) {
+        return findPressableHost(
+          child as {
+            type: unknown
+            children: unknown[]
+            props: Record<string, unknown>
+          },
+        )
+      }
+    }
+    throw new Error('no host descendant')
+  }
+
+  it('wires Pressable.onPress to undefined when disabled', () => {
+    const onPress = jest.fn()
+    const { UNSAFE_root } = render(
+      <SettingRow label="Disabled" onPress={onPress} disabled />,
     )
-    expect(getByText('Disabled')).toBeTruthy()
+    const pressProps = findPressableHost(
+      UNSAFE_root as unknown as {
+        type: unknown
+        children: unknown[]
+        props: Record<string, unknown>
+      },
+    )
+    expect(pressProps.onPress).toBeUndefined()
+  })
+
+  it('wires Pressable.onPress to the handler when not disabled', () => {
+    const onPress = jest.fn()
+    const { UNSAFE_root } = render(
+      <SettingRow label="Active" onPress={onPress} />,
+    )
+    const pressProps = findPressableHost(
+      UNSAFE_root as unknown as {
+        type: unknown
+        children: unknown[]
+        props: Record<string, unknown>
+      },
+    )
+    // jest-expo compiles Pressable to a host element and may attach handlers
+    // under onClick (web) or onResponderRelease (native). We just verify that
+    // *some* press handler is wired when enabled, and none when disabled
+    // (the earlier test).
+    const anyHandler =
+      pressProps.onPress ?? pressProps.onClick ?? pressProps.onResponderRelease
+    expect(anyHandler).toBeDefined()
   })
 
   it('renders a right slot instead of a chevron', () => {
