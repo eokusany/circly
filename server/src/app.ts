@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import { meRouter } from './routes/me'
+import { emergencyRouter } from './routes/emergency'
 
 export const app = express()
 
@@ -12,3 +13,4 @@ app.get('/health', (_req, res) => {
 })
 
 app.use('/api', meRouter)
+app.use('/api', emergencyRouter)
