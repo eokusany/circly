@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import { meRouter } from './routes/me'
 import { emergencyRouter } from './routes/emergency'
+import { invitesRouter } from './routes/invites'
 
 export const app = express()
 
@@ -14,3 +15,4 @@ app.get('/health', (_req, res) => {
 
 app.use('/api', meRouter)
 app.use('/api', emergencyRouter)
+app.use('/api', invitesRouter)
