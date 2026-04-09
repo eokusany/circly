@@ -78,10 +78,8 @@ export default function RoleSelectScreen() {
         }
         break
       case 'supporter':
-        router.replace('/(supporter)')
-        break
       case 'sponsor':
-        router.replace('/(sponsor)')
+        router.replace('/(auth)/invite-code')
         break
     }
   }

@@ -102,22 +102,38 @@ export default function RecoveryHome() {
             {user?.displayName ?? 'friend'}
           </Text>
         </View>
-        <Pressable
-          onPress={() => router.push('/(profile)')}
-          style={({ pressed }) => [
-            styles.profileButton,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              opacity: pressed ? 0.7 : 1,
-            },
-          ]}
-          accessibilityLabel="profile"
-        >
-          <Text style={[styles.profileIcon, { color: colors.textPrimary }]}>
-            {(user?.displayName ?? '?').trim().charAt(0).toUpperCase()}
-          </Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => router.push('/(recovery)/settings')}
+            style={({ pressed }) => [
+              styles.profileButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+            accessibilityLabel="settings"
+          >
+            <Text style={[styles.profileIcon, { color: colors.textPrimary }]}>⚙</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/(profile)')}
+            style={({ pressed }) => [
+              styles.profileButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+            accessibilityLabel="profile"
+          >
+            <Text style={[styles.profileIcon, { color: colors.textPrimary }]}>
+              {(user?.displayName ?? '?').trim().charAt(0).toUpperCase()}
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       <StreakCard days={days} next={next} streakLabel={copy.dashboard.streakLabel} />
@@ -462,6 +478,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   headerText: { flex: 1, gap: spacing.xs },
+  headerActions: { flexDirection: 'row', gap: spacing.sm },
   greeting: { ...type.body },
   name: { ...type.h1 },
   profileButton: {
