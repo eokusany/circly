@@ -164,12 +164,28 @@ export default function SupporterHome() {
         contentContainerStyle={styles.container}
       >
         <View style={styles.header}>
-          <Text style={[styles.greeting, { color: colors.textSecondary }]}>
-            hey
-          </Text>
-          <Text style={[styles.name, { color: colors.textPrimary }]}>
-            {user?.displayName ?? 'friend'}
-          </Text>
+          <View style={styles.headerText}>
+            <Text style={[styles.greeting, { color: colors.textSecondary }]}>
+              hey
+            </Text>
+            <Text style={[styles.name, { color: colors.textPrimary }]}>
+              {user?.displayName ?? 'friend'}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => router.push('/(chat)')}
+            style={({ pressed }) => [
+              styles.headerButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+            accessibilityLabel="messages"
+          >
+            <Text style={[styles.headerIcon, { color: colors.textPrimary }]}>💬</Text>
+          </Pressable>
         </View>
 
         {people.length === 0 ? (
@@ -400,7 +416,22 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
     gap: layout.sectionGap,
   },
-  header: { gap: spacing.xs },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  headerText: { flex: 1, gap: spacing.xs },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerIcon: { fontSize: 17, fontWeight: '600' },
   greeting: { ...t.body },
   name: { ...t.h1 },
   list: { gap: spacing.md },

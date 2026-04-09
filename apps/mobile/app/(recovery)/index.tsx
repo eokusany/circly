@@ -104,6 +104,20 @@ export default function RecoveryHome() {
         </View>
         <View style={styles.headerActions}>
           <Pressable
+            onPress={() => router.push('/(chat)')}
+            style={({ pressed }) => [
+              styles.profileButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+            accessibilityLabel="messages"
+          >
+            <Text style={[styles.profileIcon, { color: colors.textPrimary }]}>💬</Text>
+          </Pressable>
+          <Pressable
             onPress={() => router.push('/(recovery)/settings')}
             style={({ pressed }) => [
               styles.profileButton,
