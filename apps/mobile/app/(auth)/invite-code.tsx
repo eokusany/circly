@@ -91,6 +91,7 @@ export default function InviteCodeScreen() {
           onChangeText={(v) => setCode(v.toUpperCase())}
           placeholder="ABC123"
           autoCapitalize="characters"
+          maxLength={6}
         />
         <Button label="continue" onPress={handleContinue} loading={loading} />
       </View>

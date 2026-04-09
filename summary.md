@@ -399,3 +399,39 @@ After deleting an account, signing back in with the same credentials succeeded a
 - **Pending user action:** run `supabase/migrations/005_self_delete_function.sql` in the Supabase SQL editor before exercising the delete-account flow.
 
 *Session date: 2026-04-08*
+
+---
+
+## Session 2026-04-09 — Forgot Password (OTP flow)
+
+### What was built
+Added a full password reset flow to the auth stack:
+
+- **["forgot password?" link on sign-in](apps/mobile/app/(auth)/sign-in.tsx)** — sits directly under the sign-in button.
+- **[(auth)/forgot-password.tsx](apps/mobile/app/(auth)/forgot-password.tsx)** — email input, calls `supabase.auth.resetPasswordForEmail(email)`, then navigates to `verify-reset` with the email as a route param.
+- **[(auth)/verify-reset.tsx](apps/mobile/app/(auth)/verify-reset.tsx)** — code + new password + confirm fields. Calls `supabase.auth.verifyOtp({ email, token, type: 'recovery' })` to exchange the code for a recovery session, then `updateUser({ password })`, then `signOut()` so the user lands back on the sign-in screen with their new credentials.
+- **[_layout.tsx](apps/mobile/app/_layout.tsx)** — auth state listener ignores `PASSWORD_RECOVERY` events so the transient recovery session doesn't route into the app home mid-flow.
+
+### Why OTP instead of magic-link deep links
+Originally implemented as a classic email-link deep link flow (`Linking.createURL` → `resetPasswordForEmail({ redirectTo })` → `set-new-password` screen + `PASSWORD_RECOVERY` handler). Spent significant time debugging why Supabase kept falling back to the Site URL (`circly://`) instead of using our `redirectTo`:
+
+1. **Route group bug** — `Linking.createURL('(auth)/set-new-password')` was wrong; Expo Router groups aren't part of the URL path. Corrected to `/set-new-password`.
+2. **Wildcard allowlist rejected** — tried `exp://**`, then `exp://192.168.1.232:8081/--/**`, then the exact URL. None were honored.
+3. **Confirmed via direct curl** to `/auth/v1/recover?redirect_to=exp%3A%2F%2F...` — Supabase still returned `redirect_to=circly://` in the verification email even with the exact URL in the allowlist.
+
+**Root cause:** Supabase's redirect URL validator doesn't accept custom schemes with IPs/ports (`exp://192.168.1.232:8081/--/...`) regardless of allowlist configuration. This is a server-side validator limitation, not a wildcard-matching issue.
+
+**Pivot:** switched to OTP flow using the `{{ .Token }}` template variable in the Reset Password email. No deep links, no allowlist dependency, no scheme registration, works identically in Expo Go and standalone builds. Cleaner UX too.
+
+### Files removed
+- `apps/mobile/app/(auth)/set-new-password.tsx` — obsolete after pivot.
+
+### Pending user action
+- Supabase dashboard → **Authentication → Email Templates → Reset Password**: update the template to include `{{ .Token }}` so users receive the code in the email body.
+- Optional cleanup: remove `exp://*` and `circly://set-new-password` entries from **URL Configuration → Redirect URLs** (no longer needed).
+
+### Verification
+- Reset flow tested end-to-end with a real email + code once template is updated.
+- Code accepts any OTP length (Supabase currently sends 8-digit codes; copy dropped references to "6-digit").
+
+*Session date: 2026-04-09*

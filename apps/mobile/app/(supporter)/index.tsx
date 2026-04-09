@@ -88,34 +88,56 @@ export default function SupporterHome() {
       latest_milestone: null as MilestoneType | null,
     }))
 
-    // Fetch today's check-in and latest milestone per person in parallel.
-    // RLS silently hides rows the supporter isn't allowed to see — missing
+    if (base.length === 0) {
+      setPeople([])
+      setLoading(false)
+      return
+    }
+
+    // Batch check-ins + milestones in two queries total (not 2N). RLS
+    // silently hides rows the supporter isn't allowed to see — missing
     // data is rendered as "not shared", not as an error.
+    const ids = base.map((p) => p.recovery_user_id)
     const today = toISODate(new Date())
-    const enriched = await Promise.all(
-      base.map(async (p) => {
-        const [checkIn, milestone] = await Promise.all([
-          supabase
-            .from('check_ins')
-            .select('status')
-            .eq('user_id', p.recovery_user_id)
-            .eq('check_in_date', today)
-            .maybeSingle<{ status: CheckInStatus }>(),
-          supabase
-            .from('milestones')
-            .select('type')
-            .eq('user_id', p.recovery_user_id)
-            .order('reached_on', { ascending: false })
-            .limit(1)
-            .maybeSingle<{ type: MilestoneType }>(),
-        ])
-        return {
-          ...p,
-          today_check_in: checkIn.data?.status ?? null,
-          latest_milestone: milestone.data?.type ?? null,
-        }
-      }),
-    )
+
+    const [checkInsRes, milestonesRes] = await Promise.all([
+      supabase
+        .from('check_ins')
+        .select('user_id, status')
+        .in('user_id', ids)
+        .eq('check_in_date', today),
+      supabase
+        .from('milestones')
+        .select('user_id, type, reached_on')
+        .in('user_id', ids)
+        .order('reached_on', { ascending: false }),
+    ])
+
+    const checkInByUser = new Map<string, CheckInStatus>()
+    for (const row of (checkInsRes.data ?? []) as Array<{
+      user_id: string
+      status: CheckInStatus
+    }>) {
+      checkInByUser.set(row.user_id, row.status)
+    }
+
+    // milestones is sorted desc by reached_on, so first occurrence per
+    // user_id is the latest.
+    const latestMilestoneByUser = new Map<string, MilestoneType>()
+    for (const row of (milestonesRes.data ?? []) as Array<{
+      user_id: string
+      type: MilestoneType
+    }>) {
+      if (!latestMilestoneByUser.has(row.user_id)) {
+        latestMilestoneByUser.set(row.user_id, row.type)
+      }
+    }
+
+    const enriched = base.map((p) => ({
+      ...p,
+      today_check_in: checkInByUser.get(p.recovery_user_id) ?? null,
+      latest_milestone: latestMilestoneByUser.get(p.recovery_user_id) ?? null,
+    }))
 
     setPeople(enriched)
     setLoading(false)

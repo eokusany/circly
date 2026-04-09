@@ -63,6 +63,16 @@ describe('POST /api/encouragements', () => {
     expect(res.body).toEqual({ error: 'missing_fields' })
   })
 
+  it('returns 400 when the message exceeds 500 characters', async () => {
+    authedAs('sup-1')
+    const res = await request(app)
+      .post('/api/encouragements')
+      .set('Authorization', 'Bearer valid')
+      .send({ relationship_id: 'rel-1', message: 'a'.repeat(501) })
+    expect(res.status).toBe(400)
+    expect(res.body).toEqual({ error: 'message_too_long' })
+  })
+
   it('returns 404 when the relationship does not belong to the caller', async () => {
     authedAs('sup-1')
 
