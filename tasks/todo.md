@@ -56,7 +56,7 @@ See [tasks/plan.md](plan.md) for full context, acceptance criteria, and verifica
 ---
 
 ## Phase 4: Chat and Notifications
-- [ ] **Task 11a** — `(chat)` route group + conversations list screen + header entry points on recovery + supporter dashboards
+- [x] **Task 11a** — `(chat)` route group + conversations list screen + header entry points on recovery + supporter dashboards
 - [ ] **Task 11b** — `(chat)/[id].tsx` chat screen with Supabase Realtime subscription + optimistic send
 - [ ] **Task 12** — `(notifications)` route + in-app notification center + `NotificationBell` header component with live unread badge
 
