@@ -66,6 +66,10 @@ export default function RootLayout() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // PASSWORD_RECOVERY: ignore here — verify-reset.tsx handles this flow
+        // in-screen (OTP verify + updateUser + signOut) so we don't want to
+        // route the transient recovery session into the app home.
+        if (event === 'PASSWORD_RECOVERY') return
         if (event === 'SIGNED_OUT' || !session) {
           setUser(null)
           router.replace('/(auth)/sign-in')

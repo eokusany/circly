@@ -58,6 +58,9 @@ export default function SignInScreen() {
           secureTextEntry
         />
         <Button label="sign in" onPress={handleSignIn} loading={loading} />
+        <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
+          <Text style={[styles.forgot, { color: colors.accent }]}>forgot password?</Text>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity onPress={() => router.replace('/(auth)/sign-up')}>
@@ -83,4 +86,5 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15 },
   form: { gap: 16 },
   link: { textAlign: 'center', fontSize: 14 },
+  forgot: { textAlign: 'center', fontSize: 14, fontWeight: '600', marginTop: 4 },
 })

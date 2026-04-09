@@ -15,8 +15,8 @@ See [tasks/plan.md](plan.md) for full context, acceptance criteria, and verifica
 - [x] Task 4: Recovery dashboard — sobriety streak and milestone badges
 - [x] Task 5: Daily check-in (3 states, one per day, history log)
 - [x] Task 6: Journal entry (private by default, mood tag)
-- [ ] **Task 7a** — Server auth middleware (`requireAuth`) + mobile `lib/api.ts` helper + `GET /api/me` test endpoint + vitest coverage
-- [ ] **Task 7b** — `POST /api/emergency` (wired to "get support" tile) + confirm dialog + success feedback
+- [x] Task 7a — Server auth middleware (`requireAuth`) + mobile `lib/api.ts` helper + `GET /api/me` test endpoint + vitest coverage
+- [x] Task 7b — `POST /api/emergency` (wired to "get support" tile) + confirm dialog + success feedback
 
 ---
 
@@ -42,10 +42,10 @@ See [tasks/plan.md](plan.md) for full context, acceptance criteria, and verifica
 ---
 
 ## Phase 3: Relationships and Supporter Flow
-- [ ] **Task 8a** — Migration `003_invite_codes.sql` + `POST /api/invites` (generate) + `POST /api/invites/accept` (creates relationship + conversation) + vitest coverage
-- [ ] **Task 8b** — Recovery `settings.tsx` + generate-code UI + `(auth)/invite-code.tsx` + route supporter onboarding through it
-- [ ] **Task 9** — `supporter-settings.tsx` with per-supporter permission toggles + remove supporter
-- [ ] **Task 10** — Supporter dashboard (linked recovery user cards + encouragement sheet) + `POST /api/encouragements`
+- [x] Task 8a — Migration `006_invite_codes.sql` + `POST /api/invites` (generate) + `POST /api/invites/accept` (creates relationship + conversation) + vitest coverage
+- [x] Task 8b — Recovery `settings.tsx` + generate-code UI + `(auth)/invite-code.tsx` + route supporter onboarding through it
+- [x] Task 9 — `supporter-settings.tsx` with per-supporter permission toggles + remove supporter
+- [x] Task 10 — Supporter dashboard (linked recovery user cards + encouragement sheet) + `POST /api/encouragements`
 
 ### Checkpoint: Relationships and Supporter Flow
 - [ ] Full invite → accept → support loop works across two accounts

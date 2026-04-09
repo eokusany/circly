@@ -11,6 +11,7 @@ interface Props {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters'
   keyboardType?: 'default' | 'email-address' | 'number-pad'
   autoCorrect?: boolean
+  maxLength?: number
 }
 
 export function TextInput({
@@ -22,6 +23,7 @@ export function TextInput({
   autoCapitalize = 'none',
   keyboardType = 'default',
   autoCorrect = false,
+  maxLength,
 }: Props) {
   const colors = useColors()
 
@@ -47,6 +49,7 @@ export function TextInput({
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}
         autoCorrect={autoCorrect}
+        maxLength={maxLength}
       />
     </View>
   )
