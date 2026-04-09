@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
+import { api, ApiError } from '../../lib/api'
 import { spacing, radii, type, layout } from '../../constants/theme'
 import {
   MILESTONES,
@@ -21,6 +22,51 @@ export default function RecoveryHome() {
   const copy = useCopy()
   const { user } = useAuthStore()
   const [todayStatus, setTodayStatus] = useState<CheckInStatus | null>(null)
+  const [sendingEmergency, setSendingEmergency] = useState(false)
+
+  async function handleGetSupport() {
+    Alert.alert(
+      'alert your supporters',
+      'this will notify all your supporters right now. continue?',
+      [
+        { text: 'cancel', style: 'cancel' },
+        {
+          text: 'yes, alert them',
+          style: 'destructive',
+          onPress: async () => {
+            setSendingEmergency(true)
+            try {
+              const result = await api<{ supporters_notified: number }>(
+                '/api/emergency',
+                { method: 'POST' },
+              )
+              if (result.supporters_notified === 0) {
+                Alert.alert(
+                  'no supporters yet',
+                  'add someone to your circle so they can be there for you.',
+                )
+              } else {
+                Alert.alert(
+                  'your supporters have been notified',
+                  `${result.supporters_notified} ${
+                    result.supporters_notified === 1 ? 'person has' : 'people have'
+                  } been alerted.`,
+                )
+              }
+            } catch (err) {
+              const message =
+                err instanceof ApiError
+                  ? 'something went wrong. please try again.'
+                  : 'check your connection and try again.'
+              Alert.alert('could not send alert', message)
+            } finally {
+              setSendingEmergency(false)
+            }
+          },
+        },
+      ],
+    )
+  }
 
   const days = user?.sobrietyStartDate ? streakDays(user.sobrietyStartDate) : 0
   const next = nextMilestone(days)
@@ -95,8 +141,9 @@ export default function RecoveryHome() {
           <ActionTile
             label={copy.dashboard.getSupportLabel}
             description={copy.dashboard.getSupportDescription}
-            disabled
             danger
+            loading={sendingEmergency}
+            onPress={handleGetSupport}
           />
         </View>
       </View>
@@ -347,24 +394,27 @@ function ActionTile({
   description,
   disabled,
   danger,
+  loading,
   onPress,
 }: {
   label: string
   description: string
   disabled?: boolean
   danger?: boolean
+  loading?: boolean
   onPress?: () => void
 }) {
   const colors = useColors()
+  const inactive = disabled || loading
   return (
     <Pressable
-      onPress={disabled ? undefined : onPress}
+      onPress={inactive ? undefined : onPress}
       style={({ pressed }) => [
         styles.tile,
         {
           backgroundColor: colors.surface,
           borderColor: danger ? colors.danger : colors.border,
-          opacity: disabled ? 0.55 : pressed ? 0.85 : 1,
+          opacity: inactive ? 0.55 : pressed ? 0.85 : 1,
         },
       ]}
     >
@@ -377,9 +427,9 @@ function ActionTile({
         {label}
       </Text>
       <Text style={[styles.tileDescription, { color: colors.textSecondary }]}>
-        {description}
+        {loading ? 'sending...' : description}
       </Text>
-      {disabled && (
+      {disabled && !loading && (
         <Text style={[styles.tileSoon, { color: colors.textMuted }]}>coming soon</Text>
       )}
     </Pressable>
