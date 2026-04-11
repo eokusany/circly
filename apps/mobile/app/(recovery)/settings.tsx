@@ -14,6 +14,8 @@ import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
 import { api, ApiError } from '../../lib/api'
 import { Button } from '../../components/Button'
+import { TextInput } from '../../components/TextInput'
+import { Icon } from '../../components/Icon'
 import { spacing, radii, type, layout } from '../../constants/theme'
 
 interface Supporter {
@@ -39,6 +41,8 @@ export default function RecoverySettings() {
   const [supporters, setSupporters] = useState<Supporter[]>([])
   const [invite, setInvite] = useState<Invite | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [acceptCode, setAcceptCode] = useState('')
+  const [accepting, setAccepting] = useState(false)
 
   const loadSupporters = useCallback(async () => {
     if (!user) return
@@ -98,6 +102,44 @@ export default function RecoverySettings() {
     }
   }
 
+  async function handleAcceptCode() {
+    const trimmed = acceptCode.trim().toUpperCase()
+    if (trimmed.length !== 6) {
+      Alert.alert('invalid code', 'invite codes are 6 characters.')
+      return
+    }
+    setAccepting(true)
+    try {
+      await api('/api/invites/accept', {
+        method: 'POST',
+        body: JSON.stringify({ code: trimmed }),
+      })
+      setAccepting(false)
+      setAcceptCode('')
+      Alert.alert('connected', 'a new supporter has joined your circle.')
+      loadSupporters()
+    } catch (err) {
+      setAccepting(false)
+      if (err instanceof ApiError) {
+        const errorCode =
+          typeof err.body === 'object' && err.body !== null && 'error' in err.body
+            ? (err.body as { error: string }).error
+            : null
+        const message =
+          errorCode === 'invalid_or_used_code'
+            ? "that code doesn't exist or has already been used."
+            : errorCode === 'self_invite'
+              ? "you can't use your own invite code."
+              : errorCode === 'already_linked'
+                ? "you're already connected to this person."
+                : 'something went wrong. please try again.'
+        Alert.alert('could not connect', message)
+      } else {
+        Alert.alert('could not connect', 'check your connection and try again.')
+      }
+    }
+  }
+
   async function handleShare(code: string) {
     try {
       await Share.share({
@@ -110,18 +152,22 @@ export default function RecoverySettings() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: 'settings',
-          headerTintColor: colors.textPrimary,
-          headerStyle: { backgroundColor: colors.background },
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         style={{ backgroundColor: colors.background }}
         contentContainerStyle={styles.container}
       >
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
+            <Icon name="chevron-left" size={20} color={colors.accent} />
+            <Text style={[styles.back, { color: colors.accent }]}>back</Text>
+          </Pressable>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>your circle</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            manage your supporters and invite new ones.
+          </Text>
+        </View>
+
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
             your circle
@@ -160,9 +206,7 @@ export default function RecoverySettings() {
                 <Text style={[styles.rowName, { color: colors.textPrimary }]}>
                   {s.display_name}
                 </Text>
-                <Text style={[styles.rowChevron, { color: colors.textMuted }]}>
-                  ›
-                </Text>
+                <Icon name="chevron-right" size={18} color={colors.textMuted} />
               </Pressable>
             ))
           )}
@@ -189,9 +233,29 @@ export default function RecoverySettings() {
           )}
         </View>
 
-        <Pressable onPress={() => router.back()} style={styles.backLink}>
-          <Text style={{ color: colors.textSecondary }}>back</Text>
-        </Pressable>
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+            have a code?
+          </Text>
+          <Text style={[styles.sectionHint, { color: colors.textSecondary }]}>
+            if a supporter shared a code with you, enter it here to connect.
+          </Text>
+          <TextInput
+            label="code"
+            value={acceptCode}
+            onChangeText={(v) => setAcceptCode(v.toUpperCase())}
+            placeholder="ABC123"
+            autoCapitalize="characters"
+            maxLength={6}
+          />
+          <Button
+            label="connect"
+            onPress={handleAcceptCode}
+            loading={accepting}
+            disabled={acceptCode.trim().length < 6}
+          />
+        </View>
+
       </ScrollView>
     </>
   )
@@ -242,11 +306,18 @@ function InviteCard({
 const styles = StyleSheet.create({
   container: {
     padding: layout.screenPadding,
+    paddingTop: layout.screenTopPadding,
     paddingBottom: spacing.xxxl,
     gap: layout.sectionGap,
   },
+  header: { gap: spacing.sm },
+  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
+  back: { ...type.bodyStrong },
+  title: { ...type.h1 },
+  subtitle: { ...type.body },
   section: { gap: spacing.md },
   sectionTitle: { ...type.label },
+  sectionHint: { ...type.small },
   emptyCard: {
     borderRadius: radii.lg,
     borderWidth: 1,
@@ -262,7 +333,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rowName: { ...type.body, fontWeight: '600', flex: 1 },
-  rowChevron: { fontSize: 22, fontWeight: '300' },
   inviteCard: {
     borderRadius: radii.lg,
     borderWidth: 1,
@@ -283,5 +353,4 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.md,
   },
-  backLink: { alignItems: 'center', paddingVertical: spacing.lg },
 })

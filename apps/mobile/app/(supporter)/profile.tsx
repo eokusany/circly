@@ -1,20 +1,18 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import { router } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
-import { Icon } from '../../components/Icon'
 import { spacing, type as t, layout } from '../../constants/theme'
 import { SettingRow, SettingSection } from '../../components/SettingRow'
 import { COPY, DEFAULT_CONTEXT } from '../../lib/copy'
 
-export default function ProfileScreen() {
+export default function SupporterProfileTab() {
   const colors = useColors()
   const { user, signOut } = useAuthStore()
 
   if (!user) return null
 
   const contextLabel = COPY[user.context ?? DEFAULT_CONTEXT].contextCard.label
-  const isRecoveryCenter = user.role === 'recovery' && user.context === 'recovery'
 
   return (
     <ScrollView
@@ -22,10 +20,6 @@ export default function ProfileScreen() {
       contentContainerStyle={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Icon name="chevron-left" size={20} color={colors.accent} />
-          <Text style={[styles.back, { color: colors.accent }]}>back</Text>
-        </TouchableOpacity>
         <Text style={[styles.title, { color: colors.textPrimary }]}>profile</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {user.displayName} · {contextLabel}
@@ -57,16 +51,6 @@ export default function ProfileScreen() {
         />
         <SettingRow label="sign out" onPress={signOut} hideChevron />
       </SettingSection>
-
-      {isRecoveryCenter && (
-        <SettingSection title="recovery">
-          <SettingRow
-            label="reset sobriety date"
-            value={user.sobrietyStartDate ?? 'not set'}
-            onPress={() => router.push('/(profile)/reset-sobriety')}
-          />
-        </SettingSection>
-      )}
 
       <SettingSection title="notifications">
         <SettingRow
@@ -101,8 +85,6 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.sm },
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
-  back: { ...t.smallStrong },
   title: { ...t.h1 },
   subtitle: { ...t.body },
   footer: { height: spacing.xxxl },

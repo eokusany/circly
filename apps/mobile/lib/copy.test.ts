@@ -25,7 +25,7 @@ describe('COPY map', () => {
       for (const role of rc.roles) {
         expect(rc.roleCopy[role].label).toBeTruthy()
         expect(rc.roleCopy[role].description).toBeTruthy()
-        expect(rc.roleCopy[role].emoji).toBeTruthy()
+        expect(rc.roleCopy[role].icon).toBeTruthy()
       }
     })
 
@@ -45,7 +45,7 @@ describe('COPY map', () => {
     it('contextCard has label/description/emoji', () => {
       expect(rc.contextCard.label).toBeTruthy()
       expect(rc.contextCard.description).toBeTruthy()
-      expect(rc.contextCard.emoji).toBeTruthy()
+      expect(rc.contextCard.icon).toBeTruthy()
     })
   })
 
@@ -77,9 +77,9 @@ describe('COPY map', () => {
       expect(fc.roleCopy.supporter.label).toBe('family member')
     })
 
-    it('has distinct check-in emojis from recovery', () => {
-      expect(fc.dashboard.checkInStatuses.good_day.emoji).not.toBe(
-        COPY.recovery.dashboard.checkInStatuses.good_day.emoji,
+    it('has distinct check-in labels from recovery', () => {
+      expect(fc.dashboard.checkInStatuses.good_day.label).not.toBe(
+        COPY.recovery.dashboard.checkInStatuses.good_day.label,
       )
     })
   })
