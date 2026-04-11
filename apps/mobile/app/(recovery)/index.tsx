@@ -17,15 +17,9 @@ import {
   type Milestone,
 } from '../../lib/streak'
 import { useCopy } from '../../lib/copy'
+import { OkayTapCard } from '../../components/OkayTapCard'
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
-
-interface Encouragement {
-  id: string
-  message: string
-  sender_name: string
-  created_at: string
-}
 
 interface WeeklyStats {
   checkIns: number
@@ -40,9 +34,9 @@ export default function RecoveryHome() {
   const [sendingEmergency, setSendingEmergency] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [checkInStreak, setCheckInStreak] = useState(0)
-  const [encouragements, setEncouragements] = useState<Encouragement[]>([])
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({ checkIns: 0, journalEntries: 0 })
   const [showCelebration, setShowCelebration] = useState(false)
+  const [okayTapped, setOkayTapped] = useState(false)
 
   async function handleGetSupport() {
     Alert.alert(
@@ -98,7 +92,7 @@ export default function RecoveryHome() {
     const todayISO = toISODate(today)
 
     // Load all dashboard data in parallel
-    const [checkInRes, streakRes, encourageRes, weekCheckRes, weekJournalRes] = await Promise.all([
+    const [checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes] = await Promise.all([
       // Today's check-in
       supabase
         .from('check_ins')
@@ -113,13 +107,6 @@ export default function RecoveryHome() {
         .eq('user_id', user.id)
         .order('check_in_date', { ascending: false })
         .limit(30),
-      // Recent encouragements
-      supabase
-        .from('encouragements')
-        .select('id, message, created_at, relationships!inner(supporter_id, users:supporter_id(display_name))')
-        .eq('relationships.recovery_user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(3),
       // This week's check-ins count
       supabase
         .from('check_ins')
@@ -132,6 +119,8 @@ export default function RecoveryHome() {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .gte('created_at', new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()).toISOString()),
+      // Today's okay tap
+      api<{ tapped: boolean }>('/api/okay-tap/today').catch(() => ({ tapped: false })),
     ])
 
     setTodayStatus(checkInRes.data?.status ?? null)
@@ -150,26 +139,12 @@ export default function RecoveryHome() {
       setCheckInStreak(streak)
     }
 
-    // Parse encouragements
-    if (encourageRes.data) {
-      const rows = encourageRes.data as unknown as Array<{
-        id: string
-        message: string
-        created_at: string
-        relationships: { users: { display_name: string } | null } | null
-      }>
-      setEncouragements(rows.map(r => ({
-        id: r.id,
-        message: r.message,
-        sender_name: r.relationships?.users?.display_name ?? 'someone',
-        created_at: r.created_at,
-      })))
-    }
-
     setWeeklyStats({
       checkIns: weekCheckRes.count ?? 0,
       journalEntries: weekJournalRes.count ?? 0,
     })
+
+    setOkayTapped(okayTapRes.tapped)
   }, [user])
 
   useFocusEffect(
@@ -233,6 +208,20 @@ export default function RecoveryHome() {
 
       {showCelebration && <CelebrationBanner />}
 
+      <OkayTapCard
+        tapped={okayTapped}
+        onTap={async () => {
+          try {
+            await api('/api/okay-tap', { method: 'POST' })
+            setOkayTapped(true)
+          } catch {
+            // silent — haptic already fired, will retry on next refresh
+          }
+        }}
+        prompt={copy.dashboard.okayTapPrompt}
+        doneMessage={copy.dashboard.okayTapDone}
+      />
+
       <StreakCard days={days} next={next} streakLabel={copy.dashboard.streakLabel} />
 
       <View style={styles.section}>
@@ -244,18 +233,6 @@ export default function RecoveryHome() {
 
       {/* Weekly summary */}
       <WeeklySummary stats={weeklyStats} checkInStreak={checkInStreak} />
-
-      {/* Encouragement inbox */}
-      {encouragements.length > 0 && (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
-            from your circle
-          </Text>
-          {encouragements.map(e => (
-            <EncouragementCard key={e.id} encouragement={e} />
-          ))}
-        </View>
-      )}
 
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>today</Text>
@@ -646,25 +623,6 @@ function WeeklySummary({ stats, checkInStreak }: { stats: WeeklyStats; checkInSt
   )
 }
 
-// ─── encouragement card ────────────────────────────────────────────────
-
-function EncouragementCard({ encouragement }: { encouragement: Encouragement }) {
-  const colors = useColors()
-  return (
-    <View style={[styles.encourageCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Icon name="heart" size={16} color={colors.accent} />
-      <View style={styles.encourageBody}>
-        <Text style={[type.body, { color: colors.textPrimary }]}>
-          &ldquo;{encouragement.message}&rdquo;
-        </Text>
-        <Text style={[type.small, { color: colors.textMuted }]}>
-          from {encouragement.sender_name}
-        </Text>
-      </View>
-    </View>
-  )
-}
-
 // ─── helpers ────────────────────────────────────────────────────────────
 
 function getGreeting(): string {
@@ -776,17 +734,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
-
-  // encouragement
-  encourageCard: {
-    borderRadius: radii.md,
-    borderWidth: 1,
-    padding: spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  encourageBody: { flex: 1, gap: spacing.xs },
 
   // tiles
   tiles: { gap: spacing.md },

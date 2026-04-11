@@ -53,6 +53,10 @@ export interface ContextCopy {
     journalDescription: string
     getSupportLabel: string // always "get support" — kept here for symmetry
     getSupportDescription: string
+    okayTapPrompt: string
+    okayTapDone: string
+    silenceNudge: string
+    warmPingSent: string
   }
 
   // Sign-up subtitle
@@ -104,6 +108,10 @@ const recovery: ContextCopy = {
     journalDescription: 'a private space for your thoughts',
     getSupportLabel: 'get support',
     getSupportDescription: 'reach your network instantly',
+    okayTapPrompt: "tap to say you're okay",
+    okayTapDone: "you're okay. your circle knows.",
+    silenceNudge: "it's been {days} days since {name} checked in. maybe reach out?",
+    warmPingSent: '{name} will feel your warmth.',
   },
   signUpSubtitle: 'your circle starts here',
 }
@@ -156,6 +164,10 @@ const family: ContextCopy = {
     journalDescription: 'a private space for your thoughts',
     getSupportLabel: 'get support',
     getSupportDescription: 'reach your people instantly',
+    okayTapPrompt: "tap to say you're okay",
+    okayTapDone: "you're okay. your people know.",
+    silenceNudge: "it's been {days} days since {name} tapped in. maybe call?",
+    warmPingSent: '{name} will feel your warmth.',
   },
   signUpSubtitle: 'your circle starts here',
 }
