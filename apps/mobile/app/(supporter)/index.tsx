@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
@@ -17,8 +18,17 @@ import { supabase } from '../../lib/supabase'
 import { api, ApiError } from '../../lib/api'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
+import { Icon, type IconName } from '../../components/Icon'
+import { tapMedium, notifySuccess } from '../../lib/haptics'
 import { streakDays, toISODate, type MilestoneType } from '../../lib/streak'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
+
+function getGreeting(): string {
+  const h = new Date().getHours()
+  if (h < 12) return 'good morning'
+  if (h < 17) return 'good afternoon'
+  return 'good evening'
+}
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
@@ -31,10 +41,10 @@ interface LinkedPerson {
   latest_milestone: MilestoneType | null
 }
 
-const CHECKIN_META: Record<CheckInStatus, { emoji: string; label: string }> = {
-  good_day: { emoji: '🌿', label: 'good day' },
-  sober: { emoji: '🌊', label: 'sober' },
-  struggling: { emoji: '🌙', label: 'struggling' },
+const CHECKIN_META: Record<CheckInStatus, { icon: IconName; label: string }> = {
+  good_day: { icon: 'sun', label: 'good day' },
+  sober: { icon: 'anchor', label: 'sober' },
+  struggling: { icon: 'cloud', label: 'struggling' },
 }
 
 const MILESTONE_LABEL: Record<MilestoneType, string> = {
@@ -49,9 +59,10 @@ const PRESETS = ['thinking of you', 'proud of you', "you've got this"]
 
 export default function SupporterHome() {
   const colors = useColors()
-  const { user, signOut } = useAuthStore()
+  const { user } = useAuthStore()
   const [people, setPeople] = useState<LinkedPerson[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [sendingFor, setSendingFor] = useState<LinkedPerson | null>(null)
 
   const load = useCallback(async () => {
@@ -162,18 +173,25 @@ export default function SupporterHome() {
       <ScrollView
         style={{ backgroundColor: colors.background }}
         contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false) }}
+            tintColor={colors.accent}
+          />
+        }
       >
         <View style={styles.header}>
           <View style={styles.headerText}>
             <Text style={[styles.greeting, { color: colors.textSecondary }]}>
-              hey
+              {getGreeting()}
             </Text>
             <Text style={[styles.name, { color: colors.textPrimary }]}>
               {user?.displayName ?? 'friend'}
             </Text>
           </View>
           <Pressable
-            onPress={() => router.push('/(chat)')}
+            onPress={() => router.push('/(supporter)/invite')}
             style={({ pressed }) => [
               styles.headerButton,
               {
@@ -182,9 +200,9 @@ export default function SupporterHome() {
                 opacity: pressed ? 0.7 : 1,
               },
             ]}
-            accessibilityLabel="messages"
+            accessibilityLabel="invite someone"
           >
-            <Text style={[styles.headerIcon, { color: colors.textPrimary }]}>💬</Text>
+            <Icon name="user-plus" size={18} color={colors.textPrimary} />
           </Pressable>
         </View>
 
@@ -202,9 +220,6 @@ export default function SupporterHome() {
           </View>
         )}
 
-        <TouchableOpacity onPress={signOut} style={styles.signOut}>
-          <Text style={{ color: colors.textMuted }}>sign out</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       <EncouragementSheet
@@ -224,15 +239,18 @@ function EmptyState() {
         { backgroundColor: colors.surface, borderColor: colors.border },
       ]}
     >
+      <View style={[styles.emptyIconCircle, { backgroundColor: colors.accentSoft }]}>
+        <Icon name="users" size={28} color={colors.accent} />
+      </View>
       <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
         no one linked yet
       </Text>
       <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-        enter an invite code to start supporting someone.
+        invite someone you want to support, or enter a code they shared with you.
       </Text>
       <Button
-        label="enter invite code"
-        onPress={() => router.push('/(auth)/invite-code')}
+        label="get started"
+        onPress={() => router.push('/(supporter)/invite')}
       />
     </View>
   )
@@ -250,15 +268,13 @@ function PersonCard({
     ? streakDays(person.sobriety_start_date)
     : null
 
-  const checkInLine = person.today_check_in
-    ? `${CHECKIN_META[person.today_check_in].emoji}  ${
-        CHECKIN_META[person.today_check_in].label
-      }`
-    : 'not yet today · not shared'
+  const checkIn = person.today_check_in ? CHECKIN_META[person.today_check_in] : null
 
   const milestoneLine = person.latest_milestone
     ? MILESTONE_LABEL[person.latest_milestone]
     : 'none yet'
+
+  const initial = person.display_name.trim().charAt(0).toUpperCase()
 
   return (
     <View
@@ -267,30 +283,40 @@ function PersonCard({
         { backgroundColor: colors.surface, borderColor: colors.border },
       ]}
     >
-      <Text style={[styles.cardName, { color: colors.textPrimary }]}>
-        {person.display_name}
-      </Text>
-
-      <View style={styles.metaRow}>
-        <View style={styles.metaBlock}>
-          <Text style={[styles.metaLabel, { color: colors.textMuted }]}>
-            streak
-          </Text>
-          <Text style={[styles.metaValue, { color: colors.accent }]}>
-            {days !== null ? `${days}d` : '–'}
-          </Text>
+      <View style={styles.cardHeaderRow}>
+        <View style={[styles.avatar, { backgroundColor: colors.accentSoft }]}>
+          <Text style={[styles.avatarText, { color: colors.accent }]}>{initial}</Text>
         </View>
-        <View style={styles.metaBlock}>
-          <Text style={[styles.metaLabel, { color: colors.textMuted }]}>
-            today
+        <View style={styles.cardHeaderText}>
+          <Text style={[styles.cardName, { color: colors.textPrimary }]}>
+            {person.display_name}
           </Text>
-          <Text style={[styles.metaValue, { color: colors.textPrimary }]}>
-            {checkInLine}
-          </Text>
+          {days !== null && (
+            <Text style={[styles.cardStreak, { color: colors.accent }]}>
+              {days} {days === 1 ? 'day' : 'days'}
+            </Text>
+          )}
         </View>
       </View>
 
       <View style={styles.metaRow}>
+        <View style={styles.metaBlock}>
+          <Text style={[styles.metaLabel, { color: colors.textMuted }]}>
+            today
+          </Text>
+          {checkIn ? (
+            <View style={styles.checkInRow}>
+              <Icon name={checkIn.icon} size={14} color={colors.textPrimary} />
+              <Text style={[styles.metaValue, { color: colors.textPrimary }]}>
+                {checkIn.label}
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.metaValue, { color: colors.textMuted }]}>
+              not yet today
+            </Text>
+          )}
+        </View>
         <View style={styles.metaBlock}>
           <Text style={[styles.metaLabel, { color: colors.textMuted }]}>
             latest milestone
@@ -301,7 +327,7 @@ function PersonCard({
         </View>
       </View>
 
-      <Button label="send encouragement" onPress={onEncourage} />
+      <Button label="send encouragement" onPress={() => { tapMedium(); onEncourage() }} />
     </View>
   )
 }
@@ -333,6 +359,7 @@ function EncouragementSheet({
       setSending(false)
       setCustom('')
       onClose()
+      notifySuccess()
       Alert.alert('sent', `${person.display_name} will see this soon.`)
     } catch (err) {
       setSending(false)
@@ -431,7 +458,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerIcon: { fontSize: 17, fontWeight: '600' },
   greeting: { ...t.body },
   name: { ...t.h1 },
   list: { gap: spacing.md },
@@ -441,7 +467,29 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     gap: spacing.lg,
   },
-  cardName: { ...t.h2 },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  cardHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  cardName: { ...t.h3 },
+  cardStreak: { ...t.small, fontWeight: '600' },
+  checkInRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   metaRow: { flexDirection: 'row', gap: spacing.lg },
   metaBlock: { flex: 1, gap: spacing.xs },
   metaLabel: { ...t.label },
@@ -451,12 +499,18 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     borderWidth: 1,
     padding: spacing.xl,
+    alignItems: 'center',
     gap: spacing.md,
   },
+  emptyIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   emptyTitle: { ...t.h3 },
-  emptyBody: { ...t.small },
-
-  signOut: { alignSelf: 'center', marginTop: spacing.xl, padding: spacing.md },
+  emptyBody: { ...t.small, textAlign: 'center' },
 
   sheetBackdrop: {
     flex: 1,

@@ -14,6 +14,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
 import { useColors } from '../../hooks/useColors'
 import { SettingRow, SettingSection } from '../../components/SettingRow'
+import { Icon } from '../../components/Icon'
 import { spacing, type as t, layout } from '../../constants/theme'
 
 interface Prefs {
@@ -89,8 +90,9 @@ export default function NotificationsScreen() {
       contentContainerStyle={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={[styles.back, { color: colors.accent }]}>← back</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Icon name="chevron-left" size={20} color={colors.accent} />
+          <Text style={[styles.back, { color: colors.accent }]}>back</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.textPrimary }]}>notifications</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -154,7 +156,8 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.sm },
-  back: { ...t.smallStrong, marginBottom: spacing.xs },
+  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
+  back: { ...t.smallStrong },
   title: { ...t.h1 },
   subtitle: { ...t.body },
   footnote: { ...t.small, textAlign: 'center', paddingHorizontal: spacing.lg },

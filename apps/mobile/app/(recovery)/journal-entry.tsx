@@ -13,8 +13,10 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { Button } from '../../components/Button'
+import { Icon } from '../../components/Icon'
 import { supabase } from '../../lib/supabase'
 import { MOODS } from '../../lib/mood'
+import { tapLight } from '../../lib/haptics'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
 
 export default function JournalEntryScreen() {
@@ -124,8 +126,9 @@ export default function JournalEntryScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={[styles.back, { color: colors.accent }]}>← back</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Icon name="chevron-left" size={20} color={colors.accent} />
+          <Text style={[styles.back, { color: colors.accent }]}>back</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.textPrimary }]}>
           {editingId ? 'edit entry' : 'new entry'}
@@ -160,7 +163,7 @@ export default function JournalEntryScreen() {
               <TouchableOpacity
                 key={mood.tag}
                 activeOpacity={0.85}
-                onPress={() => setMoodTag(isSelected ? null : mood.tag)}
+                onPress={() => { setMoodTag(isSelected ? null : mood.tag); tapLight() }}
                 style={[
                   styles.moodChip,
                   {
@@ -169,7 +172,7 @@ export default function JournalEntryScreen() {
                   },
                 ]}
               >
-                <Text style={styles.moodChipEmoji}>{mood.emoji}</Text>
+                <Icon name={mood.icon} size={14} color={isSelected ? colors.accent : colors.textSecondary} />
                 <Text
                   style={[
                     styles.moodChipLabel,
@@ -204,7 +207,8 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.xs },
-  back: { ...t.bodyStrong, marginBottom: spacing.sm },
+  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
+  back: { ...t.bodyStrong },
   title: { ...t.h1 },
 
   bodyInput: {
@@ -229,7 +233,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     borderWidth: 1,
   },
-  moodChipEmoji: { fontSize: 15 },
   moodChipLabel: { fontSize: 13, fontWeight: '600' },
 
   deleteWrap: { alignItems: 'center', paddingVertical: spacing.sm },

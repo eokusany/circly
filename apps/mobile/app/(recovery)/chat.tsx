@@ -1,11 +1,10 @@
 import { useCallback, useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
 import { ConversationList } from '../../components/ConversationList'
-import { Icon } from '../../components/Icon'
 import {
   buildConversationRows,
   type ConversationRow,
@@ -15,7 +14,7 @@ import {
 } from '../../lib/conversations'
 import { spacing, type as t, layout } from '../../constants/theme'
 
-export default function ConversationsScreen() {
+export default function ChatTab() {
   const colors = useColors()
   const { user } = useAuthStore()
   const [rows, setRows] = useState<ConversationRow[]>([])
@@ -26,8 +25,6 @@ export default function ConversationsScreen() {
     if (!user) return
     setLoading(true)
 
-    // Conversations where I'm a participant. RLS restricts this to us
-    // regardless of the filter — the contains() is belt-and-braces.
     const { data: convoRows } = await supabase
       .from('conversations')
       .select('id, participant_ids')
@@ -89,18 +86,7 @@ export default function ConversationsScreen() {
         />
       }
     >
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityLabel="back"
-          hitSlop={12}
-        >
-          <Icon name="chevron-left" size={24} color={colors.textSecondary} />
-        </Pressable>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>
-          messages
-        </Text>
-      </View>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>messages</Text>
 
       <ConversationList
         rows={rows}
@@ -117,11 +103,6 @@ const styles = StyleSheet.create({
     paddingTop: layout.screenTopPadding,
     paddingBottom: spacing.xxxl,
     gap: layout.sectionGap,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
   },
   title: { ...t.h1 },
 })

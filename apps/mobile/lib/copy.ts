@@ -14,13 +14,14 @@
 
 import { useAuthStore } from '../store/auth'
 import type { UserRole } from '../store/auth'
+import type { IconName } from '../components/Icon'
 
 export type AppContext = 'recovery' | 'family'
 
 export interface RoleCopy {
   label: string
   description: string
-  emoji: string
+  icon: IconName
 }
 
 export interface ContextCopy {
@@ -28,7 +29,7 @@ export interface ContextCopy {
   contextCard: {
     label: string
     description: string
-    emoji: string
+    icon: IconName
   }
 
   // Role select header + role cards
@@ -45,7 +46,7 @@ export interface ContextCopy {
     streakLabel: string // e.g. "sober for" / "connected for"
     checkInStatuses: Record<
       'good_day' | 'sober' | 'struggling',
-      { emoji: string; label: string }
+      { icon: IconName; label: string }
     >
     checkInPrompt: string // e.g. "how are you today?"
     journalLabel: string
@@ -65,7 +66,7 @@ const recovery: ContextCopy = {
     label: 'recovery journey',
     description:
       'track your sobriety, check in daily, and stay connected with your support network',
-    emoji: '🌱',
+    icon: 'sunrise',
   },
   roleSelect: {
     title: 'who are you here as?',
@@ -77,26 +78,26 @@ const recovery: ContextCopy = {
       label: 'person in recovery',
       description:
         'track your journey, check in daily, and stay connected with your support network',
-      emoji: '🌱',
+      icon: 'sunrise',
     },
     supporter: {
       label: 'supporter',
       description:
         'show up for someone you love. see their updates and send encouragement.',
-      emoji: '🤝',
+      icon: 'users',
     },
     sponsor: {
       label: 'sponsor',
       description: 'guide others through their recovery with professional support',
-      emoji: '⭐',
+      icon: 'shield',
     },
   },
   dashboard: {
     streakLabel: 'sober for',
     checkInStatuses: {
-      good_day: { emoji: '🌿', label: 'good day' },
-      sober: { emoji: '🌊', label: 'sober' },
-      struggling: { emoji: '🌙', label: 'struggling' },
+      good_day: { icon: 'sun', label: 'good day' },
+      sober: { icon: 'anchor', label: 'sober' },
+      struggling: { icon: 'cloud', label: 'struggling' },
     },
     checkInPrompt: 'how are you today?',
     journalLabel: 'journal',
@@ -114,7 +115,7 @@ const family: ContextCopy = {
     label: 'staying close',
     description:
       'stay connected with someone you love. check in, share moments, be present.',
-    emoji: '💛',
+    icon: 'heart',
   },
   roleSelect: {
     title: 'who are you here as?',
@@ -128,27 +129,27 @@ const family: ContextCopy = {
       label: 'the person at the center',
       description:
         'share how you are, write private reflections, and stay close to the people who love you',
-      emoji: '💛',
+      icon: 'heart',
     },
     supporter: {
       label: 'family member',
       description:
         'stay close to someone you love. see how they are and send a little warmth.',
-      emoji: '🤝',
+      icon: 'users',
     },
     sponsor: {
       // Hidden from family context but kept for type safety.
       label: 'caregiver',
       description: 'professional caregivers and care coordinators',
-      emoji: '⭐',
+      icon: 'shield',
     },
   },
   dashboard: {
     streakLabel: 'connected for',
     checkInStatuses: {
-      good_day: { emoji: '🌞', label: 'great day' },
-      sober: { emoji: '💛', label: 'feeling well' },
-      struggling: { emoji: '🌧', label: 'need some help' },
+      good_day: { icon: 'sun', label: 'great day' },
+      sober: { icon: 'heart', label: 'feeling well' },
+      struggling: { icon: 'cloud-rain', label: 'need some help' },
     },
     checkInPrompt: 'how are you today?',
     journalLabel: 'reflections',

@@ -5,6 +5,8 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
+import { Icon } from '../../components/Icon'
+import { tapLight } from '../../lib/haptics'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
 import { COPY, DEFAULT_CONTEXT, type AppContext } from '../../lib/copy'
 
@@ -65,8 +67,9 @@ export default function SwitchContextScreen() {
       contentContainerStyle={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={[styles.back, { color: colors.accent }]}>← back</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Icon name="chevron-left" size={20} color={colors.accent} />
+          <Text style={[styles.back, { color: colors.accent }]}>back</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.textPrimary }]}>switch context</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -90,10 +93,12 @@ export default function SwitchContextScreen() {
                   borderWidth: isSelected ? 2 : 1,
                 },
               ]}
-              onPress={() => setSelected(ctx)}
+              onPress={() => { setSelected(ctx); tapLight() }}
               activeOpacity={0.85}
             >
-              <Text style={styles.emoji}>{card.emoji}</Text>
+              <View style={[styles.iconCircle, { backgroundColor: isSelected ? colors.accent : colors.surfaceRaised }]}>
+                <Icon name={card.icon} size={20} color={isSelected ? '#fff' : colors.textSecondary} />
+              </View>
               <View style={styles.cardText}>
                 <View style={styles.cardLabelRow}>
                   <Text style={[styles.cardLabel, { color: colors.textPrimary }]}>
@@ -131,7 +136,8 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.sm },
-  back: { ...t.smallStrong, marginBottom: spacing.xs },
+  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
+  back: { ...t.smallStrong },
   title: { ...t.h1 },
   subtitle: { ...t.body },
   cards: { gap: spacing.md },
@@ -142,7 +148,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.md,
   },
-  emoji: { fontSize: 26, marginTop: 2 },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
   cardText: { flex: 1, gap: spacing.xs },
   cardLabelRow: {
     flexDirection: 'row',
