@@ -105,6 +105,16 @@ describe('COPY map', () => {
       it(`${ctx} has a getSupportLabel`, () => {
         expect(COPY[ctx].dashboard.getSupportLabel).toBe('get support')
       })
+
+      it(`${ctx} has okayTapPrompt and okayTapDone`, () => {
+        expect(COPY[ctx].dashboard.okayTapPrompt).toBeTruthy()
+        expect(COPY[ctx].dashboard.okayTapDone).toBeTruthy()
+      })
+
+      it(`${ctx} has silenceNudge and warmPingSent`, () => {
+        expect(COPY[ctx].dashboard.silenceNudge).toBeTruthy()
+        expect(COPY[ctx].dashboard.warmPingSent).toBeTruthy()
+      })
     }
   })
 })

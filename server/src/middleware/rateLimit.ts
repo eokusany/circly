@@ -45,3 +45,8 @@ export const inviteAcceptLimiter = make({
   windowMs: 60 * 1000,
   limit: 10,
 })
+
+export const okayTapLimiter = make({
+  windowMs: 24 * 60 * 60 * 1000,
+  limit: 20,
+})
