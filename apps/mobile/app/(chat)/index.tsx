@@ -50,12 +50,15 @@ export default function ConversationsScreen() {
       ),
     )
 
+    // Only fetch the most recent message per conversation. We grab a
+    // small window (1 per convo) to avoid pulling entire chat histories.
     const [msgsRes, usersRes] = await Promise.all([
       supabase
         .from('messages')
         .select('id, conversation_id, sender_id, body, created_at')
         .in('conversation_id', convoIds)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(convoIds.length * 1),
       otherIds.length > 0
         ? supabase
             .from('users')
