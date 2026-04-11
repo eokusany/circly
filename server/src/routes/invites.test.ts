@@ -68,6 +68,17 @@ function singleInsert(
   return fn
 }
 
+// Stub for the duplicate-relationship check:
+//   from('relationships').select(...).eq(...).eq(...).maybeSingle()
+function existingRelStub(existing: unknown = null) {
+  const chain: Record<string, unknown> = {
+    select: () => chain,
+    eq: () => chain,
+    maybeSingle: () => Promise.resolve({ data: existing, error: null }),
+  }
+  return chain
+}
+
 // -----------------------------------------------------------------------------
 // POST /api/invites
 // -----------------------------------------------------------------------------
@@ -481,7 +492,7 @@ describe('POST /api/invites/accept', () => {
           throw new Error(`unexpected table: ${table}`)
         }
         call++
-        if (call === 1) return claimStub({ recovery_user_id: recId })
+        if (call === 1) return claimStub({ recovery_user_id: recId, supporter_user_id: null })
         return { update: rollback }
       })
       const res = await request(app)
@@ -501,7 +512,7 @@ describe('POST /api/invites/accept', () => {
         tables.push(table)
         if (table === 'invite_codes') {
           call++
-          if (call === 1) return claimStub({ recovery_user_id: recId })
+          if (call === 1) return claimStub({ recovery_user_id: recId, supporter_user_id: null })
           return {
             update: () => ({
               eq: () => Promise.resolve({ error: null }),
@@ -529,10 +540,15 @@ describe('POST /api/invites/accept', () => {
         data: { id: 'conv-1' },
         error: null,
       })
+      let relCall = 0
       fromMock.mockImplementation((table: string) => {
         if (table === 'invite_codes')
-          return claimStub({ recovery_user_id: recoveryId })
-        if (table === 'relationships') return { insert: relationshipInsert }
+          return claimStub({ recovery_user_id: recoveryId, supporter_user_id: null })
+        if (table === 'relationships') {
+          relCall++
+          if (relCall === 1) return existingRelStub(null) // no existing relationship
+          return { insert: relationshipInsert }
+        }
         if (table === 'conversations') return { insert: conversationInsert }
         throw new Error(`unexpected table: ${table}`)
       })
@@ -601,10 +617,15 @@ describe('POST /api/invites/accept', () => {
         data: null,
         error: { message: 'boom' },
       })
+      let relCall = 0
       fromMock.mockImplementation((table: string) => {
         if (table === 'invite_codes')
-          return claimStub({ recovery_user_id: 'rec-1' })
-        if (table === 'relationships') return { insert: relationshipInsert }
+          return claimStub({ recovery_user_id: 'rec-1', supporter_user_id: null })
+        if (table === 'relationships') {
+          relCall++
+          if (relCall === 1) return existingRelStub(null)
+          return { insert: relationshipInsert }
+        }
         throw new Error(`unexpected table: ${table}`)
       })
       const res = await request(app)
@@ -618,10 +639,15 @@ describe('POST /api/invites/accept', () => {
     it('returns 500 relationship_insert_failed when relationship insert returns no data', async () => {
       authedAs('sup')
       const relationshipInsert = singleInsert({ data: null, error: null })
+      let relCall = 0
       fromMock.mockImplementation((table: string) => {
         if (table === 'invite_codes')
-          return claimStub({ recovery_user_id: 'rec-1' })
-        if (table === 'relationships') return { insert: relationshipInsert }
+          return claimStub({ recovery_user_id: 'rec-1', supporter_user_id: null })
+        if (table === 'relationships') {
+          relCall++
+          if (relCall === 1) return existingRelStub(null)
+          return { insert: relationshipInsert }
+        }
         throw new Error(`unexpected table: ${table}`)
       })
       const res = await request(app)
@@ -642,10 +668,15 @@ describe('POST /api/invites/accept', () => {
         data: null,
         error: { message: 'boom' },
       })
+      let relCall = 0
       fromMock.mockImplementation((table: string) => {
         if (table === 'invite_codes')
-          return claimStub({ recovery_user_id: 'rec-1' })
-        if (table === 'relationships') return { insert: relationshipInsert }
+          return claimStub({ recovery_user_id: 'rec-1', supporter_user_id: null })
+        if (table === 'relationships') {
+          relCall++
+          if (relCall === 1) return existingRelStub(null)
+          return { insert: relationshipInsert }
+        }
         if (table === 'conversations') return { insert: conversationInsert }
         throw new Error(`unexpected table: ${table}`)
       })
@@ -672,5 +703,154 @@ describe('POST /api/invites/accept', () => {
         expect.arrayContaining(['rec-xyz', supId]),
       )
     })
+  })
+
+  describe('supporter-generated code acceptance', () => {
+    function wireSupporterHappy(supporterId: string) {
+      const relationshipInsert = singleInsert({
+        data: { id: 'rel-2' },
+        error: null,
+      })
+      const conversationInsert = singleInsert({
+        data: { id: 'conv-2' },
+        error: null,
+      })
+      let relCall = 0
+      fromMock.mockImplementation((table: string) => {
+        if (table === 'invite_codes')
+          return claimStub({ recovery_user_id: null, supporter_user_id: supporterId })
+        if (table === 'relationships') {
+          relCall++
+          if (relCall === 1) return existingRelStub(null)
+          return { insert: relationshipInsert }
+        }
+        if (table === 'conversations') return { insert: conversationInsert }
+        throw new Error(`unexpected table: ${table}`)
+      })
+      return { relationshipInsert, conversationInsert }
+    }
+
+    it('creates a relationship with the acceptor as recovery and the code creator as supporter', async () => {
+      const recId = authedAs('rec')
+      const { relationshipInsert } = wireSupporterHappy('sup-orig')
+      const res = await request(app)
+        .post('/api/invites/accept')
+        .set('Authorization', 'Bearer v')
+        .send({ code: 'SUPINV' })
+      expect(res.status).toBe(200)
+      expect(res.body).toEqual({
+        relationship_id: 'rel-2',
+        conversation_id: 'conv-2',
+      })
+
+      const relRow = relationshipInsert.mock.calls[0][0] as {
+        recovery_user_id: string
+        supporter_id: string
+        status: string
+      }
+      expect(relRow.recovery_user_id).toBe(recId)
+      expect(relRow.supporter_id).toBe('sup-orig')
+      expect(relRow.status).toBe('active')
+    })
+
+    it('prevents self-invite for supporter-generated codes', async () => {
+      const supId = authedAs('sup')
+      const rollback = vi.fn().mockReturnValue({
+        eq: () => Promise.resolve({ error: null }),
+      })
+      let call = 0
+      fromMock.mockImplementation((table: string) => {
+        if (table !== 'invite_codes') {
+          throw new Error(`unexpected table: ${table}`)
+        }
+        call++
+        if (call === 1) return claimStub({ recovery_user_id: null, supporter_user_id: supId })
+        return { update: rollback }
+      })
+      const res = await request(app)
+        .post('/api/invites/accept')
+        .set('Authorization', 'Bearer v')
+        .send({ code: 'MYSUPX' })
+      expect(res.status).toBe(400)
+      expect(res.body).toEqual({ error: 'self_invite' })
+    })
+  })
+})
+
+// -----------------------------------------------------------------------------
+// POST /api/invites/supporter
+// -----------------------------------------------------------------------------
+
+describe('POST /api/invites/supporter', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns 401 without a token', async () => {
+    const res = await request(app).post('/api/invites/supporter')
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 when the caller is a recovery user', async () => {
+    authedAs('rec')
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'users') return userRoleLookup('recovery')
+      throw new Error(`unexpected table: ${table}`)
+    })
+    const res = await request(app)
+      .post('/api/invites/supporter')
+      .set('Authorization', 'Bearer v')
+    expect(res.status).toBe(403)
+    expect(res.body).toEqual({ error: 'only_supporters_can_use_this_endpoint' })
+  })
+
+  it('returns a 6-character code when the caller is a supporter', async () => {
+    authedAs('sup')
+    const insertMock = vi.fn().mockResolvedValue({ error: null })
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'users') return userRoleLookup('supporter')
+      if (table === 'invite_codes') return { insert: insertMock }
+      throw new Error(`unexpected table: ${table}`)
+    })
+    const res = await request(app)
+      .post('/api/invites/supporter')
+      .set('Authorization', 'Bearer v')
+    expect(res.status).toBe(200)
+    expect(res.body.code).toMatch(/^[A-Z0-9]{6}$/)
+  })
+
+  it('persists with supporter_user_id (not recovery_user_id)', async () => {
+    const supId = authedAs('sup')
+    const insertMock = vi.fn().mockResolvedValue({ error: null })
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'users') return userRoleLookup('supporter')
+      if (table === 'invite_codes') return { insert: insertMock }
+      throw new Error(`unexpected table: ${table}`)
+    })
+    await request(app)
+      .post('/api/invites/supporter')
+      .set('Authorization', 'Bearer v')
+    const row = insertMock.mock.calls[0][0] as {
+      code: string
+      supporter_user_id: string
+      expires_at: string
+    }
+    expect(row.supporter_user_id).toBe(supId)
+    expect(row).not.toHaveProperty('recovery_user_id')
+  })
+
+  it('returns 500 when insert fails', async () => {
+    authedAs('sup')
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'users') return userRoleLookup('supporter')
+      if (table === 'invite_codes')
+        return { insert: vi.fn().mockResolvedValue({ error: { message: 'boom' } }) }
+      throw new Error(`unexpected table: ${table}`)
+    })
+    const res = await request(app)
+      .post('/api/invites/supporter')
+      .set('Authorization', 'Bearer v')
+    expect(res.status).toBe(500)
+    expect(res.body).toEqual({ error: 'invite_insert_failed' })
   })
 })

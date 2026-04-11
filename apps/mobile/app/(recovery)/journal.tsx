@@ -6,12 +6,14 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
 import { findMood } from '../../lib/mood'
+import { Icon } from '../../components/Icon'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
 
 interface JournalRow {
@@ -26,6 +28,7 @@ export default function JournalScreen() {
   const { user } = useAuthStore()
   const [entries, setEntries] = useState<JournalRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
   const loadEntries = useCallback(async () => {
     if (!user) return
@@ -47,22 +50,32 @@ export default function JournalScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => { setRefreshing(true); await loadEntries(); setRefreshing(false) }}
+            tintColor={colors.accent}
+          />
+        }
+      >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={[styles.back, { color: colors.accent }]}>← back</Text>
-          </TouchableOpacity>
           <Text style={[styles.title, { color: colors.textPrimary }]}>journal</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             a private space for your thoughts. only you can see this.
           </Text>
         </View>
 
+        {!loading && entries.length > 0 && <MoodTimeline entries={entries} />}
+
         {loading ? (
           <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
         ) : entries.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={styles.emptyEmoji}>📓</Text>
+            <View style={[styles.emptyIcon, { backgroundColor: colors.accentSoft }]}>
+              <Icon name="book-open" size={28} color={colors.accent} />
+            </View>
             <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
               your first entry is waiting
             </Text>
@@ -85,8 +98,39 @@ export default function JournalScreen() {
         onPress={() => router.push('/(recovery)/journal-entry')}
         style={[styles.fab, { backgroundColor: colors.accent }]}
       >
-        <Text style={styles.fabPlus}>+</Text>
+        <Icon name="plus" size={24} color="#fff" />
       </TouchableOpacity>
+    </View>
+  )
+}
+
+function MoodTimeline({ entries }: { entries: JournalRow[] }) {
+  const colors = useColors()
+  const recent = entries.slice(0, 14)
+  const withMood = recent.filter(e => e.mood_tag)
+  if (withMood.length < 2) return null
+
+  return (
+    <View style={[styles.moodTimeline, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Text style={[styles.moodTimelineLabel, { color: colors.textMuted }]}>mood over time</Text>
+      <View style={styles.moodDots}>
+        {recent.reverse().map(entry => {
+          const mood = findMood(entry.mood_tag)
+          return (
+            <View key={entry.id} style={styles.moodDotWrap}>
+              {mood ? (
+                <View style={[styles.moodDot, { backgroundColor: colors.accentSoft }]}>
+                  <Icon name={mood.icon} size={12} color={colors.accent} />
+                </View>
+              ) : (
+                <View style={[styles.moodDot, { backgroundColor: colors.surfaceRaised }]}>
+                  <View style={[styles.moodDotEmpty, { backgroundColor: colors.border }]} />
+                </View>
+              )}
+            </View>
+          )
+        })}
+      </View>
     </View>
   )
 }
@@ -111,7 +155,7 @@ function EntryCard({ entry }: { entry: JournalRow }) {
         </Text>
         {mood && (
           <View style={[styles.moodPill, { backgroundColor: colors.surfaceRaised }]}>
-            <Text style={styles.moodEmoji}>{mood.emoji}</Text>
+            <Icon name={mood.icon} size={12} color={colors.textSecondary} />
             <Text style={[styles.moodLabel, { color: colors.textSecondary }]}>
               {mood.label}
             </Text>
@@ -163,7 +207,6 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.xs },
-  back: { ...t.bodyStrong, marginBottom: spacing.sm },
   title: { ...t.h1 },
   subtitle: { ...t.body },
 
@@ -175,9 +218,42 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.lg,
   },
-  emptyEmoji: { fontSize: 36, marginBottom: spacing.xs },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
   emptyTitle: { ...t.h3 },
   emptyBody: { ...t.small, textAlign: 'center' },
+
+  moodTimeline: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  moodTimelineLabel: { ...t.label },
+  moodDots: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  moodDotWrap: {},
+  moodDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moodDotEmpty: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
 
   list: { gap: spacing.md },
   card: {
@@ -200,7 +276,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: radii.pill,
   },
-  moodEmoji: { fontSize: 13 },
   moodLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
   cardBody: { ...t.small, lineHeight: 20 },
 
@@ -219,5 +294,4 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  fabPlus: { color: '#fff', fontSize: 30, fontWeight: '300', marginTop: -2 },
 })

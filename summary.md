@@ -255,20 +255,12 @@ Also set `process.env.EXPO_ROUTER_APP_ROOT = 'app'` at the top of `metro.config.
 
 ## What's Next (Remaining Plan)
 
-### Phase 2 — Recovery User Core
-- [ ] **Task 4** — Sobriety streak counter + milestone badges (1d, 7d, 30d, 90d, 1y)
-- [ ] **Task 5** — Daily check-in (3 states, one per day, history log)
-- [ ] **Task 6** — Journal entry (private, mood tag)
-- [ ] **Task 7** — Emergency support button (in-app push to all supporters)
-
-### Phase 3 — Relationships + Supporter Flow
-- [ ] **Task 8** — Invite and link supporters (email invite, accept, remove)
-- [ ] **Task 9** — Privacy controls (per-supporter visibility toggles)
-- [ ] **Task 10** — Supporter dashboard (shared feed + encouragement)
-
 ### Phase 4 — Chat + Notifications
-- [ ] **Task 11** — 1:1 real-time chat (Supabase Realtime)
-- [ ] **Task 12** — Push notification setup + in-app notification center
+- [x] **Task 11a** — `(chat)` route group + conversations list screen + header entry points (shipped 2026-04-09)
+- [ ] **Task 11b** — `(chat)/[id].tsx` chat screen with Supabase Realtime subscription + optimistic send
+- [ ] **Task 12** — `(notifications)` route + in-app notification center + `NotificationBell` header with live unread badge
+
+Phases 2 and 3 are complete — see session notes below.
 
 ### Phase 2 (Post-MVP)
 - Sponsor verification (video submission → manual/AI review)
@@ -433,5 +425,60 @@ Originally implemented as a classic email-link deep link flow (`Linking.createUR
 ### Verification
 - Reset flow tested end-to-end with a real email + code once template is updated.
 - Code accepts any OTP length (Supabase currently sends 8-digit codes; copy dropped references to "6-digit").
+
+*Session date: 2026-04-09*
+
+---
+
+## Session 2026-04-09 (cont.) — Phase 2 close-out, Phase 3, test hardening, Task 11a
+
+### Phase 2 close-out — Task 7 (server foundation + emergency button)
+- **Task 7a** — `server/src/middleware/auth.ts` (`requireAuth`) verifies Supabase JWTs via `supabase.auth.getUser(token)`, attaches `req.user`. `GET /api/me` returns the authed user. `apps/mobile/lib/api.ts` wraps fetch with `EXPO_PUBLIC_API_URL` + bearer injection from the current Supabase session, throws `ApiError` on non-2xx.
+- **Task 7b** — `POST /api/emergency` looks up active supporters of the caller and inserts one `type='emergency'` notification row per supporter (service role, RLS bypass). Recovery dashboard's "get support" tile now fires a confirm alert → `api('/api/emergency')` → success alert with the count.
+
+### Phase 3 — Relationships + supporter flow
+- **Task 8a** — Migration `006_invite_codes.sql` (applied). `POST /api/invites` generates a unique 6-char uppercase code (24h expiry) via crypto-safe `randomInt`, retries on unique-constraint collisions. `POST /api/invites/accept` validates (not used/not expired/not self-invite), inserts the `relationships` row and a `direct` `conversations` row (`participant_ids=[recovery, supporter]`), marks the code used — atomic update-and-return claim pattern so two supporters racing the same code can't both win.
+- **Task 8b** — `(recovery)/settings.tsx` lists active supporters + generate-code card with copy/share. `(auth)/invite-code.tsx` onboards supporters: 6-char input → accept → supporter dashboard. Role-select routes supporter/sponsor through this screen; "skip for now" allowed.
+- **Task 9** — `(recovery)/supporter-settings.tsx` — per-supporter toggles for check-ins + milestones visibility (writes `relationships.permissions` jsonb), remove-supporter action sets `status='removed'`. RLS helper functions already enforce these toggles at the DB layer.
+- **Task 10** — `(supporter)/index.tsx` replaced the placeholder. Fetches active relationships, batches check-ins + milestones in two queries (not 2N), renders per-person cards (streak, today's check-in or "not shared", latest milestone, send-encouragement button). `EncouragementSheet` modal with 3 presets + custom text → `POST /api/encouragements` → inserts a `type='encouragement'` notification row via service role.
+
+### Rate limiting
+- `server/src/middleware/rateLimit.ts` — per-user limits via `express-rate-limit` with IPv6-safe keyGenerator. Four limiters mounted on the sensitive routes:
+  - `emergency` — 10/hour
+  - `encouragement` — 30/hour
+  - `inviteGenerate` — 20/day
+  - `inviteAccept` — 10/minute
+
+### Test hardening — server 24 → 125, mobile 0 → 187
+- **Jest-Expo setup** — `apps/mobile` now has a jest config (`preset: jest-expo`, `jest.setup.js`, `transformIgnorePatterns` for Expo packages, `testPathIgnorePatterns: ['/app/']`), `@testing-library/react-native` + `@testing-library/jest-native`, pinned `react-test-renderer@19.2.4` to match RN's bundled React.
+- **Server expansion** — auth middleware (18), rateLimit (13, new file), app (11), /api/me (8), emergency (14), encouragements (27), invites (34). Key patterns established:
+  - **Rate-limit isolation**: unique `rec-${counter}-${Date.now()}` user ids per test so express-rate-limit's in-memory store can't poison neighbouring cases.
+  - **Supabase mocks via `vi.hoisted()`**: chainable query builder stubs (`claimStub()` etc.) wire `.eq().select().maybeSingle()` fluently.
+- **Mobile tests** — `lib/streak` (49), `lib/mood` (13), `lib/copy` (24, mocks `store/auth`), `lib/api` (30, mocks `./supabase`), `lib/conversations` (21), `components/Button` (11), `components/TextInput` (15), `components/SettingRow` (17), `components/ConversationList` (8). All 187 green.
+
+### Real bug surfaced by tests: DST miscount in `streakDays`
+- `apps/mobile/lib/streak.ts` — `daysBetween` was subtracting local `Date.getTime()` values, so on DST transition days it returned 23h or 25h "days" that floored incorrectly. Spring-forward would make a 2-day span report as 1, silently losing a day off every user's sobriety streak twice a year.
+- **Fix:** switched to `Date.UTC(y, m, d)` arithmetic — ignores the time-of-day component entirely. Added three DST-specific test cases (spring-forward, fall-back, adjacent days across the boundary) that would have caught the bug.
+
+### Stronger SettingRow disabled-tap assertion
+- `@testing-library/react-native`'s `fireEvent.press` invokes the handler even when `onPress` is undefined because it walks the tree, so the original assertion was meaningless.
+- **Fix:** `findPressableHost()` walks `UNSAFE_root` to the first host descendant and asserts on its props directly. Disabled case must have `onPress === undefined`; enabled case must have *some* press handler (`onPress ?? onClick ?? onResponderRelease`) because jest-expo compiles `Pressable` to a host element and remaps the handler name.
+
+### Task 11a — Conversations list screen (this commit)
+- **[apps/mobile/lib/conversations.ts](apps/mobile/lib/conversations.ts)** — pure helpers so display logic is unit-testable without jest-expo:
+  - `formatConversationTime(iso, now)` — same-day `HH:MM` / `yesterday` / `Mmm D`, empty for null/undefined.
+  - `buildConversationRows(convos, messages, participants, meId)` — joins in the latest message per thread, resolves the "other" participant name, sorts most-recent first (empty threads sink to the bottom).
+- **[apps/mobile/components/ConversationList.tsx](apps/mobile/components/ConversationList.tsx)** — shared list used by both role stacks. Loading spinner, empty state, tappable rows with two-line preview + timestamp.
+- **[apps/mobile/app/(chat)/_layout.tsx](apps/mobile/app/(chat)/_layout.tsx)** + **[(chat)/index.tsx](apps/mobile/app/(chat)/index.tsx)** — new route group. Fetches conversations where I'm a participant (`contains('participant_ids', [me])`), batches messages + participant names, renders via `ConversationList`. `useFocusEffect` refreshes on return. Tap navigates to `/(chat)/[id]` (placeholder until Task 11b).
+- **[(recovery)/index.tsx](apps/mobile/app/(recovery)/index.tsx)** + **[(supporter)/index.tsx](apps/mobile/app/(supporter)/index.tsx)** — 💬 header entry points.
+- **Tests:** 21 helper + 8 component = 29 new, bringing mobile to 187.
+
+### Git workflow shift
+- Worked directly on `main` through Phases 2–3 (oversized). Pushed all 10 accumulated commits to origin, then adopted a short-lived feature-branch workflow. Task 11a is on `feature/conversations-list` (`8453dd2`).
+
+### Verification (current state)
+- `server`: 125 tests, typecheck + lint clean.
+- `apps/mobile`: 187 tests, typecheck + lint clean.
+- **Pending user action:** migration `005_self_delete_function.sql` (from the rebrand session) still needs to be run in the Supabase SQL editor.
 
 *Session date: 2026-04-09*
