@@ -256,6 +256,33 @@ export default function RecoverySettings() {
           />
         </View>
 
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+            silence detection
+          </Text>
+          <Pressable
+            onPress={() => router.push('/(recovery)/silence-settings')}
+            style={({ pressed }) => [
+              styles.row,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
+            <View style={{ flex: 1, gap: spacing.xs }}>
+              <Text style={[styles.rowName, { color: colors.textPrimary }]}>
+                silence settings
+              </Text>
+              <Text style={[type.small, { color: colors.textSecondary }]}>
+                configure when your circle gets nudged
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={colors.textMuted} />
+          </Pressable>
+        </View>
+
       </ScrollView>
     </>
   )

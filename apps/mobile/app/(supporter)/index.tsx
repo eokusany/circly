@@ -64,6 +64,38 @@ export default function SupporterHome() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [sendingFor, setSendingFor] = useState<LinkedPerson | null>(null)
+  const [nudges, setNudges] = useState<SilenceNudge[]>([])
+  const [emergencies, setEmergencies] = useState<EmergencyAlert[]>([])
+
+  interface SilenceNudge {
+    id: string
+    for_user_id: string
+    from_display_name: string
+    days_since: number
+  }
+
+  interface EmergencyAlert {
+    id: string
+    from_display_name: string
+    created_at: string
+  }
+
+  async function sendWarmPing(person: LinkedPerson) {
+    try {
+      await api('/api/warm-ping', {
+        method: 'POST',
+        body: JSON.stringify({ recipient_id: person.recovery_user_id }),
+      })
+      notifySuccess()
+      Alert.alert('sent', `${person.display_name} will feel your warmth.`)
+    } catch (err) {
+      const msg =
+        err instanceof ApiError && (err.body as { error?: string })?.error === 'daily_limit_reached'
+          ? "you've reached today's limit for this person."
+          : 'something went wrong. try again.'
+      Alert.alert('could not send', msg)
+    }
+  }
 
   const load = useCallback(async () => {
     if (!user) return
@@ -111,7 +143,7 @@ export default function SupporterHome() {
     const ids = base.map((p) => p.recovery_user_id)
     const today = toISODate(new Date())
 
-    const [checkInsRes, milestonesRes] = await Promise.all([
+    const [checkInsRes, milestonesRes, nudgesRes, emergencyRes] = await Promise.all([
       supabase
         .from('check_ins')
         .select('user_id, status')
@@ -122,6 +154,22 @@ export default function SupporterHome() {
         .select('user_id, type, reached_on')
         .in('user_id', ids)
         .order('reached_on', { ascending: false }),
+      supabase
+        .from('notifications')
+        .select('id, payload')
+        .eq('recipient_id', user.id)
+        .eq('type', 'silence_nudge')
+        .is('read_at', null)
+        .order('created_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('notifications')
+        .select('id, payload, created_at')
+        .eq('recipient_id', user.id)
+        .eq('type', 'emergency')
+        .is('read_at', null)
+        .order('created_at', { ascending: false })
+        .limit(5),
     ])
 
     const checkInByUser = new Map<string, CheckInStatus>()
@@ -143,6 +191,38 @@ export default function SupporterHome() {
         latestMilestoneByUser.set(row.user_id, row.type)
       }
     }
+
+    // Parse silence nudges
+    const parsedNudges: SilenceNudge[] = []
+    for (const row of (nudgesRes.data ?? []) as Array<{
+      id: string
+      payload: { for_user_id?: string; from_display_name?: string; days_since_last_signal?: number }
+    }>) {
+      if (row.payload?.for_user_id) {
+        parsedNudges.push({
+          id: row.id,
+          for_user_id: row.payload.for_user_id,
+          from_display_name: row.payload.from_display_name ?? 'someone',
+          days_since: row.payload.days_since_last_signal ?? 0,
+        })
+      }
+    }
+    setNudges(parsedNudges)
+
+    // Parse emergency alerts
+    const parsedEmergencies: EmergencyAlert[] = []
+    for (const row of (emergencyRes.data ?? []) as Array<{
+      id: string
+      payload: { from_display_name?: string }
+      created_at: string
+    }>) {
+      parsedEmergencies.push({
+        id: row.id,
+        from_display_name: row.payload?.from_display_name ?? 'someone',
+        created_at: row.created_at,
+      })
+    }
+    setEmergencies(parsedEmergencies)
 
     const enriched = base.map((p) => ({
       ...p,
@@ -206,6 +286,50 @@ export default function SupporterHome() {
           </Pressable>
         </View>
 
+        {emergencies.length > 0 && (
+          <View style={styles.list}>
+            {emergencies.map((e) => (
+              <EmergencyCard
+                key={e.id}
+                alert={e}
+                onDismiss={async () => {
+                  await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', e.id)
+                  setEmergencies((prev) => prev.filter((x) => x.id !== e.id))
+                }}
+              />
+            ))}
+          </View>
+        )}
+
+        {nudges.length > 0 && (
+          <View style={styles.list}>
+            {nudges.map((n) => (
+              <NudgeCard
+                key={n.id}
+                nudge={n}
+                onSendPing={async () => {
+                  try {
+                    await api('/api/warm-ping', {
+                      method: 'POST',
+                      body: JSON.stringify({ recipient_id: n.for_user_id }),
+                    })
+                    notifySuccess()
+                    // Mark nudge as read and remove from list
+                    await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', n.id)
+                    setNudges((prev) => prev.filter((x) => x.id !== n.id))
+                  } catch {
+                    Alert.alert('could not send', 'something went wrong. try again.')
+                  }
+                }}
+                onDismiss={async () => {
+                  await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', n.id)
+                  setNudges((prev) => prev.filter((x) => x.id !== n.id))
+                }}
+              />
+            ))}
+          </View>
+        )}
+
         {people.length === 0 ? (
           <EmptyState />
         ) : (
@@ -215,6 +339,7 @@ export default function SupporterHome() {
                 key={p.relationship_id}
                 person={p}
                 onEncourage={() => setSendingFor(p)}
+                onWarmPing={() => sendWarmPing(p)}
               />
             ))}
           </View>
@@ -259,9 +384,11 @@ function EmptyState() {
 function PersonCard({
   person,
   onEncourage,
+  onWarmPing,
 }: {
   person: LinkedPerson
   onEncourage: () => void
+  onWarmPing: () => void
 }) {
   const colors = useColors()
   const days = person.sobriety_start_date
@@ -327,7 +454,105 @@ function PersonCard({
         </View>
       </View>
 
-      <Button label="send encouragement" onPress={() => { tapMedium(); onEncourage() }} />
+      <View style={styles.cardActions}>
+        <View style={{ flex: 1 }}>
+          <Button label="send encouragement" onPress={() => { tapMedium(); onEncourage() }} />
+        </View>
+        <Pressable
+          onPress={() => { tapMedium(); onWarmPing() }}
+          style={({ pressed }) => [
+            styles.warmPingBtn,
+            {
+              backgroundColor: colors.accentSoft,
+              borderColor: colors.accent,
+              opacity: pressed ? 0.7 : 1,
+            },
+          ]}
+          accessibilityLabel={`send warm ping to ${person.display_name}`}
+        >
+          <Icon name="heart" size={20} color={colors.accent} />
+        </Pressable>
+      </View>
+    </View>
+  )
+}
+
+function EmergencyCard({
+  alert,
+  onDismiss,
+}: {
+  alert: { from_display_name: string }
+  onDismiss: () => void
+}) {
+  const colors = useColors()
+  return (
+    <View
+      style={[
+        styles.emergencyCard,
+        { backgroundColor: colors.dangerSoft, borderColor: colors.danger },
+      ]}
+    >
+      <Icon name="alert-triangle" size={20} color={colors.danger} />
+      <View style={styles.nudgeBody}>
+        <Text style={[t.bodyStrong, { color: colors.danger }]}>
+          {alert.from_display_name} needs support right now.
+        </Text>
+        <Text style={[t.small, { color: colors.textSecondary }]}>
+          reach out as soon as you can.
+        </Text>
+        <Pressable
+          onPress={onDismiss}
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, paddingTop: spacing.sm })}
+        >
+          <Text style={[t.small, { color: colors.textMuted }]}>dismiss</Text>
+        </Pressable>
+      </View>
+    </View>
+  )
+}
+
+function NudgeCard({
+  nudge,
+  onSendPing,
+  onDismiss,
+}: {
+  nudge: { from_display_name: string; days_since: number }
+  onSendPing: () => void
+  onDismiss: () => void
+}) {
+  const colors = useColors()
+  return (
+    <View
+      style={[
+        styles.nudgeCard,
+        { backgroundColor: colors.accentSoft, borderColor: colors.warning },
+      ]}
+    >
+      <Icon name="alert-circle" size={20} color={colors.warning} />
+      <View style={styles.nudgeBody}>
+        <Text style={[t.body, { color: colors.textPrimary }]}>
+          it&apos;s been {nudge.days_since} {nudge.days_since === 1 ? 'day' : 'days'} since{' '}
+          {nudge.from_display_name} checked in.
+        </Text>
+        <View style={styles.nudgeActions}>
+          <Pressable
+            onPress={onSendPing}
+            style={({ pressed }) => [
+              styles.nudgeBtn,
+              { backgroundColor: colors.accent, opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <Icon name="heart" size={14} color="#fff" />
+            <Text style={[t.small, { color: '#fff', fontWeight: '600' }]}>send warm ping</Text>
+          </Pressable>
+          <Pressable
+            onPress={onDismiss}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: spacing.sm })}
+          >
+            <Text style={[t.small, { color: colors.textMuted }]}>dismiss</Text>
+          </Pressable>
+        </View>
+      </View>
     </View>
   )
 }
@@ -494,6 +719,19 @@ const styles = StyleSheet.create({
   metaBlock: { flex: 1, gap: spacing.xs },
   metaLabel: { ...t.label },
   metaValue: { ...t.body, fontWeight: '600' },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  warmPingBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   emptyCard: {
     borderRadius: radii.lg,
@@ -536,4 +774,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelLink: { alignItems: 'center', padding: spacing.md },
+
+  emergencyCard: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  nudgeCard: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  nudgeBody: { flex: 1, gap: spacing.sm },
+  nudgeActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  nudgeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+  },
 })
