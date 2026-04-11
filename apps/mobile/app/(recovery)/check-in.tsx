@@ -13,8 +13,10 @@ import { router } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { Button } from '../../components/Button'
+import { Icon, type IconName } from '../../components/Icon'
 import { supabase } from '../../lib/supabase'
 import { toISODate, parseISODate } from '../../lib/streak'
+import { tapLight, tapMedium } from '../../lib/haptics'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
@@ -26,10 +28,10 @@ interface CheckInRow {
   check_in_date: string
 }
 
-const OPTIONS: { value: CheckInStatus; emoji: string; label: string; description: string }[] = [
-  { value: 'good_day', emoji: '🌿', label: 'good day', description: 'feeling strong and steady' },
-  { value: 'sober', emoji: '🌊', label: 'sober', description: 'getting through, one moment at a time' },
-  { value: 'struggling', emoji: '🌙', label: 'struggling', description: 'it\'s a hard one, you showed up' },
+const OPTIONS: { value: CheckInStatus; icon: IconName; label: string; description: string }[] = [
+  { value: 'good_day', icon: 'sun', label: 'good day', description: 'feeling strong and steady' },
+  { value: 'sober', icon: 'anchor', label: 'sober', description: 'getting through, one moment at a time' },
+  { value: 'struggling', icon: 'cloud', label: 'struggling', description: 'it\'s a hard one, you showed up' },
 ]
 
 export default function CheckInScreen() {
@@ -112,8 +114,9 @@ export default function CheckInScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={[styles.back, { color: colors.accent }]}>← back</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Icon name="chevron-left" size={20} color={colors.accent} />
+          <Text style={[styles.back, { color: colors.accent }]}>back</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.textPrimary }]}>today&apos;s check-in</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -128,7 +131,7 @@ export default function CheckInScreen() {
             <TouchableOpacity
               key={opt.value}
               activeOpacity={0.85}
-              onPress={() => setStatus(opt.value)}
+              onPress={() => { setStatus(opt.value); tapLight() }}
               style={[
                 styles.option,
                 {
@@ -138,7 +141,9 @@ export default function CheckInScreen() {
                 },
               ]}
             >
-              <Text style={styles.optionEmoji}>{opt.emoji}</Text>
+              <View style={[styles.optionIcon, { backgroundColor: isSelected ? colors.accent : colors.surfaceRaised }]}>
+                <Icon name={opt.icon} size={20} color={isSelected ? '#fff' : colors.textSecondary} />
+              </View>
               <View style={styles.optionText}>
                 <Text style={[styles.optionLabel, { color: colors.textPrimary }]}>
                   {opt.label}
@@ -175,7 +180,7 @@ export default function CheckInScreen() {
 
       <Button
         label="save check-in"
-        onPress={handleSave}
+        onPress={() => { tapMedium(); handleSave() }}
         loading={saving}
         style={{ opacity: status ? 1 : 0.4 }}
       />
@@ -204,7 +209,9 @@ function HistoryItem({ row }: { row: CheckInRow }) {
         { backgroundColor: colors.surface, borderColor: colors.border },
       ]}
     >
-      <Text style={styles.historyEmoji}>{opt?.emoji ?? '•'}</Text>
+      <View style={[styles.historyIcon, { backgroundColor: colors.surfaceRaised }]}>
+        <Icon name={opt?.icon ?? 'circle'} size={16} color={colors.textSecondary} />
+      </View>
       <View style={styles.historyBody}>
         <Text style={[styles.historyDate, { color: colors.textPrimary }]}>
           {formatDate(row.check_in_date)}
@@ -243,10 +250,11 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.xs },
-  back: { ...t.bodyStrong, marginBottom: spacing.sm },
+  back: { ...t.bodyStrong },
   title: { ...t.h1 },
   subtitle: { ...t.body },
 
+  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
   options: { gap: spacing.md },
   option: {
     borderRadius: radii.lg,
@@ -255,7 +263,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  optionEmoji: { fontSize: 26 },
+  optionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   optionText: { flex: 1, gap: 2 },
   optionLabel: { ...t.h3 },
   optionDescription: { ...t.small },
@@ -283,7 +297,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  historyEmoji: { fontSize: 20 },
+  historyIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   historyBody: { flex: 1, gap: 2 },
   historyDate: { ...t.smallStrong },
   historyNote: { ...t.small },

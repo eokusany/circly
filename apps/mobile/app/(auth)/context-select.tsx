@@ -4,6 +4,8 @@ import { router } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
+import { Icon } from '../../components/Icon'
+import { tapLight } from '../../lib/haptics'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
 import { COPY, type AppContext } from '../../lib/copy'
 
@@ -64,10 +66,12 @@ export default function ContextSelectScreen() {
                   borderWidth: isSelected ? 2 : 1,
                 },
               ]}
-              onPress={() => setSelected(ctx)}
+              onPress={() => { setSelected(ctx); tapLight() }}
               activeOpacity={0.85}
             >
-              <Text style={styles.emoji}>{card.emoji}</Text>
+              <View style={[styles.iconCircle, { backgroundColor: isSelected ? colors.accent : colors.surfaceRaised }]}>
+                <Icon name={card.icon} size={20} color={isSelected ? '#fff' : colors.textSecondary} />
+              </View>
               <View style={styles.cardText}>
                 <Text style={[styles.cardLabel, { color: colors.textPrimary }]}>
                   {card.label}
@@ -112,7 +116,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.md,
   },
-  emoji: { fontSize: 26, marginTop: 2 },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
   cardText: { flex: 1, gap: spacing.xs },
   cardLabel: { ...t.h3 },
   cardDescription: { ...t.small },

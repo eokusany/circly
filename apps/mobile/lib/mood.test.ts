@@ -8,7 +8,7 @@ describe('MOODS constant', () => {
   it('every mood has a tag, emoji, and label', () => {
     for (const m of MOODS) {
       expect(m.tag).toBeTruthy()
-      expect(m.emoji).toBeTruthy()
+      expect(m.icon).toBeTruthy()
       expect(m.label).toBeTruthy()
     }
   })
@@ -42,7 +42,7 @@ describe('findMood', () => {
     const m = findMood('grateful')
     expect(m).not.toBeNull()
     expect((m as Mood).tag).toBe('grateful')
-    expect((m as Mood).emoji).toBe('🌿')
+    expect((m as Mood).icon).toBe('sun')
   })
 
   it('matches each mood in the list', () => {

@@ -1,21 +1,36 @@
-import { useState, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, RefreshControl, Animated } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
 import { api, ApiError } from '../../lib/api'
+import { Icon } from '../../components/Icon'
+import { tapLight, tapMedium, notifyWarning, notifySuccess } from '../../lib/haptics'
 import { spacing, radii, type, layout } from '../../constants/theme'
 import {
   MILESTONES,
   nextMilestone,
   streakDays,
   toISODate,
+  parseISODate,
   type Milestone,
 } from '../../lib/streak'
 import { useCopy } from '../../lib/copy'
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
+
+interface Encouragement {
+  id: string
+  message: string
+  sender_name: string
+  created_at: string
+}
+
+interface WeeklyStats {
+  checkIns: number
+  journalEntries: number
+}
 
 export default function RecoveryHome() {
   const colors = useColors()
@@ -23,6 +38,11 @@ export default function RecoveryHome() {
   const { user } = useAuthStore()
   const [todayStatus, setTodayStatus] = useState<CheckInStatus | null>(null)
   const [sendingEmergency, setSendingEmergency] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [checkInStreak, setCheckInStreak] = useState(0)
+  const [encouragements, setEncouragements] = useState<Encouragement[]>([])
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({ checkIns: 0, journalEntries: 0 })
+  const [showCelebration, setShowCelebration] = useState(false)
 
   async function handleGetSupport() {
     Alert.alert(
@@ -34,6 +54,7 @@ export default function RecoveryHome() {
           text: 'yes, alert them',
           style: 'destructive',
           onPress: async () => {
+            notifyWarning()
             setSendingEmergency(true)
             try {
               const result = await api<{ supporters_notified: number }>(
@@ -71,27 +92,119 @@ export default function RecoveryHome() {
   const days = user?.sobrietyStartDate ? streakDays(user.sobrietyStartDate) : 0
   const next = nextMilestone(days)
 
-  const loadTodayCheckIn = useCallback(async () => {
+  const loadDashboard = useCallback(async () => {
     if (!user) return
-    const { data } = await supabase
-      .from('check_ins')
-      .select('status')
-      .eq('user_id', user.id)
-      .eq('check_in_date', toISODate(new Date()))
-      .maybeSingle<{ status: CheckInStatus }>()
-    setTodayStatus(data?.status ?? null)
+    const today = new Date()
+    const todayISO = toISODate(today)
+
+    // Load all dashboard data in parallel
+    const [checkInRes, streakRes, encourageRes, weekCheckRes, weekJournalRes] = await Promise.all([
+      // Today's check-in
+      supabase
+        .from('check_ins')
+        .select('status')
+        .eq('user_id', user.id)
+        .eq('check_in_date', todayISO)
+        .maybeSingle<{ status: CheckInStatus }>(),
+      // Recent check-ins for streak (last 30 days)
+      supabase
+        .from('check_ins')
+        .select('check_in_date')
+        .eq('user_id', user.id)
+        .order('check_in_date', { ascending: false })
+        .limit(30),
+      // Recent encouragements
+      supabase
+        .from('encouragements')
+        .select('id, message, created_at, relationships!inner(supporter_id, users:supporter_id(display_name))')
+        .eq('relationships.recovery_user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(3),
+      // This week's check-ins count
+      supabase
+        .from('check_ins')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('check_in_date', toISODate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()))),
+      // This week's journal entries count
+      supabase
+        .from('journal_entries')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()).toISOString()),
+    ])
+
+    setTodayStatus(checkInRes.data?.status ?? null)
+
+    // Calculate consecutive check-in days
+    if (streakRes.data) {
+      const dates = (streakRes.data as Array<{ check_in_date: string }>).map(r => r.check_in_date)
+      let streak = 0
+      const d = new Date(today)
+      // If not checked in today, start from yesterday
+      if (!dates.includes(todayISO)) d.setDate(d.getDate() - 1)
+      while (dates.includes(toISODate(d))) {
+        streak++
+        d.setDate(d.getDate() - 1)
+      }
+      setCheckInStreak(streak)
+    }
+
+    // Parse encouragements
+    if (encourageRes.data) {
+      const rows = encourageRes.data as unknown as Array<{
+        id: string
+        message: string
+        created_at: string
+        relationships: { users: { display_name: string } | null } | null
+      }>
+      setEncouragements(rows.map(r => ({
+        id: r.id,
+        message: r.message,
+        sender_name: r.relationships?.users?.display_name ?? 'someone',
+        created_at: r.created_at,
+      })))
+    }
+
+    setWeeklyStats({
+      checkIns: weekCheckRes.count ?? 0,
+      journalEntries: weekJournalRes.count ?? 0,
+    })
   }, [user])
 
   useFocusEffect(
     useCallback(() => {
-      loadTodayCheckIn()
-    }, [loadTodayCheckIn])
+      loadDashboard()
+    }, [loadDashboard])
   )
+
+  // Milestone celebration — show when user just crossed a milestone boundary
+  const prevDaysRef = useRef(days)
+  useEffect(() => {
+    if (days > 0 && prevDaysRef.current !== days) {
+      const justReached = MILESTONES.find(m => m.days === days)
+      if (justReached) {
+        setShowCelebration(true)
+        notifySuccess()
+        setTimeout(() => setShowCelebration(false), 3000)
+      }
+    }
+    prevDaysRef.current = days
+  }, [days])
+
+  async function handleRefresh() {
+    setRefreshing(true)
+    await loadDashboard()
+    setRefreshing(false)
+  }
 
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent} />
+      }
     >
       <View style={styles.header}>
         <View style={styles.headerText}>
@@ -102,53 +215,23 @@ export default function RecoveryHome() {
             {user?.displayName ?? 'friend'}
           </Text>
         </View>
-        <View style={styles.headerActions}>
-          <Pressable
-            onPress={() => router.push('/(chat)')}
-            style={({ pressed }) => [
-              styles.profileButton,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-            accessibilityLabel="messages"
-          >
-            <Text style={[styles.profileIcon, { color: colors.textPrimary }]}>💬</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => router.push('/(recovery)/settings')}
-            style={({ pressed }) => [
-              styles.profileButton,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-            accessibilityLabel="settings"
-          >
-            <Text style={[styles.profileIcon, { color: colors.textPrimary }]}>⚙</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => router.push('/(profile)')}
-            style={({ pressed }) => [
-              styles.profileButton,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-            accessibilityLabel="profile"
-          >
-            <Text style={[styles.profileIcon, { color: colors.textPrimary }]}>
-              {(user?.displayName ?? '?').trim().charAt(0).toUpperCase()}
-            </Text>
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={() => router.push('/(recovery)/settings')}
+          style={({ pressed }) => [
+            styles.headerButton,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              opacity: pressed ? 0.7 : 1,
+            },
+          ]}
+          accessibilityLabel="invite supporters"
+        >
+          <Icon name="user-plus" size={18} color={colors.textPrimary} />
+        </Pressable>
       </View>
+
+      {showCelebration && <CelebrationBanner />}
 
       <StreakCard days={days} next={next} streakLabel={copy.dashboard.streakLabel} />
 
@@ -158,6 +241,21 @@ export default function RecoveryHome() {
         </Text>
         <MilestonePath days={days} />
       </View>
+
+      {/* Weekly summary */}
+      <WeeklySummary stats={weeklyStats} checkInStreak={checkInStreak} />
+
+      {/* Encouragement inbox */}
+      {encouragements.length > 0 && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
+            from your circle
+          </Text>
+          {encouragements.map(e => (
+            <EncouragementCard key={e.id} encouragement={e} />
+          ))}
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>today</Text>
@@ -348,7 +446,7 @@ function MilestoneNode({ reached, isCurrent }: { reached: boolean; isCurrent: bo
   if (reached) {
     return (
       <View style={[styles.node, { backgroundColor: colors.success }]}>
-        <Text style={styles.nodeCheck}>✓</Text>
+        <Icon name="check" size={16} color="#fff" />
       </View>
     )
   }
@@ -408,7 +506,7 @@ function CheckInTile({ status }: { status: CheckInStatus | null }) {
         <Text style={[styles.tileLabel, { color: colors.textPrimary }]}>
           {checkedIn ? 'checked in' : 'check in'}
         </Text>
-        {checkedIn && meta && <Text style={styles.tileEmoji}>{meta.emoji}</Text>}
+        {checkedIn && meta && <Icon name={meta.icon} size={18} color={colors.accent} />}
       </View>
       <Text style={[styles.tileDescription, { color: colors.textSecondary }]}>
         {checkedIn && meta
@@ -466,6 +564,109 @@ function ActionTile({
   )
 }
 
+// ─── celebration banner ─────────────────────────────────────────────────
+// Shown briefly when a milestone is reached. Uses Animated for a scale-in effect.
+
+function CelebrationBanner() {
+  const colors = useColors()
+  const scale = useRef(new Animated.Value(0.8)).current
+  const opacity = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start()
+  }, [scale, opacity])
+
+  return (
+    <Animated.View
+      style={[
+        styles.celebration,
+        {
+          backgroundColor: colors.successSoft,
+          borderColor: colors.success,
+          transform: [{ scale }],
+          opacity,
+        },
+      ]}
+    >
+      <Icon name="award" size={24} color={colors.success} />
+      <View style={styles.celebrationText}>
+        <Text style={[type.h3, { color: colors.textPrimary }]}>milestone reached</Text>
+        <Text style={[type.small, { color: colors.textSecondary }]}>
+          you did it. take a moment to feel this.
+        </Text>
+      </View>
+    </Animated.View>
+  )
+}
+
+// ─── weekly summary ────────────────────────────────────────────────────
+
+function WeeklySummary({ stats, checkInStreak }: { stats: WeeklyStats; checkInStreak: number }) {
+  const colors = useColors()
+  if (stats.checkIns === 0 && stats.journalEntries === 0 && checkInStreak === 0) return null
+
+  return (
+    <View style={[styles.weeklyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>this week</Text>
+      <View style={styles.weeklyRow}>
+        {checkInStreak > 0 && (
+          <View style={styles.weeklyItem}>
+            <Icon name="zap" size={16} color={colors.accent} />
+            <Text style={[type.bodyStrong, { color: colors.textPrimary }]}>
+              {checkInStreak}
+            </Text>
+            <Text style={[type.small, { color: colors.textSecondary }]}>
+              day streak
+            </Text>
+          </View>
+        )}
+        <View style={styles.weeklyItem}>
+          <Icon name="check-circle" size={16} color={colors.success} />
+          <Text style={[type.bodyStrong, { color: colors.textPrimary }]}>
+            {stats.checkIns}
+          </Text>
+          <Text style={[type.small, { color: colors.textSecondary }]}>
+            check-ins
+          </Text>
+        </View>
+        <View style={styles.weeklyItem}>
+          <Icon name="book-open" size={16} color={colors.accent} />
+          <Text style={[type.bodyStrong, { color: colors.textPrimary }]}>
+            {stats.journalEntries}
+          </Text>
+          <Text style={[type.small, { color: colors.textSecondary }]}>
+            entries
+          </Text>
+        </View>
+      </View>
+    </View>
+  )
+}
+
+// ─── encouragement card ────────────────────────────────────────────────
+
+function EncouragementCard({ encouragement }: { encouragement: Encouragement }) {
+  const colors = useColors()
+  return (
+    <View style={[styles.encourageCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Icon name="heart" size={16} color={colors.accent} />
+      <View style={styles.encourageBody}>
+        <Text style={[type.body, { color: colors.textPrimary }]}>
+          &ldquo;{encouragement.message}&rdquo;
+        </Text>
+        <Text style={[type.small, { color: colors.textMuted }]}>
+          from {encouragement.sender_name}
+        </Text>
+      </View>
+    </View>
+  )
+}
+
+// ─── helpers ────────────────────────────────────────────────────────────
+
 function getGreeting(): string {
   const h = new Date().getHours()
   if (h < 5) return 'late night'
@@ -495,17 +696,13 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', gap: spacing.sm },
   greeting: { ...type.body },
   name: { ...type.h1 },
-  profileButton: {
-    width: 44,
-    height: 44,
+  headerButton: {
+    width: 40,
+    height: 40,
     borderRadius: radii.pill,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  profileIcon: {
-    fontSize: 17,
-    fontWeight: '600',
   },
 
   // streak card
@@ -547,12 +744,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  nodeCheck: { color: '#fff', fontSize: 16, fontWeight: '700' },
   nodeDot: { width: 8, height: 8, borderRadius: 4 },
   pathLabel: {
     fontSize: 11,
     letterSpacing: 0.1,
   },
+
+  // celebration
+  celebration: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  celebrationText: { flex: 1, gap: 2 },
+
+  // weekly summary
+  weeklyCard: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  weeklyRow: {
+    flexDirection: 'row',
+  },
+  weeklyItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+
+  // encouragement
+  encourageCard: {
+    borderRadius: radii.md,
+    borderWidth: 1,
+    padding: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  encourageBody: { flex: 1, gap: spacing.xs },
 
   // tiles
   tiles: { gap: spacing.md },
@@ -567,7 +801,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  tileEmoji: { fontSize: 20 },
   tileLabel: { ...type.h3 },
   tileDescription: { ...type.small },
   tileSoon: {

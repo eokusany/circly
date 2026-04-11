@@ -1,16 +1,18 @@
+import type { IconName } from '../components/Icon'
+
 export interface Mood {
   tag: string
-  emoji: string
+  icon: IconName
   label: string
 }
 
 export const MOODS: Mood[] = [
-  { tag: 'grateful', emoji: '🌿', label: 'grateful' },
-  { tag: 'hopeful', emoji: '🌟', label: 'hopeful' },
-  { tag: 'calm', emoji: '🌊', label: 'calm' },
-  { tag: 'anxious', emoji: '☁️', label: 'anxious' },
-  { tag: 'sad', emoji: '🌧', label: 'sad' },
-  { tag: 'angry', emoji: '🔥', label: 'angry' },
+  { tag: 'grateful', icon: 'sun', label: 'grateful' },
+  { tag: 'hopeful', icon: 'trending-up', label: 'hopeful' },
+  { tag: 'calm', icon: 'wind', label: 'calm' },
+  { tag: 'anxious', icon: 'cloud', label: 'anxious' },
+  { tag: 'sad', icon: 'cloud-rain', label: 'sad' },
+  { tag: 'angry', icon: 'zap', label: 'angry' },
 ]
 
 export function findMood(tag: string | null | undefined): Mood | null {

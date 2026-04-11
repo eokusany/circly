@@ -30,8 +30,7 @@ invitesRouter.post(
   requireAuth,
   inviteGenerateLimiter,
   async (req, res) => {
-    // Only recovery-role users can generate invite codes. Otherwise a
-    // supporter could pose as the "recovery" side of a relationship.
+    // Only recovery-role users can generate invite codes via this endpoint.
     const { data: me, error: meErr } = await supabase
       .from('users')
       .select('role')
@@ -53,6 +52,46 @@ invitesRouter.post(
     const { error } = await supabase.from('invite_codes').insert({
       code,
       recovery_user_id: req.user!.id,
+      expires_at: expiresAt,
+    })
+
+    if (error) {
+      res.status(500).json({ error: 'invite_insert_failed' })
+      return
+    }
+
+    res.json({ code, expires_at: expiresAt })
+  },
+)
+
+// Generate a fresh invite code for the authenticated supporter user.
+// The recovery user accepts this code to form the relationship.
+invitesRouter.post(
+  '/invites/supporter',
+  requireAuth,
+  inviteGenerateLimiter,
+  async (req, res) => {
+    const { data: me, error: meErr } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', req.user!.id)
+      .single()
+
+    if (meErr || !me) {
+      res.status(500).json({ error: 'user_lookup_failed' })
+      return
+    }
+    if ((me as { role: string }).role !== 'supporter') {
+      res.status(403).json({ error: 'only_supporters_can_use_this_endpoint' })
+      return
+    }
+
+    const code = generateCode()
+    const expiresAt = new Date(Date.now() + INVITE_TTL_MS).toISOString()
+
+    const { error } = await supabase.from('invite_codes').insert({
+      code,
+      supporter_user_id: req.user!.id,
       expires_at: expiresAt,
     })
 
@@ -95,7 +134,7 @@ invitesRouter.post(
       .eq('code', code)
       .is('used_at', null)
       .gt('expires_at', nowIso)
-      .select('recovery_user_id')
+      .select('recovery_user_id, supporter_user_id')
       .maybeSingle()
 
     if (claimErr) {
@@ -110,8 +149,23 @@ invitesRouter.post(
       return
     }
 
-    const recoveryUserId = (claimed as { recovery_user_id: string }).recovery_user_id
-    const supporterId = req.user!.id
+    const claimedRow = claimed as {
+      recovery_user_id: string | null
+      supporter_user_id: string | null
+    }
+    // Determine which direction this invite goes.
+    // recovery_user_id set  => a recovery user generated it, acceptor is supporter
+    // supporter_user_id set => a supporter generated it, acceptor is recovery user
+    let recoveryUserId: string
+    let supporterId: string
+
+    if (claimedRow.recovery_user_id) {
+      recoveryUserId = claimedRow.recovery_user_id
+      supporterId = req.user!.id
+    } else {
+      supporterId = claimedRow.supporter_user_id!
+      recoveryUserId = req.user!.id
+    }
 
     if (recoveryUserId === supporterId) {
       // Roll back the claim so the code stays usable by its intended recipient.
@@ -120,6 +174,56 @@ invitesRouter.post(
         .update({ used_at: null })
         .eq('code', code)
       res.status(400).json({ error: 'self_invite' })
+      return
+    }
+
+    // Check if these two users are already linked.
+    const { data: existing } = await supabase
+      .from('relationships')
+      .select('id, status')
+      .eq('recovery_user_id', recoveryUserId)
+      .eq('supporter_id', supporterId)
+      .maybeSingle()
+
+    if (existing) {
+      if ((existing as { status: string }).status === 'active') {
+        // Already connected — roll back the code so it isn't wasted.
+        await supabase
+          .from('invite_codes')
+          .update({ used_at: null })
+          .eq('code', code)
+        res.status(400).json({ error: 'already_linked' })
+        return
+      }
+
+      // Reactivate a previously removed relationship.
+      await supabase
+        .from('relationships')
+        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .eq('id', (existing as { id: string }).id)
+
+      // Ensure a conversation exists (may have been from the original link).
+      const { data: existingConvo } = await supabase
+        .from('conversations')
+        .select('id')
+        .contains('participant_ids', [recoveryUserId, supporterId])
+        .maybeSingle()
+
+      const conversationId = existingConvo
+        ? (existingConvo as { id: string }).id
+        : await (async () => {
+            const { data } = (await supabase
+              .from('conversations')
+              .insert({ type: 'direct', participant_ids: [recoveryUserId, supporterId] })
+              .select()
+              .single()) as { data: { id: string } | null; error: unknown }
+            return data?.id ?? null
+          })()
+
+      res.json({
+        relationship_id: (existing as { id: string }).id,
+        conversation_id: conversationId,
+      })
       return
     }
 
