@@ -209,16 +209,21 @@ invitesRouter.post(
         .contains('participant_ids', [recoveryUserId, supporterId])
         .maybeSingle()
 
-      const conversationId = existingConvo
-        ? (existingConvo as { id: string }).id
-        : await (async () => {
-            const { data } = (await supabase
-              .from('conversations')
-              .insert({ type: 'direct', participant_ids: [recoveryUserId, supporterId] })
-              .select()
-              .single()) as { data: { id: string } | null; error: unknown }
-            return data?.id ?? null
-          })()
+      let conversationId: string
+      if (existingConvo) {
+        conversationId = (existingConvo as { id: string }).id
+      } else {
+        const convInsert = (await supabase
+          .from('conversations')
+          .insert({ type: 'direct', participant_ids: [recoveryUserId, supporterId] })
+          .select()
+          .single()) as { data: { id: string } | null; error: { message: string } | null }
+        if (convInsert.error || !convInsert.data) {
+          res.status(500).json({ error: 'conversation_insert_failed' })
+          return
+        }
+        conversationId = convInsert.data.id
+      }
 
       res.json({
         relationship_id: (existing as { id: string }).id,
