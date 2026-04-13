@@ -13,6 +13,7 @@ import { router } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { Button } from '../../components/Button'
+import { BackButton } from '../../components/BackButton'
 import { Icon, type IconName } from '../../components/Icon'
 import { supabase } from '../../lib/supabase'
 import { toISODate, parseISODate } from '../../lib/streak'
@@ -114,10 +115,7 @@ export default function CheckInScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Icon name="chevron-left" size={20} color={colors.accent} />
-          <Text style={[styles.back, { color: colors.accent }]}>back</Text>
-        </TouchableOpacity>
+        <BackButton />
         <Text style={[styles.title, { color: colors.textPrimary }]}>today&apos;s check-in</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           how are you showing up right now?
@@ -250,11 +248,8 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.xs },
-  back: { ...t.bodyStrong },
   title: { ...t.h1 },
   subtitle: { ...t.body },
-
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
   options: { gap: spacing.md },
   option: {
     borderRadius: radii.xl,

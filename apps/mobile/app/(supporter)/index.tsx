@@ -18,6 +18,7 @@ import { supabase } from '../../lib/supabase'
 import { api, ApiError } from '../../lib/api'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
+import { SkeletonCard } from '../../components/SkeletonCard'
 import { Icon, type IconName } from '../../components/Icon'
 import { tapMedium, notifySuccess } from '../../lib/haptics'
 import { streakDays, toISODate, type MilestoneType } from '../../lib/streak'
@@ -241,10 +242,15 @@ export default function SupporterHome() {
     }, [load]),
   )
 
+  const checkedInCount = useMemo(
+    () => people.filter((p) => p.today_check_in !== null).length,
+    [people],
+  )
+
   if (loading) {
     return (
       <View style={[styles.loading, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.accent} />
+        <SkeletonCard count={3} height={140} />
       </View>
     )
   }
@@ -270,6 +276,14 @@ export default function SupporterHome() {
             <Text style={[styles.name, { color: colors.textPrimary }]}>
               {user?.displayName ?? 'friend'}
             </Text>
+            {people.length > 0 && (
+              <Text style={[styles.summary, { color: colors.textMuted }]}>
+                {people.length} {people.length === 1 ? 'person' : 'people'} in your circle
+                {checkedInCount > 0
+                  ? ` · ${checkedInCount} checked in today`
+                  : ''}
+              </Text>
+            )}
           </View>
           <Pressable
             onPress={() => router.push('/(supporter)/invite')}
@@ -410,16 +424,37 @@ const PersonCard = React.memo(function PersonCard({
 
   const initial = person.display_name.trim().charAt(0).toUpperCase()
 
+  const statusBorder =
+    person.today_check_in === 'struggling'
+      ? colors.warning
+      : person.today_check_in === 'good_day'
+        ? colors.success
+        : colors.border
+
+  const statusAvatarBg =
+    person.today_check_in === 'struggling'
+      ? colors.warningSoft
+      : person.today_check_in === 'good_day'
+        ? colors.successSoft
+        : colors.accentSoft
+
+  const statusAvatarColor =
+    person.today_check_in === 'struggling'
+      ? colors.warning
+      : person.today_check_in === 'good_day'
+        ? colors.success
+        : colors.accent
+
   return (
     <View
       style={[
         styles.card,
-        { backgroundColor: colors.surface, borderColor: colors.border },
+        { backgroundColor: colors.surface, borderColor: statusBorder },
       ]}
     >
       <View style={styles.cardHeaderRow}>
-        <View style={[styles.avatar, { backgroundColor: colors.accentSoft }]}>
-          <Text style={[styles.avatarText, { color: colors.accent }]}>{initial}</Text>
+        <View style={[styles.avatar, { backgroundColor: statusAvatarBg }]}>
+          <Text style={[styles.avatarText, { color: statusAvatarColor }]}>{initial}</Text>
         </View>
         <View style={styles.cardHeaderText}>
           <Text style={[styles.cardName, { color: colors.textPrimary }]}>
@@ -626,23 +661,28 @@ function EncouragementSheet({
           </Text>
 
           <View style={styles.presets}>
-            {PRESETS.map((p) => (
-              <Pressable
-                key={p}
-                onPress={() => send(p)}
-                disabled={sending}
-                style={({ pressed }) => [
-                  styles.preset,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                    opacity: sending ? 0.5 : pressed ? 0.8 : 1,
-                  },
-                ]}
-              >
-                <Text style={{ color: colors.textPrimary }}>{p}</Text>
-              </Pressable>
-            ))}
+            {PRESETS.map((p, i) => {
+              const emoji = ['💭', '🌟', '💪'][i]
+              return (
+                <Pressable
+                  key={p}
+                  onPress={() => send(p)}
+                  disabled={sending}
+                  style={({ pressed }) => [
+                    styles.preset,
+                    {
+                      backgroundColor: colors.accentSoft,
+                      borderColor: colors.accent,
+                      opacity: sending ? 0.5 : pressed ? 0.8 : 1,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.presetText, { color: colors.textPrimary }]}>
+                    {emoji}  {p}
+                  </Text>
+                </Pressable>
+              )
+            })}
           </View>
 
           <TextInput
@@ -668,7 +708,12 @@ function EncouragementSheet({
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loading: {
+    flex: 1,
+    padding: layout.screenPadding,
+    paddingTop: layout.screenTopPadding,
+    gap: spacing.md,
+  },
   container: {
     padding: layout.screenPadding,
     paddingTop: layout.screenTopPadding,
@@ -692,6 +737,7 @@ const styles = StyleSheet.create({
   },
   greeting: { ...t.body },
   name: { ...t.h1 },
+  summary: { ...t.small, marginTop: spacing.xs },
   peopleSection: { gap: spacing.md },
   sectionLabel: { ...t.label },
   list: { gap: spacing.md },
@@ -781,6 +827,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
+  },
+  presetText: {
+    ...t.body,
+    fontWeight: '500',
   },
   cancelLink: { alignItems: 'center', padding: spacing.md },
 

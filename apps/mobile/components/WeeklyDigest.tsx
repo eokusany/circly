@@ -107,7 +107,7 @@ export function WeeklyDigest({ entries }: Props) {
           <Icon name="bar-chart-2" size={16} color={colors.accent} />
           <Text style={[styles.headerLabel, { color: colors.accent }]}>last week</Text>
         </View>
-        <Pressable onPress={handleDismiss} hitSlop={12}>
+        <Pressable onPress={handleDismiss} hitSlop={12} accessibilityRole="button" accessibilityLabel="Dismiss digest">
           <Icon name="x" size={16} color={colors.textMuted} />
         </Pressable>
       </View>

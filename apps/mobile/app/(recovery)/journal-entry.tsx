@@ -15,6 +15,7 @@ import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { useTimeOfDay, getTimeTint } from '../../hooks/useTimeOfDay'
 import { Button } from '../../components/Button'
+import { BackButton } from '../../components/BackButton'
 import { Icon } from '../../components/Icon'
 import { MoodSlider } from '../../components/MoodSlider'
 import { supabase } from '../../lib/supabase'
@@ -219,10 +220,7 @@ export default function JournalEntryScreen() {
         )}
 
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Icon name="chevron-left" size={20} color={colors.accent} />
-            <Text style={[styles.back, { color: colors.accent }]}>back</Text>
-          </TouchableOpacity>
+          <BackButton />
           <Text style={[styles.title, { color: colors.textPrimary }]}>
             {editingId ? 'edit entry' : 'new entry'}
           </Text>
@@ -336,8 +334,6 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.xs },
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
-  back: { ...t.bodyStrong },
   title: { ...t.h1 },
 
   promptCard: {

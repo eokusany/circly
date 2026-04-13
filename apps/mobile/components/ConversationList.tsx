@@ -1,7 +1,10 @@
 import React, { useCallback } from 'react'
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, FlatList, ScrollView, RefreshControl } from 'react-native'
+import { View, Text, Pressable, StyleSheet, FlatList, ScrollView, RefreshControl } from 'react-native'
 import { useColors } from '../hooks/useColors'
 import { spacing, radii, type as t } from '../constants/theme'
+import { SkeletonCard } from './SkeletonCard'
+import { EmptyState } from './EmptyState'
+import { Badge } from './Badge'
 import {
   formatConversationTime,
   type ConversationRow,
@@ -27,6 +30,8 @@ const ConversationItem = React.memo(function ConversationItem({
   return (
     <Pressable
       onPress={() => onPress(row.id)}
+      accessibilityRole="button"
+      accessibilityLabel={`Conversation with ${row.otherName}`}
       style={({ pressed }) => [
         styles.row,
         {
@@ -37,12 +42,15 @@ const ConversationItem = React.memo(function ConversationItem({
       ]}
     >
       <View style={styles.rowHeader}>
-        <Text
-          style={[styles.name, { color: colors.textPrimary }]}
-          numberOfLines={1}
-        >
-          {row.otherName}
-        </Text>
+        <View style={styles.nameRow}>
+          {row.unread && <Badge dot />}
+          <Text
+            style={[styles.name, { color: colors.textPrimary }, row.unread && { fontWeight: '700' }]}
+            numberOfLines={1}
+          >
+            {row.otherName}
+          </Text>
+        </View>
         <Text style={[styles.time, { color: colors.textMuted }]}>
           {formatConversationTime(row.lastMessageAt)}
         </Text>
@@ -72,7 +80,7 @@ export function ConversationList({ rows, loading, onPressRow, header, refreshCon
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.accent} />
+        <SkeletonCard count={3} height={72} />
       </View>
     )
   }
@@ -85,19 +93,11 @@ export function ConversationList({ rows, loading, onPressRow, header, refreshCon
         style={{ backgroundColor: colors.background }}
       >
         {header}
-        <View
-          style={[
-            styles.emptyCard,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-            no conversations yet
-          </Text>
-          <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-            once someone joins your circle, you can talk here.
-          </Text>
-        </View>
+        <EmptyState
+          icon="message-circle"
+          title="no conversations yet"
+          body="once someone joins your circle, you can talk here."
+        />
       </ScrollView>
     )
   }
@@ -129,6 +129,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: spacing.md,
+  },
+  nameRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: spacing.sm,
+    flex: 1,
   },
   name: { ...t.h3, flex: 1 },
   time: { ...t.small },

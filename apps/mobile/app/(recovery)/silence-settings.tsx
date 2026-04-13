@@ -11,6 +11,7 @@ import { router, useFocusEffect, Stack } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { api } from '../../lib/api'
 import { Button } from '../../components/Button'
+import { BackButton } from '../../components/BackButton'
 import { Icon } from '../../components/Icon'
 import { tapLight } from '../../lib/haptics'
 import { scheduleOkayReminder, cancelOkayReminder, parseTime } from '../../lib/notifications'
@@ -104,10 +105,7 @@ export default function SilenceSettingsScreen() {
         contentContainerStyle={styles.container}
       >
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Icon name="chevron-left" size={20} color={colors.accent} />
-            <Text style={[styles.back, { color: colors.accent }]}>back</Text>
-          </Pressable>
+          <BackButton />
           <Text style={[styles.title, { color: colors.textPrimary }]}>
             silence detection
           </Text>
@@ -257,13 +255,6 @@ const styles = StyleSheet.create({
     gap: layout.sectionGap,
   },
   header: { gap: spacing.sm },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  back: { ...t.bodyStrong },
   title: { ...t.h1 },
   subtitle: { ...t.body },
   section: { gap: spacing.md },

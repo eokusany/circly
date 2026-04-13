@@ -1,6 +1,7 @@
 import { Children, Fragment, isValidElement } from 'react'
 import { Pressable, View, Text, StyleSheet } from 'react-native'
 import { useColors } from '../hooks/useColors'
+import { Icon } from './Icon'
 import { spacing, radii, type as t } from '../constants/theme'
 
 interface Props {
@@ -34,6 +35,9 @@ export function SettingRow({
   return (
     <Pressable
       onPress={disabled ? undefined : onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
       style={({ pressed }) => [
         styles.row,
         {
@@ -63,7 +67,7 @@ export function SettingRow({
       {right ? (
         right
       ) : hideChevron || !onPress ? null : (
-        <Text style={[styles.chevron, { color: colors.textMuted }]}>›</Text>
+        <Icon name="chevron-right" size={18} color={colors.textMuted} />
       )}
     </Pressable>
   )

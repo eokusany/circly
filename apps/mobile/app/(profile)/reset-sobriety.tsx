@@ -13,7 +13,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
-import { Icon } from '../../components/Icon'
+import { BackButton } from '../../components/BackButton'
 import { toISODate, parseISODate } from '../../lib/streak'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
 
@@ -123,10 +123,7 @@ export default function ResetSobrietyScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Icon name="chevron-left" size={20} color={colors.accent} />
-          <Text style={[styles.back, { color: colors.accent }]}>back</Text>
-        </TouchableOpacity>
+        <BackButton />
         <Text style={[styles.title, { color: colors.textPrimary }]}>start over</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           starting over isn&apos;t starting from zero. pick your new day one.
@@ -228,8 +225,6 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.sm },
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
-  back: { ...t.smallStrong },
   title: { ...t.h1 },
   subtitle: { ...t.body },
   presets: { gap: spacing.md },

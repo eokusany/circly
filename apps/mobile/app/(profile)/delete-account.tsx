@@ -6,7 +6,7 @@ import { useAuthStore } from '../../store/auth'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
-import { Icon } from '../../components/Icon'
+import { BackButton } from '../../components/BackButton'
 import { spacing, type as t, layout } from '../../constants/theme'
 
 const CONFIRM_PHRASE = 'delete'
@@ -73,10 +73,7 @@ export default function DeleteAccountScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Icon name="chevron-left" size={20} color={colors.accent} />
-          <Text style={[styles.back, { color: colors.accent }]}>back</Text>
-        </TouchableOpacity>
+        <BackButton />
         <Text style={[styles.title, { color: colors.danger }]}>delete account</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           we&apos;re sorry to see you go
@@ -148,8 +145,6 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.sm },
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
-  back: { ...t.smallStrong },
   title: { ...t.h1 },
   subtitle: { ...t.body },
   warningBox: {

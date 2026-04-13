@@ -83,6 +83,13 @@ export default function JournalScreen() {
     }, [loadEntries, unlocked, lock.state])
   )
 
+  const entryDates = useMemo(() => entries.map((e) => e.created_at), [entries])
+
+  const fabTranslate = fabAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [80, 0],
+  })
+
   // Show lock screen if not yet unlocked
   if (!unlocked && lock.state !== 'unlocked') {
     return (
@@ -98,13 +105,6 @@ export default function JournalScreen() {
       />
     )
   }
-
-  const entryDates = useMemo(() => entries.map((e) => e.created_at), [entries])
-
-  const fabTranslate = fabAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [80, 0],
-  })
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>

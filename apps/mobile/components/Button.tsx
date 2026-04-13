@@ -1,4 +1,5 @@
-import { Pressable, Text, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native'
+import { useRef } from 'react'
+import { Pressable, Text, StyleSheet, ActivityIndicator, Animated, ViewStyle } from 'react-native'
 import { useColors } from '../hooks/useColors'
 import { radii, spacing } from '../constants/theme'
 
@@ -22,39 +23,54 @@ export function Button({
   const colors = useColors()
   const isPrimary = variant === 'primary'
   const isInactive = loading || disabled
+  const scale = useRef(new Animated.Value(1)).current
+
+  function handlePressIn() {
+    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, friction: 8 }).start()
+  }
+
+  function handlePressOut() {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 8 }).start()
+  }
 
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={isInactive}
-      style={({ pressed }) => [
-        styles.base,
-        isPrimary
-          ? {
-              backgroundColor: pressed ? colors.accentPressed : colors.accent,
-            }
-          : {
-              backgroundColor: 'transparent',
-              borderWidth: 1,
-              borderColor: colors.border,
-            },
-        isInactive && { opacity: 0.5 },
-        style,
-      ]}
-    >
-      {loading ? (
-        <ActivityIndicator color={isPrimary ? '#fff' : colors.accent} />
-      ) : (
-        <Text
-          style={[
-            styles.label,
-            { color: isPrimary ? '#fff' : colors.textPrimary },
-          ]}
-        >
-          {label}
-        </Text>
-      )}
-    </Pressable>
+    <Animated.View style={[{ transform: [{ scale }] }, style]}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={isInactive}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: isInactive, busy: loading }}
+        style={({ pressed }) => [
+          styles.base,
+          isPrimary
+            ? {
+                backgroundColor: pressed ? colors.accentPressed : colors.accent,
+              }
+            : {
+                backgroundColor: 'transparent',
+                borderWidth: 1,
+                borderColor: pressed ? colors.borderStrong : colors.border,
+              },
+          isInactive && { opacity: 0.5 },
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator color={isPrimary ? '#fff' : colors.accent} />
+        ) : (
+          <Text
+            style={[
+              styles.label,
+              { color: isPrimary ? '#fff' : colors.textPrimary },
+            ]}
+          >
+            {label}
+          </Text>
+        )}
+      </Pressable>
+    </Animated.View>
   )
 }
 

@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Alert, Pressable } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
+import { spacing, type as t, layout } from '../../constants/theme'
 
 export default function ForgotPasswordScreen() {
   const colors = useColors()
@@ -55,11 +56,9 @@ export default function ForgotPasswordScreen() {
         <Button label="send code" onPress={handleReset} loading={loading} />
       </View>
 
-      <TouchableOpacity onPress={() => router.replace('/(auth)/sign-in')}>
-        <Text style={[styles.link, { color: colors.textSecondary }]}>
-          <Text style={{ color: colors.accent, fontWeight: '600' }}>back to sign in</Text>
-        </Text>
-      </TouchableOpacity>
+      <Pressable onPress={() => router.replace('/(auth)/sign-in')} accessibilityRole="link">
+        <Text style={[styles.link, { color: colors.accent }]}>back to sign in</Text>
+      </Pressable>
     </ScrollView>
   )
 }
@@ -67,14 +66,14 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    padding: 28,
+    padding: layout.screenPadding,
     justifyContent: 'center',
-    gap: 40,
+    gap: spacing.xxxl,
   },
-  header: { gap: 8 },
-  logo: { fontSize: 32, fontWeight: '700', letterSpacing: -0.5 },
-  title: { fontSize: 26, fontWeight: '700', letterSpacing: -0.5 },
-  subtitle: { fontSize: 15 },
-  form: { gap: 16 },
-  link: { textAlign: 'center', fontSize: 14 },
+  header: { gap: spacing.sm },
+  logo: { ...t.h1, fontSize: 32, letterSpacing: -0.5 },
+  title: { ...t.h2 },
+  subtitle: { ...t.body },
+  form: { gap: spacing.lg },
+  link: { ...t.bodyStrong, textAlign: 'center' },
 })
