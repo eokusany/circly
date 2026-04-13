@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert, RefreshControl, Animated } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
@@ -29,7 +29,7 @@ interface WeeklyStats {
 export default function RecoveryHome() {
   const colors = useColors()
   const copy = useCopy()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [todayStatus, setTodayStatus] = useState<CheckInStatus | null>(null)
   const [sendingEmergency, setSendingEmergency] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -83,8 +83,11 @@ export default function RecoveryHome() {
     )
   }
 
-  const days = user?.sobrietyStartDate ? streakDays(user.sobrietyStartDate) : 0
-  const next = nextMilestone(days)
+  const days = useMemo(
+    () => user?.sobrietyStartDate ? streakDays(user.sobrietyStartDate) : 0,
+    [user?.sobrietyStartDate],
+  )
+  const next = useMemo(() => nextMilestone(days), [days])
 
   const loadDashboard = useCallback(async () => {
     if (!user) return
@@ -353,7 +356,7 @@ function prevMilestoneDays(days: number): number {
 //   future   → outlined muted circle
 // Labels live underneath as a single line — no more "1d / 1 day" redundancy.
 
-function MilestonePath({ days }: { days: number }) {
+const MilestonePath = React.memo(function MilestonePath({ days }: { days: number }) {
   const colors = useColors()
   const currentIdx = firstUnreachedIndex(days)
 
@@ -416,7 +419,7 @@ function MilestonePath({ days }: { days: number }) {
       })}
     </View>
   )
-}
+})
 
 function firstUnreachedIndex(days: number): number {
   const i = MILESTONES.findIndex((m) => days < m.days)
@@ -587,7 +590,7 @@ function CelebrationBanner() {
 
 // ─── weekly summary ────────────────────────────────────────────────────
 
-function WeeklySummary({ stats, checkInStreak }: { stats: WeeklyStats; checkInStreak: number }) {
+const WeeklySummary = React.memo(function WeeklySummary({ stats, checkInStreak }: { stats: WeeklyStats; checkInStreak: number }) {
   const colors = useColors()
   if (stats.checkIns === 0 && stats.journalEntries === 0 && checkInStreak === 0) return null
 
@@ -627,7 +630,7 @@ function WeeklySummary({ stats, checkInStreak }: { stats: WeeklyStats; checkInSt
       </View>
     </View>
   )
-}
+})
 
 // ─── helpers ────────────────────────────────────────────────────────────
 

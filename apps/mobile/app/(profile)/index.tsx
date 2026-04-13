@@ -9,7 +9,8 @@ import { COPY, DEFAULT_CONTEXT } from '../../lib/copy'
 
 export default function ProfileScreen() {
   const colors = useColors()
-  const { user, signOut } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const signOut = useAuthStore((s) => s.signOut)
 
   if (!user) return null
 

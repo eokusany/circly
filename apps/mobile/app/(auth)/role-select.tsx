@@ -13,7 +13,7 @@ import { COPY, DEFAULT_CONTEXT, type AppContext } from '../../lib/copy'
 
 export default function RoleSelectScreen() {
   const colors = useColors()
-  const { setUser } = useAuthStore()
+  const setUser = useAuthStore((s) => s.setUser)
   const [selected, setSelected] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(false)
 

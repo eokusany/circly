@@ -17,7 +17,7 @@ import { spacing, type as t, layout } from '../../constants/theme'
 
 export default function InviteCodeScreen() {
   const colors = useColors()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
 
