@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { TextInput as RNTextInput, View, Text, StyleSheet } from 'react-native'
 import { useColors } from '../hooks/useColors'
 import { radii, spacing, type as t } from '../constants/theme'
@@ -12,6 +13,11 @@ interface Props {
   keyboardType?: 'default' | 'email-address' | 'number-pad'
   autoCorrect?: boolean
   maxLength?: number
+  /** Error message shown below the input in red. */
+  error?: string
+  /** Multiline text area mode. */
+  multiline?: boolean
+  numberOfLines?: number
 }
 
 export function TextInput({
@@ -24,25 +30,40 @@ export function TextInput({
   keyboardType = 'default',
   autoCorrect = false,
   maxLength,
+  error,
+  multiline,
+  numberOfLines,
 }: Props) {
   const colors = useColors()
+  const [focused, setFocused] = useState(false)
+
+  const borderColor = error
+    ? colors.danger
+    : focused
+      ? colors.accent
+      : colors.border
 
   return (
     <View style={styles.container}>
       {label ? (
-        <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
+        <Text style={[styles.label, { color: error ? colors.danger : colors.textMuted }]}>
+          {label}
+        </Text>
       ) : null}
       <RNTextInput
         style={[
           styles.input,
           {
             backgroundColor: colors.surface,
-            borderColor: colors.border,
+            borderColor,
             color: colors.textPrimary,
           },
+          multiline && { height: undefined, minHeight: 54, paddingVertical: spacing.md, textAlignVertical: 'top' },
         ]}
         value={value}
         onChangeText={onChangeText}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         placeholder={placeholder}
         placeholderTextColor={colors.textMuted}
         secureTextEntry={secureTextEntry}
@@ -50,7 +71,13 @@ export function TextInput({
         keyboardType={keyboardType}
         autoCorrect={autoCorrect}
         maxLength={maxLength}
+        multiline={multiline}
+        numberOfLines={numberOfLines}
+        accessibilityLabel={label}
       />
+      {error ? (
+        <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>
+      ) : null}
     </View>
   )
 }
@@ -65,4 +92,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     fontSize: 16,
   },
+  error: { ...t.small, marginTop: -spacing.xs },
 })

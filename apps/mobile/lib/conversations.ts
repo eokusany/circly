@@ -25,6 +25,7 @@ export interface ConversationRow {
   otherName: string
   lastMessageBody: string
   lastMessageAt: string | null
+  unread?: boolean
 }
 
 const MONTHS = [

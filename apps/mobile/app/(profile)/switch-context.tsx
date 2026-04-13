@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
+import { BackButton } from '../../components/BackButton'
 import { Icon } from '../../components/Icon'
 import { tapLight } from '../../lib/haptics'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
@@ -68,10 +69,7 @@ export default function SwitchContextScreen() {
       contentContainerStyle={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Icon name="chevron-left" size={20} color={colors.accent} />
-          <Text style={[styles.back, { color: colors.accent }]}>back</Text>
-        </TouchableOpacity>
+        <BackButton />
         <Text style={[styles.title, { color: colors.textPrimary }]}>switch context</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           pick what fits your life right now. your data stays with you either way.
@@ -137,8 +135,6 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.sm },
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
-  back: { ...t.smallStrong },
   title: { ...t.h1 },
   subtitle: { ...t.body },
   cards: { gap: spacing.md },

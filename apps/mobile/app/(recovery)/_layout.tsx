@@ -108,7 +108,7 @@ export default function RecoveryLayout() {
           height: 64,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: '600',
           letterSpacing: 0.2,
         },

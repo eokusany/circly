@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useColors } from '../hooks/useColors'
 import { Icon } from './Icon'
@@ -48,9 +48,15 @@ function getStreak(dates: Set<string>): number {
 export function StreakCalendar({ entryDates, onDatePress }: Props) {
   const colors = useColors()
   const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
+  const [offset, setOffset] = useState(0)
+  const viewDate = useMemo(() => {
+    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1)
+    return d
+  }, [offset])
+  const year = viewDate.getFullYear()
+  const month = viewDate.getMonth()
   const todayKey = dateKey(now)
+  const isCurrentMonth = offset === 0
 
   const entrySet = useMemo(
     () => new Set(entryDates.map((iso) => dateKey(new Date(iso)))),
@@ -59,14 +65,22 @@ export function StreakCalendar({ entryDates, onDatePress }: Props) {
   const cells = useMemo(() => getMonthGrid(year, month), [year, month])
   const streak = useMemo(() => getStreak(entrySet), [entrySet])
 
-  const monthLabel = now.toLocaleDateString(undefined, { month: 'long' }).toLowerCase()
+  const monthLabel = viewDate.toLocaleDateString(undefined, { month: 'long', year: offset === 0 ? undefined : 'numeric' }).toLowerCase()
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={styles.header}>
-        <View>
+        <Pressable
+          onPress={() => setOffset((o) => o - 1)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Previous month"
+        >
+          <Icon name="chevron-left" size={18} color={colors.textMuted} />
+        </Pressable>
+        <View style={styles.headerCenter}>
           <Text style={[styles.monthLabel, { color: colors.textPrimary }]}>{monthLabel}</Text>
-          {streak > 0 && (
+          {streak > 0 && isCurrentMonth && (
             <View style={styles.streakRow}>
               <Icon name="edit-3" size={12} color={colors.accent} />
               <Text style={[styles.streakText, { color: colors.accent }]}>
@@ -75,6 +89,16 @@ export function StreakCalendar({ entryDates, onDatePress }: Props) {
             </View>
           )}
         </View>
+        <Pressable
+          onPress={() => setOffset((o) => Math.min(o + 1, 0))}
+          hitSlop={8}
+          disabled={isCurrentMonth}
+          accessibilityRole="button"
+          accessibilityLabel="Next month"
+          style={{ opacity: isCurrentMonth ? 0.3 : 1 }}
+        >
+          <Icon name="chevron-right" size={18} color={colors.textMuted} />
+        </Pressable>
       </View>
 
       {/* Day labels */}
@@ -152,8 +176,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: spacing.xs,
+  },
+  headerCenter: {
+    alignItems: 'center',
+    flex: 1,
   },
   monthLabel: { ...t.h3 },
   streakRow: {

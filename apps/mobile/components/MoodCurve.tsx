@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { View, Text, StyleSheet, LayoutChangeEvent, Pressable } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop, Circle } from 'react-native-svg'
 import { useColors } from '../hooks/useColors'
+import { Icon } from './Icon'
 import { findMood, valueFromTag } from '../lib/mood'
 import { spacing, radii, type as t } from '../constants/theme'
 
@@ -67,8 +68,6 @@ export function MoodCurve({ entries, onEntryPress }: Props) {
     [entries],
   )
 
-  if (withMood.length < 3) return null
-
   function handleLayout(e: LayoutChangeEvent) {
     setWidth(e.nativeEvent.layout.width)
   }
@@ -77,12 +76,15 @@ export function MoodCurve({ entries, onEntryPress }: Props) {
   const usableHeight = CHART_HEIGHT - PADDING_Y * 2
 
   const points = useMemo(
-    () => withMood.map((entry, i) => {
-      const moodVal = entry.mood_value ?? valueFromTag(entry.mood_tag) ?? 50
-      const x = PADDING_X + (i / (withMood.length - 1)) * usableWidth
-      const y = PADDING_Y + usableHeight - (moodVal / 100) * usableHeight
-      return { x, y, entry }
-    }),
+    () => {
+      if (withMood.length < 2) return []
+      return withMood.map((entry, i) => {
+        const moodVal = entry.mood_value ?? valueFromTag(entry.mood_tag) ?? 50
+        const x = PADDING_X + (i / (withMood.length - 1)) * usableWidth
+        const y = PADDING_Y + usableHeight - (moodVal / 100) * usableHeight
+        return { x, y, entry }
+      })
+    },
     [withMood, usableWidth, usableHeight],
   )
 
@@ -90,6 +92,22 @@ export function MoodCurve({ entries, onEntryPress }: Props) {
     () => points.map(({ x, y }) => ({ x, y })),
     [points],
   )
+
+  if (withMood.length < 3) {
+    return (
+      <View
+        style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      >
+        <Text style={[styles.label, { color: colors.textMuted }]}>mood over time</Text>
+        <View style={styles.emptyState}>
+          <Icon name="trending-up" size={24} color={colors.textMuted} />
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            log at least 3 moods to see your curve
+          </Text>
+        </View>
+      </View>
+    )
+  }
 
   return (
     <View
@@ -192,5 +210,14 @@ const styles = StyleSheet.create({
   tooltipText: {
     fontSize: 11,
     fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center' as const,
+    gap: spacing.sm,
+    paddingVertical: spacing.xl,
+  },
+  emptyText: {
+    ...t.small,
+    textAlign: 'center' as const,
   },
 })

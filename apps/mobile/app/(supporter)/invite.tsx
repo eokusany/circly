@@ -13,7 +13,7 @@ import { useColors } from '../../hooks/useColors'
 import { api, ApiError } from '../../lib/api'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
-import { Icon } from '../../components/Icon'
+import { BackButton } from '../../components/BackButton'
 import { spacing, radii, type, layout } from '../../constants/theme'
 
 interface ServerInvite {
@@ -33,6 +33,7 @@ export default function SupporterInvite() {
   const [generating, setGenerating] = useState(false)
   const [acceptCode, setAcceptCode] = useState('')
   const [accepting, setAccepting] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   async function handleGenerate() {
     setGenerating(true)
@@ -115,10 +116,7 @@ export default function SupporterInvite() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Icon name="chevron-left" size={20} color={colors.accent} />
-            <Text style={[styles.back, { color: colors.accent }]}>back</Text>
-          </Pressable>
+          <BackButton />
           <Text style={[styles.title, { color: colors.textPrimary }]}>
             grow your circle
           </Text>
@@ -146,9 +144,24 @@ export default function SupporterInvite() {
               <Text style={[styles.inviteLabel, { color: colors.textMuted }]}>
                 your code
               </Text>
-              <Text style={[styles.inviteCode, { color: colors.accent }]}>
-                {invite.code}
-              </Text>
+              <Pressable
+                onPress={() => {
+                  Share.share({ message: invite.code })
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Copy invite code ${invite.code}`}
+              >
+                <Text style={[styles.inviteCode, { color: colors.accent }]}>
+                  {invite.code}
+                </Text>
+              </Pressable>
+              {copied && (
+                <Text style={[styles.copiedLabel, { color: colors.accent }]}>
+                  tap share to copy
+                </Text>
+              )}
               <Text style={[styles.inviteMeta, { color: colors.textSecondary }]}>
                 expires in {invite.hours_left} hour{invite.hours_left === 1 ? '' : 's'}
               </Text>
@@ -213,13 +226,6 @@ const styles = StyleSheet.create({
     gap: layout.sectionGap,
   },
   header: { gap: spacing.sm },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  back: { ...type.bodyStrong },
   title: { ...type.h1 },
   subtitle: { ...type.body },
   section: { gap: spacing.md },
@@ -239,6 +245,7 @@ const styles = StyleSheet.create({
     letterSpacing: 6,
     marginVertical: spacing.sm,
   },
+  copiedLabel: { ...type.small, fontWeight: '600' },
   inviteMeta: { ...type.small },
   inviteActions: {
     width: '100%',

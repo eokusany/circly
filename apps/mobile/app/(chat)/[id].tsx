@@ -220,7 +220,7 @@ export default function ChatThreadScreen() {
           headerTintColor: colors.textPrimary,
           headerStyle: { backgroundColor: colors.background },
           headerLeft: () => (
-            <Pressable onPress={() => router.back()} hitSlop={12}>
+            <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button" accessibilityLabel="Go back">
               <Icon name="chevron-left" size={24} color={colors.textSecondary} />
             </Pressable>
           ),

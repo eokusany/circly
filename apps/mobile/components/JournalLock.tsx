@@ -41,6 +41,26 @@ export function JournalLock({
   const [confirmPin, setConfirmPin] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [unlocking, setUnlocking] = useState(false)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
+
+  // Cooldown countdown timer
+  useEffect(() => {
+    if (!isCoolingDown) {
+      setCooldownSeconds(0)
+      return
+    }
+    setCooldownSeconds(30)
+    const interval = setInterval(() => {
+      setCooldownSeconds((s) => {
+        if (s <= 1) {
+          clearInterval(interval)
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [isCoolingDown])
 
   const lockScale = useRef(new Animated.Value(1)).current
   const lockOpacity = useRef(new Animated.Value(1)).current
@@ -111,6 +131,7 @@ export function JournalLock({
     if (unlocking || isCoolingDown) return
 
     if (digit === 'delete') {
+      tapLight()
       setPin((p) => p.slice(0, -1))
       setError('')
       return
@@ -211,6 +232,10 @@ export function JournalLock({
 
       {error ? (
         <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>
+      ) : isCoolingDown && cooldownSeconds > 0 ? (
+        <Text style={[styles.error, { color: colors.danger }]}>
+          try again in {cooldownSeconds}s
+        </Text>
       ) : (
         <View style={styles.errorPlaceholder} />
       )}
@@ -224,6 +249,8 @@ export function JournalLock({
               <Pressable
                 key={i}
                 onPress={() => handleDigit('delete')}
+                accessibilityRole="button"
+                accessibilityLabel="Delete"
                 style={({ pressed }) => [styles.key, { opacity: pressed ? 0.5 : 1 }]}
               >
                 <Icon name="delete" size={24} color={colors.textSecondary} />

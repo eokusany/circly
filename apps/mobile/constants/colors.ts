@@ -23,6 +23,7 @@ export const Colors = {
     success: '#5C9E7A',          // sage — reached milestones
     successSoft: '#E2EFE6',
     warning: '#D6923A',
+    warningSoft: '#F5EBD8',
     danger: '#C65D52',
     dangerSoft: '#F5E0DD',
 
@@ -47,6 +48,7 @@ export const Colors = {
     success: '#7DB896',          // sage
     successSoft: '#1F2A24',
     warning: '#E0A558',
+    warningSoft: '#2A231A',
     danger: '#D9736A',
     dangerSoft: '#2B1B19',
 

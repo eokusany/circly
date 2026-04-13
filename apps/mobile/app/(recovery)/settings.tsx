@@ -15,6 +15,7 @@ import { supabase } from '../../lib/supabase'
 import { api, ApiError } from '../../lib/api'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
+import { BackButton } from '../../components/BackButton'
 import { Icon } from '../../components/Icon'
 import { spacing, radii, type, layout } from '../../constants/theme'
 
@@ -158,10 +159,7 @@ export default function RecoverySettings() {
         contentContainerStyle={styles.container}
       >
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Icon name="chevron-left" size={20} color={colors.accent} />
-            <Text style={[styles.back, { color: colors.accent }]}>back</Text>
-          </Pressable>
+          <BackButton />
           <Text style={[styles.title, { color: colors.textPrimary }]}>your circle</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             manage your supporters and invite new ones.
@@ -338,8 +336,6 @@ const styles = StyleSheet.create({
     gap: layout.sectionGap,
   },
   header: { gap: spacing.sm },
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
-  back: { ...type.bodyStrong },
   title: { ...type.h1 },
   subtitle: { ...type.body },
   section: { gap: spacing.md },

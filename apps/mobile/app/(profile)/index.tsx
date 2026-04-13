@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import { router } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
-import { Icon } from '../../components/Icon'
+import { BackButton } from '../../components/BackButton'
 import { spacing, type as t, layout } from '../../constants/theme'
 import { SettingRow, SettingSection } from '../../components/SettingRow'
 import { COPY, DEFAULT_CONTEXT } from '../../lib/copy'
@@ -23,10 +23,7 @@ export default function ProfileScreen() {
       contentContainerStyle={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Icon name="chevron-left" size={20} color={colors.accent} />
-          <Text style={[styles.back, { color: colors.accent }]}>back</Text>
-        </TouchableOpacity>
+        <BackButton />
         <Text style={[styles.title, { color: colors.textPrimary }]}>profile</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {user.displayName} · {contextLabel}
@@ -102,9 +99,7 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.sm },
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
-  back: { ...t.smallStrong },
-  title: { ...t.h1 },
+title: { ...t.h1 },
   subtitle: { ...t.body },
   footer: { height: spacing.xxxl },
 })

@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
-import { Icon } from '../../components/Icon'
+import { BackButton } from '../../components/BackButton'
 import { spacing, type as t, layout } from '../../constants/theme'
 
 export default function EditNameScreen() {
@@ -52,10 +52,7 @@ export default function EditNameScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Icon name="chevron-left" size={20} color={colors.accent} />
-          <Text style={[styles.back, { color: colors.accent }]}>back</Text>
-        </TouchableOpacity>
+        <BackButton />
         <Text style={[styles.title, { color: colors.textPrimary }]}>display name</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           this is how your people will see you
@@ -82,8 +79,6 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.sm },
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
-  back: { ...t.smallStrong },
   title: { ...t.h1 },
   subtitle: { ...t.body },
 })
