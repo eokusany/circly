@@ -6,6 +6,8 @@ import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
 import { api, ApiError } from '../../lib/api'
 import { Icon } from '../../components/Icon'
+import { SkeletonCard } from '../../components/SkeletonCard'
+import { ErrorState } from '../../components/ErrorState'
 import { tapLight, tapMedium, notifyWarning, notifySuccess } from '../../lib/haptics'
 import { spacing, radii, type, layout } from '../../constants/theme'
 import {
@@ -31,6 +33,9 @@ export default function RecoveryHome() {
   const copy = useCopy()
   const user = useAuthStore((s) => s.user)
   const [todayStatus, setTodayStatus] = useState<CheckInStatus | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const hasLoaded = useRef(false)
   const [sendingEmergency, setSendingEmergency] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [checkInStreak, setCheckInStreak] = useState(0)
@@ -91,11 +96,15 @@ export default function RecoveryHome() {
 
   const loadDashboard = useCallback(async () => {
     if (!user) return
+    setError(false)
+    if (!hasLoaded.current) setLoading(true)
     const today = new Date()
     const todayISO = toISODate(today)
 
     // Load all dashboard data in parallel
-    const [checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes] = await Promise.all([
+    let checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes
+    try {
+    ;[checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes] = await Promise.all([
       // Today's check-in
       supabase
         .from('check_ins')
@@ -125,6 +134,11 @@ export default function RecoveryHome() {
       // Today's okay tap
       api<{ tapped: boolean }>('/api/okay-tap/today').catch(() => ({ tapped: false })),
     ])
+    } catch {
+      setError(true)
+      setLoading(false)
+      return
+    }
 
     setTodayStatus(checkInRes.data?.status ?? null)
 
@@ -148,6 +162,8 @@ export default function RecoveryHome() {
     })
 
     setOkayTapped(okayTapRes.tapped)
+    setLoading(false)
+    hasLoaded.current = true
   }, [user])
 
   useFocusEffect(
@@ -174,6 +190,22 @@ export default function RecoveryHome() {
     setRefreshing(true)
     await loadDashboard()
     setRefreshing(false)
+  }
+
+  if (loading && !refreshing) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: layout.screenTopPadding }]}>
+        <SkeletonCard count={4} height={100} />
+      </View>
+    )
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: layout.screenTopPadding }]}>
+        <ErrorState onRetry={loadDashboard} />
+      </View>
+    )
   }
 
   return (

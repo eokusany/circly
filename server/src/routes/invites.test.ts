@@ -30,7 +30,7 @@ function authedAs(prefix = 'u'): string {
 }
 
 function userRoleLookup(
-  role: 'recovery' | 'supporter' | 'sponsor' | null,
+  role: 'recovery' | 'supporter' | null,
   error: unknown = null,
 ) {
   return {
@@ -113,19 +113,6 @@ describe('POST /api/invites', () => {
       authedAs('sup')
       fromMock.mockImplementation((table: string) => {
         if (table === 'users') return userRoleLookup('supporter')
-        throw new Error(`unexpected table: ${table}`)
-      })
-      const res = await request(app)
-        .post('/api/invites')
-        .set('Authorization', 'Bearer v')
-      expect(res.status).toBe(403)
-      expect(res.body).toEqual({ error: 'only_recovery_users_can_invite' })
-    })
-
-    it('returns 403 when the caller is a sponsor', async () => {
-      authedAs('spn')
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'users') return userRoleLookup('sponsor')
         throw new Error(`unexpected table: ${table}`)
       })
       const res = await request(app)

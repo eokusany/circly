@@ -120,6 +120,12 @@ export default function CheckInScreen() {
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           how are you showing up right now?
         </Text>
+        <View style={styles.privacyHint}>
+          <Icon name="eye" size={12} color={colors.textMuted} />
+          <Text style={[styles.privacyText, { color: colors.textMuted }]}>
+            your status is shared with supporters. notes are always private.
+          </Text>
+        </View>
       </View>
 
       <View style={styles.options}>
@@ -248,6 +254,13 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.xs },
+  privacyHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  privacyText: { fontSize: 12 },
   title: { ...t.h1 },
   subtitle: { ...t.body },
   options: { gap: spacing.md },

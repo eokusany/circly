@@ -58,6 +58,11 @@ export async function api<T = unknown>(
   const body = text ? safeJson(text) : null
 
   if (!res.ok) {
+    // Expired or invalid token — sign out so the user lands on sign-in
+    if (res.status === 401) {
+      cachedToken = null
+      supabase.auth.signOut()
+    }
     throw new ApiError(res.status, body)
   }
 

@@ -8,9 +8,9 @@
 // Rules:
 // - Components must not hardcode strings that vary by context. Pull from COPY.
 // - Adding a new context = adding a new entry in COPY. No component changes.
-// - The three DB roles (recovery, supporter, sponsor) are shared across all
-//   contexts, but each context may hide or relabel them. `roles` lists which
-//   ones show up in role-select and in what display order.
+// - The two DB roles (recovery, supporter) are shared across all contexts,
+//   but each context may relabel them. `roles` lists which ones show up in
+//   role-select and in what display order.
 
 import { useAuthStore } from '../store/auth'
 import type { UserRole } from '../store/auth'
@@ -76,24 +76,19 @@ const recovery: ContextCopy = {
     title: 'who are you here as?',
     subtitle: 'this shapes your experience. you can only choose once.',
   },
-  roles: ['recovery', 'supporter', 'sponsor'],
+  roles: ['recovery', 'supporter'],
   roleCopy: {
     recovery: {
-      label: 'person in recovery',
+      label: 'i need support',
       description:
         'track your journey, check in daily, and stay connected with your support network',
       icon: 'sunrise',
     },
     supporter: {
-      label: 'supporter',
+      label: 'i want to support someone',
       description:
         'show up for someone you love. see their updates and send encouragement.',
       icon: 'users',
-    },
-    sponsor: {
-      label: 'sponsor',
-      description: 'guide others through their recovery with professional support',
-      icon: 'shield',
     },
   },
   dashboard: {
@@ -129,8 +124,6 @@ const family: ContextCopy = {
     title: 'who are you here as?',
     subtitle: 'this shapes your experience. you can only choose once.',
   },
-  // In family context we don't surface the sponsor role. "recovery" becomes
-  // "the person at the center", "supporter" becomes "family member".
   roles: ['recovery', 'supporter'],
   roleCopy: {
     recovery: {
@@ -144,12 +137,6 @@ const family: ContextCopy = {
       description:
         'stay close to someone you love. see how they are and send a little warmth.',
       icon: 'users',
-    },
-    sponsor: {
-      // Hidden from family context but kept for type safety.
-      label: 'caregiver',
-      description: 'professional caregivers and care coordinators',
-      icon: 'shield',
     },
   },
   dashboard: {
