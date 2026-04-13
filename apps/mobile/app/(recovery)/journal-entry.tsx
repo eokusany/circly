@@ -224,6 +224,12 @@ export default function JournalEntryScreen() {
           <Text style={[styles.title, { color: colors.textPrimary }]}>
             {editingId ? 'edit entry' : 'new entry'}
           </Text>
+          <View style={styles.privacyHint}>
+            <Icon name="lock" size={12} color={colors.textMuted} />
+            <Text style={[styles.privacyText, { color: colors.textMuted }]}>
+              only you can see this
+            </Text>
+          </View>
         </View>
 
         {/* Guided prompt */}
@@ -335,6 +341,13 @@ const styles = StyleSheet.create({
   },
   header: { gap: spacing.xs },
   title: { ...t.h1 },
+  privacyHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  privacyText: { fontSize: 12 },
 
   promptCard: {
     borderRadius: radii.lg,

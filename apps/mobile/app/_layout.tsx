@@ -83,6 +83,8 @@ export default function RootLayout() {
         if (event === 'SIGNED_OUT' || !session) {
           setUser(null)
           router.replace('/(auth)/sign-in')
+        } else if (event === 'TOKEN_REFRESHED' && session.user) {
+          // Token was refreshed — no navigation needed, just keep going
         } else if (event === 'SIGNED_IN' && session.user) {
           await loadUser(session.user.id)
         }
@@ -104,6 +106,5 @@ function roleHome(role: UserRole): string {
   switch (role) {
     case 'recovery': return '/(recovery)'
     case 'supporter': return '/(supporter)'
-    case 'sponsor':   return '/(sponsor)'
   }
 }

@@ -1,23 +1,21 @@
-# Reeco — Product Specification
+# Circly — Product Specification
 
-> A modern recovery support app that helps people in recovery stay accountable, connected, and supported by trusted loved ones.
+> Circly helps people stay connected to support without feeling watched.
 
 ---
 
 ## 1. Objective
 
-Reeco is a dual-sided mobile app for people in addiction recovery and their support network. It creates a structured, privacy-first space where:
+Circly is a dual-sided mobile app for people in addiction recovery and their support network. It creates a structured, privacy-first space where:
 
-- **People in recovery** track their journey, log daily check-ins, and choose what to share.
+- **Users** track their journey, log daily check-ins, and choose what to share.
 - **Supporters** (family, loved ones) show up in healthy, intentional ways — without supervising.
-- **Sponsors** (verified professionals) host sessions and provide guided support.
 
 **Core design principle:** Supporters can support, not supervise. The person in recovery always owns their data and controls what is visible.
 
 **Target users:**
 - Adults in recovery from substance addiction (primary user)
 - Family members or close friends who want to be present (supporters)
-- Licensed therapists, counselors, or trained peer sponsors (sponsors)
 
 ---
 
@@ -25,20 +23,18 @@ Reeco is a dual-sided mobile app for people in addiction recovery and their supp
 
 Roles are **permissions on a shared system**, not separate apps.
 
-| Capability | Recovery User | Supporter | Sponsor |
-|---|---|---|---|
-| Daily check-in | ✅ | — | — |
-| Journal entries | ✅ | — | — |
-| Sobriety counter | ✅ | — | — |
-| Emergency support button | ✅ | — | — |
-| View their own shared updates | ✅ | ✅ (if permitted) | ✅ |
-| Send encouragement | — | ✅ | ✅ |
-| Invite supporters | ✅ | — | — |
-| Approve/remove supporters | ✅ | — | — |
-| Host sessions | — | — | ✅ |
-| Chat | ✅ | ✅ | ✅ |
-| View resources | ✅ | ✅ | ✅ |
-| Verified badge | — | — | ✅ (after verification) |
+| Capability | User | Supporter |
+|---|---|---|
+| Daily check-in | ✅ | — |
+| Journal entries | ✅ | — |
+| Sobriety counter | ✅ | — |
+| Emergency support button | ✅ | — |
+| View their own shared updates | ✅ | ✅ (if permitted) |
+| Send encouragement | — | ✅ |
+| Invite supporters | ✅ | — |
+| Approve/remove supporters | ✅ | — |
+| Chat | ✅ | ✅ |
+| View resources | ✅ | ✅ |
 
 ---
 
@@ -48,11 +44,10 @@ Roles are **permissions on a shared system**, not separate apps.
 
 **Onboarding**
 - Create account (email/password via Supabase Auth)
-- Select account type: Person in Recovery / Supporter / Sponsor
+- Select account type: User / Supporter
 - Role-specific welcome flow
-- Sponsor accounts enter verification queue (not active until verified)
 
-**Recovery User Dashboard**
+**User Dashboard**
 - Daily check-in: three states — Sober, Struggling, Good Day
 - Sobriety counter / streak tracker (days since date set at onboarding)
 - Milestone badges (1 day, 7 days, 30 days, 90 days, 1 year)
@@ -61,7 +56,7 @@ Roles are **permissions on a shared system**, not separate apps.
 - Privacy controls: choose what is shared with each supporter
 
 **Supporter Dashboard**
-- View shared updates (check-ins, milestones) from their linked recovery user
+- View shared updates (check-ins, milestones) from their linked user
 - Send encouragement (short messages, reactions)
 - Prompt cards: "Check in today", "Send a note"
 - Resources: how to support without overwhelming
@@ -73,8 +68,6 @@ Roles are **permissions on a shared system**, not separate apps.
 
 ### Phase 2 — Next (Post-MVP)
 
-- Sponsor session hosting (scheduled video/audio via third-party SDK)
-- Sponsor verification flow (document upload + admin review)
 - Support groups (many-to-many relationships)
 - AI-powered reflection prompts
 - Content moderation tooling
@@ -86,10 +79,10 @@ Roles are **permissions on a shared system**, not separate apps.
 
 ```
 users
-  id, email, display_name, avatar_url, role (recovery|supporter|sponsor), created_at
+  id, email, display_name, avatar_url, role (recovery|supporter), created_at
 
 profiles
-  user_id, sobriety_start_date, bio, is_verified (sponsors only), verification_status
+  user_id, sobriety_start_date, bio
 
 relationships
   id, recovery_user_id, supporter_id, status (pending|active|removed), permissions (jsonb)
@@ -186,7 +179,7 @@ Warm, supportive, non-judgmental. Copy never uses clinical language in UI. "How 
 ## 7. Project Structure
 
 ```
-reeco/
+circly/
 ├── apps/
 │   └── mobile/          # Expo React Native app
 │       ├── app/         # Expo Router screens
@@ -237,7 +230,7 @@ Minimum coverage targets for MVP:
 
 ### Always do
 - Enforce Row-Level Security in Supabase for all user data
-- Require the recovery user to approve any relationship before a supporter can see data
+- Require the user to approve any relationship before a supporter can see data
 - Default all journal entries to private unless explicitly shared
 - Send emergency button notifications immediately with no delay
 
@@ -247,8 +240,7 @@ Minimum coverage targets for MVP:
 - Any feature that involves professional/clinical language or advice
 
 ### Never do
-- Allow a supporter to see data the recovery user has not explicitly shared
-- Allow a sponsor to access any data before verification is complete
+- Allow a supporter to see data the user has not explicitly shared
 - Store sensitive entries (journals, check-ins) in plaintext logs
 - Push notifications that reveal journal content in the notification body
 
@@ -258,15 +250,14 @@ Minimum coverage targets for MVP:
 
 | Question | Decision |
 |---|---|
-| Sponsor verification | Phase 2. Video submission → manual review first, AI-assisted review later. No code-blocking for MVP. |
 | Emergency button | In-app only for MVP. SMS/call trigger to be tested in a later phase. |
-| Multiple supporters | Yes. A recovery user can link with multiple supporters. No cap for now. |
-| Supporter verification | None required. Supporters join via invite from the recovery user only. |
+| Multiple supporters | Yes. A user can link with multiple supporters. No cap for now. |
+| Supporter verification | None required. Supporters join via invite from the user only. |
 | Monetization | Free for all users. No paywall, no subscription tier in MVP. |
 
 ## 12. Open Questions
 
-- [ ] Do supporters need their own wellness or check-in feature, or is their dashboard purely about the recovery user?
+- [ ] Do supporters need their own wellness or check-in feature, or is their dashboard purely about the user?
 - [ ] Should supporters be able to see each other (e.g., a shared supporter view), or are all relationships private 1:recovery-to-supporter?
 
 ---

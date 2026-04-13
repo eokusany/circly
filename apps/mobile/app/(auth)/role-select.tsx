@@ -80,7 +80,6 @@ export default function RoleSelectScreen() {
         }
         break
       case 'supporter':
-      case 'sponsor':
         router.replace('/(auth)/invite-code')
         break
     }
@@ -118,6 +117,12 @@ export default function RoleSelectScreen() {
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {copy.roleSelect.subtitle}
         </Text>
+        <View style={[styles.privacyNote, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Icon name="shield" size={14} color={colors.textMuted} />
+          <Text style={[styles.privacyText, { color: colors.textMuted }]}>
+            your journal is always private. you control what your supporters can see.
+          </Text>
+        </View>
       </View>
 
       <View style={styles.cards}>
@@ -173,7 +178,17 @@ const styles = StyleSheet.create({
     gap: layout.sectionGap,
     justifyContent: 'space-between',
   },
-  header: { gap: spacing.sm },
+  header: { gap: spacing.md },
+  privacyNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    marginTop: spacing.xs,
+  },
+  privacyText: { ...t.small, flex: 1 },
   title: { ...t.h1 },
   subtitle: { ...t.body },
   cards: { gap: spacing.md },

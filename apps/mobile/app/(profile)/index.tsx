@@ -32,7 +32,7 @@ export default function ProfileScreen() {
 
       <SettingSection title="profile">
         <SettingRow
-          label="display name"
+          label="name"
           value={user.displayName}
           onPress={() => router.push('/(profile)/edit-name')}
         />
@@ -73,10 +73,15 @@ export default function ProfileScreen() {
         />
       </SettingSection>
 
-      <SettingSection title="more">
-        <SettingRow label="download my data" disabled value="coming soon" hideChevron />
-        <SettingRow label="privacy policy" disabled value="coming soon" hideChevron />
-        <SettingRow label="terms of service" disabled value="coming soon" hideChevron />
+      <SettingSection title="legal">
+        <SettingRow
+          label="privacy policy"
+          onPress={() => router.push('/(profile)/privacy-policy')}
+        />
+        <SettingRow
+          label="terms of service"
+          onPress={() => router.push('/(profile)/terms')}
+        />
       </SettingSection>
 
       <SettingSection>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Alert, Vibration } from 'react-native'
 import { Tabs } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
@@ -19,6 +19,8 @@ export default function RecoveryLayout() {
 
   // Realtime subscription for instant notification delivery.
   // Lives at the layout level so it's always active regardless of which tab.
+  const channelRef = useRef(0)
+
   useEffect(() => {
     if (!user) return
 
@@ -30,8 +32,9 @@ export default function RecoveryLayout() {
       .is('read_at', null)
       .then(({ count }) => setUnreadCount(count ?? 0))
 
+    const channelName = `layout-notifications-${++channelRef.current}`
     const channel = supabase
-      .channel('layout-notifications')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {

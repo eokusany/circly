@@ -16,19 +16,19 @@ export default function VerifyResetScreen() {
 
   async function handleVerify() {
     if (!email) {
-      Alert.alert('Missing email', 'Please restart the reset flow.')
+      Alert.alert('missing email', 'please restart the reset flow.')
       return
     }
     if (!code.trim()) {
-      Alert.alert('Missing code', 'Enter the code from your email.')
+      Alert.alert('missing code', 'enter the code from your email.')
       return
     }
     if (password.length < 8) {
-      Alert.alert('Password too short', 'Use at least 8 characters.')
+      Alert.alert('password too short', 'use at least 8 characters.')
       return
     }
     if (password !== confirm) {
-      Alert.alert('Passwords do not match', 'Please re-enter the same password.')
+      Alert.alert('passwords do not match', 'please re-enter the same password.')
       return
     }
 
@@ -42,7 +42,7 @@ export default function VerifyResetScreen() {
 
     if (otpError) {
       setLoading(false)
-      Alert.alert('Invalid code', otpError.message)
+      Alert.alert('invalid code', otpError.message)
       return
     }
 
@@ -50,12 +50,12 @@ export default function VerifyResetScreen() {
     setLoading(false)
 
     if (updateError) {
-      Alert.alert('Update failed', updateError.message)
+      Alert.alert('update failed', updateError.message)
       return
     }
 
     await supabase.auth.signOut()
-    Alert.alert('Password updated', 'Sign in with your new password.', [
+    Alert.alert('password updated', 'sign in with your new password.', [
       { text: 'OK', onPress: () => router.replace('/(auth)/sign-in') },
     ])
   }
@@ -76,21 +76,21 @@ export default function VerifyResetScreen() {
 
       <View style={styles.form}>
         <TextInput
-          label="Reset code"
+          label="reset code"
           value={code}
           onChangeText={setCode}
           placeholder="enter code"
           keyboardType="number-pad"
         />
         <TextInput
-          label="New password"
+          label="new password"
           value={password}
           onChangeText={setPassword}
           placeholder="at least 8 characters"
           secureTextEntry
         />
         <TextInput
-          label="Confirm password"
+          label="confirm password"
           value={confirm}
           onChangeText={setConfirm}
           placeholder="re-enter password"

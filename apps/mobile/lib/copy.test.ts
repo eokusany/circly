@@ -17,8 +17,8 @@ describe('COPY map', () => {
   describe('recovery context', () => {
     const rc = COPY.recovery
 
-    it('exposes all three roles', () => {
-      expect(rc.roles).toEqual(['recovery', 'supporter', 'sponsor'])
+    it('exposes user and supporter roles', () => {
+      expect(rc.roles).toEqual(['recovery', 'supporter'])
     })
 
     it('has a label, description, and emoji for every role', () => {
@@ -52,7 +52,7 @@ describe('COPY map', () => {
   describe('family context', () => {
     const fc = COPY.family
 
-    it('exposes only recovery + supporter (no sponsor)', () => {
+    it('exposes user and supporter roles', () => {
       expect(fc.roles).toEqual(['recovery', 'supporter'])
     })
 
@@ -62,11 +62,6 @@ describe('COPY map', () => {
 
     it('uses "reflections" as the journal label', () => {
       expect(fc.dashboard.journalLabel).toBe('reflections')
-    })
-
-    it('still has sponsor copy for type safety even though it is not surfaced', () => {
-      expect(fc.roleCopy.sponsor).toBeDefined()
-      expect(fc.roleCopy.sponsor.label).toBeTruthy()
     })
 
     it('relabels recovery role as "the person at the center"', () => {

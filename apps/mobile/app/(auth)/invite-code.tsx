@@ -22,12 +22,7 @@ export default function InviteCodeScreen() {
   const [loading, setLoading] = useState(false)
 
   function goHome() {
-    const role = user?.role
-    if (role === 'sponsor') {
-      router.replace('/(sponsor)')
-    } else {
-      router.replace('/(supporter)')
-    }
+    router.replace('/(supporter)')
   }
 
   async function handleContinue() {
