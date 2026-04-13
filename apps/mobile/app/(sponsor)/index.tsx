@@ -4,7 +4,8 @@ import { useAuthStore } from '../../store/auth'
 
 export default function SponsorHome() {
   const colors = useColors()
-  const { user, signOut } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const signOut = useAuthStore((s) => s.signOut)
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

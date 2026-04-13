@@ -46,9 +46,9 @@ warmPingRouter.post('/warm-ping', requireAuth, async (req, res) => {
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
 
-  const { data: todayPings, error: countErr } = await supabase
+  const { count, error: countErr } = await supabase
     .from('warm_pings')
-    .select('id')
+    .select('id', { count: 'exact', head: true })
     .eq('sender_id', senderId)
     .eq('recipient_id', recipientId)
     .gte('created_at', todayStart.toISOString())
@@ -58,29 +58,29 @@ warmPingRouter.post('/warm-ping', requireAuth, async (req, res) => {
     return
   }
 
-  if ((todayPings ?? []).length >= DAILY_LIMIT) {
+  if ((count ?? 0) >= DAILY_LIMIT) {
     res.status(429).json({ error: 'daily_limit_reached' })
     return
   }
 
-  // Insert the warm ping.
-  const { error: insertErr } = await supabase
-    .from('warm_pings')
-    .insert({ sender_id: senderId, recipient_id: recipientId })
+  // Look up sender's display name in parallel with the insert.
+  const [insertResult, senderResult] = await Promise.all([
+    supabase
+      .from('warm_pings')
+      .insert({ sender_id: senderId, recipient_id: recipientId }),
+    supabase
+      .from('users')
+      .select('display_name')
+      .eq('id', senderId)
+      .single(),
+  ])
 
-  if (insertErr) {
+  if (insertResult.error) {
     res.status(500).json({ error: 'insert_failed' })
     return
   }
 
-  // Look up sender's display name for the notification.
-  const { data: sender } = await supabase
-    .from('users')
-    .select('display_name')
-    .eq('id', senderId)
-    .single()
-
-  const displayName = (sender as { display_name: string } | null)?.display_name ?? 'someone'
+  const displayName = (senderResult.data as { display_name: string } | null)?.display_name ?? 'someone'
 
   // Insert notification for the recipient.
   await supabase.from('notifications').insert({

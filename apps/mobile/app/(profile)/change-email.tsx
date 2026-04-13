@@ -11,7 +11,7 @@ import { spacing, type as t, layout } from '../../constants/theme'
 
 export default function ChangeEmailScreen() {
   const colors = useColors()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
 

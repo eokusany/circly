@@ -11,7 +11,8 @@ import { spacing, type as t, layout } from '../../constants/theme'
 
 export default function EditNameScreen() {
   const colors = useColors()
-  const { user, setUser } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const setUser = useAuthStore((s) => s.setUser)
   const [name, setName] = useState(user?.displayName ?? '')
   const [loading, setLoading] = useState(false)
 

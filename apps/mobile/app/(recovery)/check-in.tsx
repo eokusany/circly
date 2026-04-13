@@ -36,7 +36,7 @@ const OPTIONS: { value: CheckInStatus; icon: IconName; label: string; descriptio
 
 export default function CheckInScreen() {
   const colors = useColors()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<CheckInStatus | null>(null)

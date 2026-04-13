@@ -40,7 +40,8 @@ function daysAgoISO(days: number): string {
  */
 export default function ResetSobrietyScreen() {
   const colors = useColors()
-  const { user, setUser } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const setUser = useAuthStore((s) => s.setUser)
   const [selectedPreset, setSelectedPreset] = useState<string | null>('today')
   const [customMode, setCustomMode] = useState(false)
   const [year, setYear] = useState(String(new Date().getFullYear()))

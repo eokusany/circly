@@ -37,7 +37,7 @@ interface ServerInvite {
 
 export default function RecoverySettings() {
   const colors = useColors()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [supporters, setSupporters] = useState<Supporter[]>([])
   const [invite, setInvite] = useState<Invite | null>(null)
   const [generating, setGenerating] = useState(false)

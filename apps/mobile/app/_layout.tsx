@@ -13,7 +13,8 @@ const SPLASH_DURATION = 1800
 
 export default function RootLayout() {
   const scheme = useColorScheme()
-  const { setUser, setLoading } = useAuthStore()
+  const setUser = useAuthStore((s) => s.setUser)
+  const setLoading = useAuthStore((s) => s.setLoading)
   const initialRouteComplete = useRef(false)
 
   const loadUser = useCallback(async (userId: string) => {

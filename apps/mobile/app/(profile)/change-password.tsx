@@ -11,7 +11,7 @@ import { spacing, type as t, layout } from '../../constants/theme'
 
 export default function ChangePasswordScreen() {
   const colors = useColors()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
