@@ -17,7 +17,7 @@ export default function SignInScreen() {
 
   async function handleSignIn() {
     if (!email.trim() || !password) {
-      Alert.alert('Missing fields', 'Please enter your email and password.')
+      Alert.alert('missing fields', 'please enter your email and password.')
       return
     }
 
@@ -26,7 +26,7 @@ export default function SignInScreen() {
     setLoading(false)
 
     if (error) {
-      Alert.alert('Sign in failed', error.message)
+      Alert.alert('sign in failed', error.message)
     }
     // Navigation is handled by the auth state listener in _layout.tsx
   }
@@ -47,14 +47,14 @@ export default function SignInScreen() {
 
       <View style={styles.form}>
         <TextInput
-          label="Email"
+          label="email"
           value={email}
           onChangeText={setEmail}
           placeholder="your@email.com"
           keyboardType="email-address"
         />
         <TextInput
-          label="Password"
+          label="password"
           value={password}
           onChangeText={setPassword}
           placeholder="your password"

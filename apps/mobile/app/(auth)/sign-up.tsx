@@ -18,11 +18,11 @@ export default function SignUpScreen() {
 
   async function handleSignUp() {
     if (!name.trim() || !email.trim() || !password) {
-      Alert.alert('Missing fields', 'Please fill in all fields.')
+      Alert.alert('missing fields', 'please fill in all fields.')
       return
     }
     if (password.length < 8) {
-      Alert.alert('Weak password', 'Password must be at least 8 characters.')
+      Alert.alert('weak password', 'password must be at least 8 characters.')
       return
     }
 
@@ -31,14 +31,14 @@ export default function SignUpScreen() {
     setLoading(false)
 
     if (error) {
-      Alert.alert('Sign up failed', error.message)
+      Alert.alert('sign up failed', error.message)
       return
     }
 
     if (data.user) {
       // Store name in session metadata for role-select to use
       await supabase.auth.updateUser({ data: { display_name: name.trim() } })
-      router.replace('/(auth)/context-select')
+      router.replace('/(auth)/onboarding')
     }
   }
 
@@ -58,21 +58,21 @@ export default function SignUpScreen() {
 
       <View style={styles.form}>
         <TextInput
-          label="Name"
+          label="name"
           value={name}
           onChangeText={setName}
           placeholder="what should we call you?"
           autoCapitalize="words"
         />
         <TextInput
-          label="Email"
+          label="email"
           value={email}
           onChangeText={setEmail}
           placeholder="your@email.com"
           keyboardType="email-address"
         />
         <TextInput
-          label="Password"
+          label="password"
           value={password}
           onChangeText={setPassword}
           placeholder="at least 8 characters"

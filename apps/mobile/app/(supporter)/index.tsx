@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { api, ApiError } from '../../lib/api'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
 import { SkeletonCard } from '../../components/SkeletonCard'
+import { ErrorState } from '../../components/ErrorState'
 import { Icon, type IconName } from '../../components/Icon'
 import { tapMedium, notifySuccess } from '../../lib/haptics'
 import { streakDays, toISODate, type MilestoneType } from '../../lib/streak'
@@ -63,6 +64,8 @@ export default function SupporterHome() {
   const user = useAuthStore((s) => s.user)
   const [people, setPeople] = useState<LinkedPerson[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const hasLoaded = useRef(false)
   const [refreshing, setRefreshing] = useState(false)
   const [sendingFor, setSendingFor] = useState<LinkedPerson | null>(null)
   const [nudges, setNudges] = useState<SilenceNudge[]>([])
@@ -100,7 +103,8 @@ export default function SupporterHome() {
 
   const load = useCallback(async () => {
     if (!user) return
-    setLoading(true)
+    setError(false)
+    if (!hasLoaded.current) setLoading(true)
 
     const { data: rels, error: relErr } = await supabase
       .from('relationships')
@@ -110,9 +114,15 @@ export default function SupporterHome() {
       .eq('supporter_id', user.id)
       .eq('status', 'active')
 
-    if (relErr || !rels) {
+    if (relErr) {
+      setError(true)
+      setLoading(false)
+      return
+    }
+    if (!rels) {
       setPeople([])
       setLoading(false)
+      hasLoaded.current = true
       return
     }
 
@@ -135,6 +145,7 @@ export default function SupporterHome() {
     if (base.length === 0) {
       setPeople([])
       setLoading(false)
+      hasLoaded.current = true
       return
     }
 
@@ -234,6 +245,7 @@ export default function SupporterHome() {
 
     setPeople(enriched)
     setLoading(false)
+    hasLoaded.current = true
   }, [user])
 
   useFocusEffect(
@@ -251,6 +263,14 @@ export default function SupporterHome() {
     return (
       <View style={[styles.loading, { backgroundColor: colors.background }]}>
         <SkeletonCard count={3} height={140} />
+      </View>
+    )
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.loading, { backgroundColor: colors.background }]}>
+        <ErrorState onRetry={load} />
       </View>
     )
   }

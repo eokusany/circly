@@ -15,7 +15,7 @@ export default function ForgotPasswordScreen() {
   async function handleReset() {
     const trimmed = email.trim()
     if (!trimmed) {
-      Alert.alert('Missing email', 'Please enter your email address.')
+      Alert.alert('missing email', 'please enter your email address.')
       return
     }
 
@@ -24,7 +24,7 @@ export default function ForgotPasswordScreen() {
     setLoading(false)
 
     if (error) {
-      Alert.alert('Reset failed', error.message)
+      Alert.alert('reset failed', error.message)
       return
     }
 
@@ -47,7 +47,7 @@ export default function ForgotPasswordScreen() {
 
       <View style={styles.form}>
         <TextInput
-          label="Email"
+          label="email"
           value={email}
           onChangeText={setEmail}
           placeholder="your@email.com"
