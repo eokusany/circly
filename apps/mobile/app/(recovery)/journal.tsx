@@ -145,21 +145,28 @@ export default function JournalScreen() {
             <WeeklyDigest entries={entries} />
 
             {/* Streak calendar */}
-            <StreakCalendar entryDates={entryDates} />
+            <View style={styles.section}>
+              <StreakCalendar entryDates={entryDates} />
+            </View>
 
             {/* Mood curve */}
-            <MoodCurve
-              entries={entries}
-              onEntryPress={(id) =>
-                router.push({ pathname: '/(recovery)/journal-entry', params: { id } })
-              }
-            />
+            <View style={styles.section}>
+              <MoodCurve
+                entries={entries}
+                onEntryPress={(id) =>
+                  router.push({ pathname: '/(recovery)/journal-entry', params: { id } })
+                }
+              />
+            </View>
 
             {/* Entry list */}
-            <View style={styles.list}>
-              {entries.map((entry, index) => (
-                <AnimatedEntryCard key={entry.id} entry={entry} index={index} />
-              ))}
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>entries</Text>
+              <View style={styles.list}>
+                {entries.map((entry, index) => (
+                  <AnimatedEntryCard key={entry.id} entry={entry} index={index} />
+                ))}
+              </View>
             </View>
           </Animated.View>
         )}
@@ -290,7 +297,9 @@ const styles = StyleSheet.create({
   header: { gap: spacing.xs },
   title: { ...t.h1 },
   subtitle: { ...t.body },
-  content: { gap: spacing.lg },
+  content: { gap: spacing.xl },
+  section: { gap: spacing.sm },
+  sectionLabel: { ...t.label, marginTop: spacing.sm },
 
   emptyCard: {
     borderRadius: radii.xl,
