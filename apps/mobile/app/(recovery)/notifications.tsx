@@ -7,7 +7,7 @@ import {
   Pressable,
   RefreshControl,
 } from 'react-native'
-import { Stack, useFocusEffect } from 'expo-router'
+import { Stack, useFocusEffect, router } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
@@ -30,6 +30,7 @@ const TYPE_META: Record<string, { icon: IconName; label: string; color: 'accent'
   emergency: { icon: 'alert-triangle', label: 'emergency', color: 'danger' },
   silence_nudge: { icon: 'alert-circle', label: 'silence nudge', color: 'accent' },
   milestone: { icon: 'award', label: 'milestone', color: 'success' },
+  message: { icon: 'message-circle', label: 'message', color: 'accent' },
 }
 
 function timeAgo(iso: string): string {
@@ -58,6 +59,8 @@ function notificationBody(n: NotificationItem): string {
       const days = (p.days_since_last_signal as number) ?? 0
       return `it's been ${days} ${days === 1 ? 'day' : 'days'} since ${name} checked in.`
     }
+    case 'message':
+      return `${name}: "${(p.preview as string) ?? ''}"`
     default:
       return 'new notification'
   }
@@ -121,7 +124,12 @@ export default function NotificationsScreen() {
 
     return (
       <Pressable
-        onPress={() => { if (isUnread) markAsRead(item.id) }}
+        onPress={() => {
+          if (isUnread) markAsRead(item.id)
+          if (item.type === 'message' && item.payload.conversation_id) {
+            router.push(`/(chat)/${item.payload.conversation_id as string}`)
+          }
+        }}
         style={({ pressed }) => [
           styles.card,
           {

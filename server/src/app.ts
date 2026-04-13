@@ -8,6 +8,7 @@ import { okayTapRouter } from './routes/okay-tap'
 import { silenceSettingsRouter } from './routes/silence-settings'
 import { warmPingRouter } from './routes/warm-ping'
 import { internalRouter } from './routes/internal'
+import { messagesRouter } from './routes/messages'
 
 export const app = express()
 
@@ -26,3 +27,4 @@ app.use('/api', okayTapRouter)
 app.use('/api', silenceSettingsRouter)
 app.use('/api', warmPingRouter)
 app.use('/api', internalRouter)
+app.use('/api', messagesRouter)

@@ -50,3 +50,8 @@ export const okayTapLimiter = make({
   windowMs: 24 * 60 * 60 * 1000,
   limit: 20,
 })
+
+export const messageLimiter = make({
+  windowMs: 60 * 1000,
+  limit: 30,
+})
