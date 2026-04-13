@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -34,7 +34,7 @@ interface JournalRow {
 
 export default function JournalScreen() {
   const colors = useColors()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const lock = useJournalLock()
   const [unlocked, setUnlocked] = useState(false)
   const [entries, setEntries] = useState<JournalRow[]>([])
@@ -63,6 +63,7 @@ export default function JournalScreen() {
       .select('id, body, mood_tag, mood_value, prompt_used, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
+      .limit(100)
 
     setEntries((data as JournalRow[]) ?? [])
     setLoading(false)
@@ -98,7 +99,7 @@ export default function JournalScreen() {
     )
   }
 
-  const entryDates = entries.map((e) => e.created_at)
+  const entryDates = useMemo(() => entries.map((e) => e.created_at), [entries])
 
   const fabTranslate = fabAnim.interpolate({
     inputRange: [0, 1],
@@ -190,7 +191,7 @@ export default function JournalScreen() {
   )
 }
 
-function AnimatedEntryCard({ entry, index }: { entry: JournalRow; index: number }) {
+const AnimatedEntryCard = React.memo(function AnimatedEntryCard({ entry, index }: { entry: JournalRow; index: number }) {
   const slideAnim = useRef(new Animated.Value(0)).current
 
   useFocusEffect(
@@ -214,9 +215,9 @@ function AnimatedEntryCard({ entry, index }: { entry: JournalRow; index: number 
       <EntryCard entry={entry} />
     </Animated.View>
   )
-}
+})
 
-function EntryCard({ entry }: { entry: JournalRow }) {
+const EntryCard = React.memo(function EntryCard({ entry }: { entry: JournalRow }) {
   const colors = useColors()
   const mood = findMood(entry.mood_tag)
 
@@ -258,7 +259,7 @@ function EntryCard({ entry }: { entry: JournalRow }) {
       </Text>
     </TouchableOpacity>
   )
-}
+})
 
 function formatDate(iso: string): string {
   const d = new Date(iso)

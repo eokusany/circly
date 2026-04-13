@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native'
+import { useCallback, useMemo, useState } from 'react'
+import { View, Text, StyleSheet, Pressable, RefreshControl } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
@@ -17,7 +17,7 @@ import { spacing, type as t, layout } from '../../constants/theme'
 
 export default function ConversationsScreen() {
   const colors = useColors()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [rows, setRows] = useState<ConversationRow[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -26,8 +26,6 @@ export default function ConversationsScreen() {
     if (!user) return
     setLoading(true)
 
-    // Conversations where I'm a participant. RLS restricts this to us
-    // regardless of the filter — the contains() is belt-and-braces.
     const { data: convoRows } = await supabase
       .from('conversations')
       .select('id, participant_ids')
@@ -50,15 +48,13 @@ export default function ConversationsScreen() {
       ),
     )
 
-    // Only fetch the most recent message per conversation. We grab a
-    // small window (1 per convo) to avoid pulling entire chat histories.
     const [msgsRes, usersRes] = await Promise.all([
       supabase
         .from('messages')
         .select('id, conversation_id, sender_id, body, created_at')
         .in('conversation_id', convoIds)
         .order('created_at', { ascending: false })
-        .limit(convoIds.length * 1),
+        .limit(convoIds.length),
       otherIds.length > 0
         ? supabase
             .from('users')
@@ -80,18 +76,13 @@ export default function ConversationsScreen() {
     }, [load]),
   )
 
-  return (
-    <ScrollView
-      style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false) }}
-          tintColor={colors.accent}
-        />
-      }
-    >
+  const onPressRow = useCallback(
+    (id: string) => router.push(`/(chat)/${id}`),
+    [],
+  )
+
+  const headerElement = useMemo(
+    () => (
       <View style={styles.header}>
         <Pressable
           onPress={() => router.back()}
@@ -104,27 +95,45 @@ export default function ConversationsScreen() {
           messages
         </Text>
       </View>
+    ),
+    [colors],
+  )
 
+  const refreshControl = useMemo(
+    () => (
+      <RefreshControl
+        refreshing={refreshing}
+        onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false) }}
+        tintColor={colors.accent}
+      />
+    ),
+    [refreshing, load, colors.accent],
+  )
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ConversationList
         rows={rows}
         loading={loading}
-        onPressRow={(id) => router.push(`/(chat)/${id}`)}
+        onPressRow={onPressRow}
+        header={headerElement}
+        refreshControl={refreshControl}
       />
-    </ScrollView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     padding: layout.screenPadding,
     paddingTop: layout.screenTopPadding,
-    paddingBottom: spacing.xxxl,
-    gap: layout.sectionGap,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    marginBottom: layout.sectionGap,
   },
   title: { ...t.h1 },
 })

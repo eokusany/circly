@@ -22,7 +22,8 @@ const CONFIRM_PHRASE = 'delete'
  */
 export default function DeleteAccountScreen() {
   const colors = useColors()
-  const { user, setUser } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const setUser = useAuthStore((s) => s.setUser)
   const [confirmText, setConfirmText] = useState('')
   const [loading, setLoading] = useState(false)
 

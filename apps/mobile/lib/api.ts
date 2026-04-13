@@ -13,6 +13,19 @@ export class ApiError extends Error {
   }
 }
 
+// Cache the access token to avoid calling getSession() on every request.
+// Supabase's onAuthStateChange keeps this in sync.
+let cachedToken: string | null = null
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  cachedToken = session?.access_token ?? null
+})
+
+// Seed the cache from the current session (async, but fast).
+supabase.auth.getSession().then(({ data }) => {
+  cachedToken = data.session?.access_token ?? null
+})
+
 /**
  * Wraps fetch with base URL + bearer token injection from the current
  * Supabase session. Parses JSON responses and throws ApiError on non-2xx.
@@ -21,8 +34,13 @@ export async function api<T = unknown>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const { data } = await supabase.auth.getSession()
-  const token = data.session?.access_token
+  // Fast path: use cached token. Fallback to getSession() if cache is cold.
+  let token = cachedToken
+  if (!token) {
+    const { data } = await supabase.auth.getSession()
+    token = data.session?.access_token ?? null
+    cachedToken = token
+  }
 
   const headers = new Headers(init.headers)
   headers.set('Content-Type', 'application/json')

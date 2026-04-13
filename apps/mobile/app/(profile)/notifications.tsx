@@ -31,7 +31,7 @@ const DEFAULT_PREFS: Prefs = {
 
 export default function NotificationsScreen() {
   const colors = useColors()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)

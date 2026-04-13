@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -59,7 +59,7 @@ const PRESETS = ['thinking of you', 'proud of you', "you've got this"]
 
 export default function SupporterHome() {
   const colors = useColors()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [people, setPeople] = useState<LinkedPerson[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -153,7 +153,8 @@ export default function SupporterHome() {
         .from('milestones')
         .select('user_id, type, reached_on')
         .in('user_id', ids)
-        .order('reached_on', { ascending: false }),
+        .order('reached_on', { ascending: false })
+        .limit(ids.length),
       supabase
         .from('notifications')
         .select('id, payload')
@@ -386,7 +387,7 @@ function EmptyState() {
   )
 }
 
-function PersonCard({
+const PersonCard = React.memo(function PersonCard({
   person,
   onEncourage,
   onWarmPing,
@@ -396,9 +397,10 @@ function PersonCard({
   onWarmPing: () => void
 }) {
   const colors = useColors()
-  const days = person.sobriety_start_date
-    ? streakDays(person.sobriety_start_date)
-    : null
+  const days = useMemo(
+    () => person.sobriety_start_date ? streakDays(person.sobriety_start_date) : null,
+    [person.sobriety_start_date],
+  )
 
   const checkIn = person.today_check_in ? CHECKIN_META[person.today_check_in] : null
 
@@ -480,9 +482,9 @@ function PersonCard({
       </View>
     </View>
   )
-}
+})
 
-function EmergencyCard({
+const EmergencyCard = React.memo(function EmergencyCard({
   alert,
   onDismiss,
 }: {
@@ -514,9 +516,9 @@ function EmergencyCard({
       </View>
     </View>
   )
-}
+})
 
-function NudgeCard({
+const NudgeCard = React.memo(function NudgeCard({
   nudge,
   onSendPing,
   onDismiss,
@@ -560,7 +562,7 @@ function NudgeCard({
       </View>
     </View>
   )
-}
+})
 
 function EncouragementSheet({
   person,

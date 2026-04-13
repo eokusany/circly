@@ -34,18 +34,17 @@ okayTapRouter.get(
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
 
-    const { data, error } = await supabase
+    const { count, error } = await supabase
       .from('okay_taps')
-      .select('id')
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', req.user!.id)
       .gte('tapped_at', todayStart.toISOString())
-      .limit(1)
 
     if (error) {
       res.status(500).json({ error: 'lookup_failed' })
       return
     }
 
-    res.json({ tapped: (data ?? []).length > 0 })
+    res.json({ tapped: (count ?? 0) > 0 })
   },
 )

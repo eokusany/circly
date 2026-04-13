@@ -25,7 +25,7 @@ import { spacing, radii, type as t, layout } from '../../constants/theme'
 
 export default function JournalEntryScreen() {
   const colors = useColors()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const params = useLocalSearchParams<{ id?: string }>()
   const editingId = params.id ?? null
   const timeOfDay = useTimeOfDay()

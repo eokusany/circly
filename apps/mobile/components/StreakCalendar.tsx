@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useColors } from '../hooks/useColors'
 import { Icon } from './Icon'
@@ -51,9 +52,12 @@ export function StreakCalendar({ entryDates, onDatePress }: Props) {
   const month = now.getMonth()
   const todayKey = dateKey(now)
 
-  const entrySet = new Set(entryDates.map((iso) => dateKey(new Date(iso))))
-  const cells = getMonthGrid(year, month)
-  const streak = getStreak(entrySet)
+  const entrySet = useMemo(
+    () => new Set(entryDates.map((iso) => dateKey(new Date(iso)))),
+    [entryDates],
+  )
+  const cells = useMemo(() => getMonthGrid(year, month), [year, month])
+  const streak = useMemo(() => getStreak(entrySet), [entrySet])
 
   const monthLabel = now.toLocaleDateString(undefined, { month: 'long' }).toLowerCase()
 

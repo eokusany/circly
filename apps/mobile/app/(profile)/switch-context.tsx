@@ -14,7 +14,8 @@ const CONTEXTS: AppContext[] = ['recovery', 'family']
 
 export default function SwitchContextScreen() {
   const colors = useColors()
-  const { user, setUser } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
+  const setUser = useAuthStore((s) => s.setUser)
   const currentContext = user?.context ?? DEFAULT_CONTEXT
   const [selected, setSelected] = useState<AppContext>(currentContext)
   const [loading, setLoading] = useState(false)

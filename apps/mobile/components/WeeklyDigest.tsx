@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import { useColors } from '../hooks/useColors'
@@ -65,29 +65,35 @@ export function WeeklyDigest({ entries }: Props) {
   // getDay: 0=Sun, 1=Mon. Show Mon–Wed (days 1,2,3) to give time to see it
   if (today === 0 || today > 3) return null
 
-  const { start, end } = getLastWeekRange()
-  const weekEntries = entries.filter((e) => {
-    const d = new Date(e.created_at)
-    return d >= start && d <= end
-  })
+  const range = useMemo(() => getLastWeekRange(), [weekId])
+  const weekEntries = useMemo(
+    () => entries.filter((e) => {
+      const d = new Date(e.created_at)
+      return d >= range.start && d <= range.end
+    }),
+    [entries, range],
+  )
+
+  const stats = useMemo(() => {
+    const count = weekEntries.length
+    const moodEntries = weekEntries.filter((e) => e.mood_tag)
+    const firstMood = moodEntries.length > 0 ? findMood(moodEntries[0].mood_tag) : null
+    const lastMood = moodEntries.length > 1 ? findMood(moodEntries[moodEntries.length - 1].mood_tag) : null
+
+    const moodCounts: Record<string, number> = {}
+    moodEntries.forEach((e) => {
+      if (e.mood_tag) moodCounts[e.mood_tag] = (moodCounts[e.mood_tag] ?? 0) + 1
+    })
+    const topMoodTag = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0]?.[0]
+    const topMood = findMood(topMoodTag)
+
+    const encouragement = ENCOURAGEMENTS[count % ENCOURAGEMENTS.length]
+    return { count, firstMood, lastMood, topMood, encouragement }
+  }, [weekEntries])
 
   if (weekEntries.length < 3 || dismissed) return null
 
-  // Compute stats
-  const count = weekEntries.length
-  const moodEntries = weekEntries.filter((e) => e.mood_tag)
-  const firstMood = moodEntries.length > 0 ? findMood(moodEntries[0].mood_tag) : null
-  const lastMood = moodEntries.length > 1 ? findMood(moodEntries[moodEntries.length - 1].mood_tag) : null
-
-  // Most common mood
-  const moodCounts: Record<string, number> = {}
-  moodEntries.forEach((e) => {
-    if (e.mood_tag) moodCounts[e.mood_tag] = (moodCounts[e.mood_tag] ?? 0) + 1
-  })
-  const topMoodTag = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0]?.[0]
-  const topMood = findMood(topMoodTag)
-
-  const encouragement = ENCOURAGEMENTS[weekEntries.length % ENCOURAGEMENTS.length]
+  const { count, firstMood, lastMood, topMood, encouragement } = stats
 
   function handleDismiss() {
     setDismissed(true)
