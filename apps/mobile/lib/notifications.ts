@@ -28,6 +28,8 @@ export async function scheduleOkayReminder(hour: number, minute: number): Promis
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: false,
       shouldSetBadge: false,
     }),

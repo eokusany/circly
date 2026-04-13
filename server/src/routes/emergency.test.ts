@@ -13,6 +13,7 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
+import { _clearTokenCache } from '../middleware/auth'
 import { app } from '../app'
 
 // Each test must use a fresh user id — emergencyLimiter is 10/hour per user
@@ -77,6 +78,7 @@ function wire({ user, relationships, notificationsResult }: Wiring) {
 describe('POST /api/emergency', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    _clearTokenCache()
   })
 
   describe('authentication', () => {

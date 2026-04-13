@@ -13,6 +13,7 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
+import { _clearTokenCache } from '../middleware/auth'
 import { app } from '../app'
 
 // Unique user id per test — inviteGenerateLimiter = 20/day, inviteAcceptLimiter
@@ -86,6 +87,7 @@ function existingRelStub(existing: unknown = null) {
 describe('POST /api/invites', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    _clearTokenCache()
   })
 
   describe('authentication', () => {
@@ -287,6 +289,7 @@ describe('POST /api/invites', () => {
 describe('POST /api/invites/accept', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    _clearTokenCache()
   })
 
   describe('authentication', () => {
@@ -784,6 +787,7 @@ describe('POST /api/invites/accept', () => {
 describe('POST /api/invites/supporter', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    _clearTokenCache()
   })
 
   it('returns 401 without a token', async () => {

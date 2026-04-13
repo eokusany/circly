@@ -13,6 +13,7 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
+import { _clearTokenCache } from '../middleware/auth'
 import { app } from '../app'
 
 // Unique user id per test — encouragementLimiter is 30/hour per user. Even
@@ -90,6 +91,7 @@ function activeRel(supporterId: string, relId = 'rel-1', recoveryId = 'rec-1') {
 describe('POST /api/encouragements', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    _clearTokenCache()
   })
 
   describe('authentication', () => {

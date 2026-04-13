@@ -97,12 +97,14 @@ messagesRouter.post(
 
     // Fire notifications async (best-effort)
     const senderId = req.user!.id
-    supabase
-      .from('users')
-      .select('display_name')
-      .eq('id', senderId)
-      .single()
-      .then(({ data: sender }) => {
+    ;(async () => {
+      try {
+        const { data: sender } = await supabase
+          .from('users')
+          .select('display_name')
+          .eq('id', senderId)
+          .single()
+
         const senderName = (sender as { display_name: string } | null)?.display_name ?? 'someone'
 
         const notifications = otherIds.map((recipientId) => ({
@@ -116,11 +118,12 @@ messagesRouter.post(
         }))
 
         if (notifications.length > 0) {
-          supabase.from('notifications').insert(notifications).then(({ error }) => {
-            if (error) console.warn('notification insert failed:', error)
-          })
+          const { error } = await supabase.from('notifications').insert(notifications)
+          if (error) console.warn('notification insert failed:', error)
         }
-      })
-      .catch((err) => console.warn('notification flow failed:', err))
+      } catch (err) {
+        console.warn('notification flow failed:', err)
+      }
+    })()
   },
 )

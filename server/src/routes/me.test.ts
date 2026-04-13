@@ -11,6 +11,7 @@ vi.mock('../lib/supabase', () => ({
 }))
 
 import { supabase } from '../lib/supabase'
+import { _clearTokenCache } from '../middleware/auth'
 import { app } from '../app'
 
 function mockUser(user: { id: string; email: string | null } | null) {
@@ -23,6 +24,7 @@ function mockUser(user: { id: string; email: string | null } | null) {
 describe('GET /api/me', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    _clearTokenCache()
   })
 
   it('returns 401 without any Authorization header', async () => {

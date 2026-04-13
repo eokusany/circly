@@ -13,6 +13,7 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
+import { _clearTokenCache } from '../middleware/auth'
 import { app } from '../app'
 
 let uidCounter = 0
@@ -46,7 +47,7 @@ function upsertChain(error: unknown = null) {
 // -----------------------------------------------------------------------------
 
 describe('GET /api/silence-settings', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); _clearTokenCache() })
 
   it('returns 401 without a token', async () => {
     const res = await request(app).get('/api/silence-settings')
@@ -109,7 +110,7 @@ describe('GET /api/silence-settings', () => {
 // -----------------------------------------------------------------------------
 
 describe('PATCH /api/silence-settings', () => {
-  beforeEach(() => { vi.clearAllMocks() })
+  beforeEach(() => { vi.clearAllMocks(); _clearTokenCache() })
 
   it('returns 401 without a token', async () => {
     const res = await request(app)
