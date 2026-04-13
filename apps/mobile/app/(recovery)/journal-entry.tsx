@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Animated,
 } from 'react-native'
-import { router, useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { useTimeOfDay, getTimeTint } from '../../hooks/useTimeOfDay'
@@ -48,6 +48,15 @@ export default function JournalEntryScreen() {
   const promptOpacity = useRef(new Animated.Value(1)).current
 
   const todayPrompt = getPromptForToday()
+
+  // Reset save overlay each time screen is focused (router reuses component)
+  useFocusEffect(
+    useCallback(() => {
+      setShowSaveCheck(false)
+      saveCheckOpacity.setValue(0)
+      saveScale.setValue(1)
+    }, [])
+  )
 
   useEffect(() => {
     if (!editingId || !user) return
@@ -104,6 +113,8 @@ export default function JournalEntryScreen() {
     }
 
     setSaving(true)
+    setShowSaveCheck(false)
+    saveCheckOpacity.setValue(0)
 
     const mood = moodFromValue(moodValue)
     const payload = {
@@ -140,9 +151,9 @@ export default function JournalEntryScreen() {
     }
 
     // Save animation
+    setSaving(false)
     notifySuccess()
     setShowSaveCheck(true)
-    saveCheckOpacity.setValue(0)
     Animated.parallel([
       Animated.timing(saveScale, { toValue: 0.98, duration: 150, useNativeDriver: true }),
       Animated.timing(saveCheckOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
