@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -7,46 +7,103 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  Animated,
+  AppState,
 } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
+import { useJournalLock } from '../../hooks/useJournalLock'
 import { supabase } from '../../lib/supabase'
 import { findMood } from '../../lib/mood'
 import { Icon } from '../../components/Icon'
+import { JournalLock } from '../../components/JournalLock'
+import { StreakCalendar } from '../../components/StreakCalendar'
+import { MoodCurve } from '../../components/MoodCurve'
+import { WeeklyDigest } from '../../components/WeeklyDigest'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
 
 interface JournalRow {
   id: string
   body: string
   mood_tag: string | null
+  mood_value: number | null
+  prompt_used: string | null
   created_at: string
 }
 
 export default function JournalScreen() {
   const colors = useColors()
   const { user } = useAuthStore()
+  const lock = useJournalLock()
+  const [unlocked, setUnlocked] = useState(false)
   const [entries, setEntries] = useState<JournalRow[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+
+  // Animations
+  const fabAnim = useRef(new Animated.Value(0)).current
+  const contentOpacity = useRef(new Animated.Value(0)).current
+
+  // Re-lock journal when app goes to background
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        setUnlocked(false)
+        lock.lock()
+      }
+    })
+    return () => subscription.remove()
+  }, [lock])
 
   const loadEntries = useCallback(async () => {
     if (!user) return
     const { data } = await supabase
       .from('journal_entries')
-      .select('id, body, mood_tag, created_at')
+      .select('id, body, mood_tag, mood_value, prompt_used, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     setEntries((data as JournalRow[]) ?? [])
     setLoading(false)
+
+    // Animate content in
+    Animated.timing(contentOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start()
+
+    // FAB slide up
+    Animated.spring(fabAnim, { toValue: 1, useNativeDriver: true }).start()
   }, [user])
 
   useFocusEffect(
     useCallback(() => {
-      loadEntries()
-    }, [loadEntries])
+      if (unlocked || lock.state === 'unlocked') {
+        loadEntries()
+      }
+    }, [loadEntries, unlocked, lock.state])
   )
+
+  // Show lock screen if not yet unlocked
+  if (!unlocked && lock.state !== 'unlocked') {
+    return (
+      <JournalLock
+        lockState={lock.state}
+        biometricAvailable={lock.biometricAvailable}
+        biometricEnabled={lock.biometricEnabled}
+        isCoolingDown={lock.isCoolingDown}
+        onSavePin={lock.savePin}
+        onCheckPin={lock.checkPin}
+        onBiometric={lock.authenticateBiometric}
+        onUnlockComplete={() => setUnlocked(true)}
+      />
+    )
+  }
+
+  const entryDates = entries.map((e) => e.created_at)
+
+  const fabTranslate = fabAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [80, 0],
+  })
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -67,8 +124,6 @@ export default function JournalScreen() {
           </Text>
         </View>
 
-        {!loading && entries.length > 0 && <MoodTimeline entries={entries} />}
-
         {loading ? (
           <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
         ) : entries.length === 0 ? (
@@ -85,59 +140,85 @@ export default function JournalScreen() {
             </Text>
           </View>
         ) : (
-          <View style={styles.list}>
-            {entries.map((entry) => (
-              <EntryCard key={entry.id} entry={entry} />
-            ))}
-          </View>
+          <Animated.View style={[styles.content, { opacity: contentOpacity }]}>
+            {/* Weekly digest */}
+            <WeeklyDigest entries={entries} />
+
+            {/* Streak calendar */}
+            <StreakCalendar entryDates={entryDates} />
+
+            {/* Mood curve */}
+            <MoodCurve
+              entries={entries}
+              onEntryPress={(id) =>
+                router.push({ pathname: '/(recovery)/journal-entry', params: { id } })
+              }
+            />
+
+            {/* Entry list */}
+            <View style={styles.list}>
+              {entries.map((entry, index) => (
+                <AnimatedEntryCard key={entry.id} entry={entry} index={index} />
+              ))}
+            </View>
+          </Animated.View>
         )}
       </ScrollView>
 
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={() => router.push('/(recovery)/journal-entry')}
-        style={[styles.fab, { backgroundColor: colors.accent }]}
+      <Animated.View
+        style={[
+          styles.fabWrap,
+          { transform: [{ translateY: fabTranslate }] },
+        ]}
       >
-        <Icon name="plus" size={24} color="#fff" />
-      </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.push('/(recovery)/journal-entry')}
+          style={[styles.fab, { backgroundColor: colors.accent }]}
+        >
+          <Icon name="plus" size={24} color="#fff" />
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   )
 }
 
-function MoodTimeline({ entries }: { entries: JournalRow[] }) {
-  const colors = useColors()
-  const recent = entries.slice(0, 14)
-  const withMood = recent.filter(e => e.mood_tag)
-  if (withMood.length < 2) return null
+function AnimatedEntryCard({ entry, index }: { entry: JournalRow; index: number }) {
+  const slideAnim = useRef(new Animated.Value(0)).current
+
+  useFocusEffect(
+    useCallback(() => {
+      slideAnim.setValue(0)
+      Animated.spring(slideAnim, {
+        toValue: 1,
+        delay: index * 50,
+        useNativeDriver: true,
+      }).start()
+    }, [index])
+  )
+
+  const translateY = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [20, 0],
+  })
 
   return (
-    <View style={[styles.moodTimeline, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text style={[styles.moodTimelineLabel, { color: colors.textMuted }]}>mood over time</Text>
-      <View style={styles.moodDots}>
-        {recent.reverse().map(entry => {
-          const mood = findMood(entry.mood_tag)
-          return (
-            <View key={entry.id} style={styles.moodDotWrap}>
-              {mood ? (
-                <View style={[styles.moodDot, { backgroundColor: colors.accentSoft }]}>
-                  <Icon name={mood.icon} size={12} color={colors.accent} />
-                </View>
-              ) : (
-                <View style={[styles.moodDot, { backgroundColor: colors.surfaceRaised }]}>
-                  <View style={[styles.moodDotEmpty, { backgroundColor: colors.border }]} />
-                </View>
-              )}
-            </View>
-          )
-        })}
-      </View>
-    </View>
+    <Animated.View style={{ opacity: slideAnim, transform: [{ translateY }] }}>
+      <EntryCard entry={entry} />
+    </Animated.View>
   )
 }
 
 function EntryCard({ entry }: { entry: JournalRow }) {
   const colors = useColors()
   const mood = findMood(entry.mood_tag)
+
+  // Strip prompt text from preview so the card shows the user's own words
+  let preview = entry.body
+  if (entry.prompt_used && preview.startsWith(entry.prompt_used)) {
+    preview = preview.slice(entry.prompt_used.length).trim()
+  }
+
   return (
     <TouchableOpacity
       activeOpacity={0.85}
@@ -166,7 +247,7 @@ function EntryCard({ entry }: { entry: JournalRow }) {
         style={[styles.cardBody, { color: colors.textSecondary }]}
         numberOfLines={3}
       >
-        {entry.body}
+        {preview || entry.body}
       </Text>
     </TouchableOpacity>
   )
@@ -209,6 +290,7 @@ const styles = StyleSheet.create({
   header: { gap: spacing.xs },
   title: { ...t.h1 },
   subtitle: { ...t.body },
+  content: { gap: spacing.lg },
 
   emptyCard: {
     borderRadius: radii.xl,
@@ -228,32 +310,6 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { ...t.h3 },
   emptyBody: { ...t.small, textAlign: 'center' },
-
-  moodTimeline: {
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  moodTimelineLabel: { ...t.label },
-  moodDots: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  moodDotWrap: {},
-  moodDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  moodDotEmpty: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
 
   list: { gap: spacing.md },
   card: {
@@ -279,10 +335,12 @@ const styles = StyleSheet.create({
   moodLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
   cardBody: { ...t.small, lineHeight: 20 },
 
-  fab: {
+  fabWrap: {
     position: 'absolute',
     right: layout.screenPadding,
     bottom: 40,
+  },
+  fab: {
     width: 56,
     height: 56,
     borderRadius: 28,
