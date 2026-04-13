@@ -48,9 +48,16 @@ export function JournalLock({
   const contentTranslate = useRef(new Animated.Value(20)).current
   const shakeAnim = useRef(new Animated.Value(0)).current
 
+  // Animate individual dots
+  const dotScales = [
+    useRef(new Animated.Value(1)).current,
+    useRef(new Animated.Value(1)).current,
+    useRef(new Animated.Value(1)).current,
+    useRef(new Animated.Value(1)).current,
+  ]
+
   const isSetup = lockState === 'setup'
 
-  // Auto-trigger biometric on mount when locked
   useEffect(() => {
     if (lockState === 'locked' && biometricEnabled && biometricAvailable) {
       onBiometric().then((success) => {
@@ -58,6 +65,15 @@ export function JournalLock({
       })
     }
   }, [lockState, biometricEnabled, biometricAvailable])
+
+  // Pop the latest dot when pin length changes
+  useEffect(() => {
+    if (pin.length > 0 && pin.length <= 4) {
+      const scale = dotScales[pin.length - 1]
+      scale.setValue(1.5)
+      Animated.spring(scale, { toValue: 1, friction: 4, useNativeDriver: true }).start()
+    }
+  }, [pin.length])
 
   function playUnlockAnimation() {
     setUnlocking(true)
@@ -109,23 +125,19 @@ export function JournalLock({
     if (next.length === 4) {
       if (isSetup) {
         if (confirmPin === null) {
-          // First entry — ask to confirm
           setConfirmPin(next)
           setPin('')
           setError('')
         } else if (next === confirmPin) {
-          // Confirmed — save
           onSavePin(next)
           playUnlockAnimation()
         } else {
-          // Mismatch
           setConfirmPin(null)
           setPin('')
           setError("pins didn't match. try again.")
           playShake()
         }
       } else {
-        // Verify against stored PIN
         const ok = await onCheckPin(next)
         if (ok) {
           playUnlockAnimation()
@@ -169,8 +181,8 @@ export function JournalLock({
           },
         ]}
       >
-        <View style={[styles.lockCircle, { backgroundColor: colors.accentSoft }]}>
-          <Icon name="lock" size={32} color={colors.accent} />
+        <View style={[styles.lockCircle, { borderColor: colors.accent }]}>
+          <Icon name="lock" size={28} color={colors.accent} />
         </View>
         <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
@@ -178,18 +190,22 @@ export function JournalLock({
 
       <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
         <View style={styles.dots}>
-          {[0, 1, 2, 3].map((i) => (
-            <View
-              key={i}
-              style={[
-                styles.dot,
-                {
-                  backgroundColor: i < pin.length ? colors.accent : 'transparent',
-                  borderColor: i < pin.length ? colors.accent : colors.border,
-                },
-              ]}
-            />
-          ))}
+          {[0, 1, 2, 3].map((i) => {
+            const filled = i < pin.length
+            return (
+              <Animated.View
+                key={i}
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor: filled ? colors.accent : 'transparent',
+                    borderColor: filled ? colors.accent : colors.borderStrong,
+                    transform: [{ scale: dotScales[i] }],
+                  },
+                ]}
+              />
+            )
+          })}
         </View>
       </Animated.View>
 
@@ -210,7 +226,7 @@ export function JournalLock({
                 onPress={() => handleDigit('delete')}
                 style={({ pressed }) => [styles.key, { opacity: pressed ? 0.5 : 1 }]}
               >
-                <Icon name="delete" size={22} color={colors.textSecondary} />
+                <Icon name="delete" size={24} color={colors.textSecondary} />
               </Pressable>
             )
           }
@@ -223,7 +239,8 @@ export function JournalLock({
                 styles.key,
                 styles.digitKey,
                 {
-                  backgroundColor: pressed ? colors.surfaceRaised : 'transparent',
+                  backgroundColor: pressed ? colors.surfaceRaised : colors.surface,
+                  borderColor: pressed ? colors.borderStrong : colors.border,
                 },
               ]}
             >
@@ -244,7 +261,10 @@ export function JournalLock({
           }}
           style={({ pressed }) => [
             styles.biometricBtn,
-            { backgroundColor: colors.accentSoft, opacity: pressed ? 0.7 : 1 },
+            {
+              borderColor: colors.accent,
+              opacity: pressed ? 0.7 : 1,
+            },
           ]}
         >
           <Icon name="smartphone" size={18} color={colors.accent} />
@@ -267,12 +287,13 @@ const styles = StyleSheet.create({
   lockHeader: {
     alignItems: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xxxl,
   },
   lockCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
@@ -281,13 +302,13 @@ const styles = StyleSheet.create({
   subtitle: { ...t.body, textAlign: 'center' },
   dots: {
     flexDirection: 'row',
-    gap: spacing.lg,
-    marginBottom: spacing.md,
+    gap: spacing.xl,
+    marginBottom: spacing.lg,
   },
   dot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     borderWidth: 2,
   },
   error: { ...t.small, marginBottom: spacing.md, height: 18 },
@@ -295,21 +316,24 @@ const styles = StyleSheet.create({
   keypad: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    width: 270,
+    width: 280,
     justifyContent: 'center',
+    gap: spacing.md,
   },
   key: {
-    width: 90,
-    height: 64,
+    width: 80,
+    height: 80,
     alignItems: 'center',
     justifyContent: 'center',
   },
   digitKey: {
-    borderRadius: radii.md,
+    borderRadius: 40,
+    borderWidth: 1,
   },
   digitText: {
     fontSize: 28,
-    fontWeight: '500',
+    fontWeight: '300',
+    letterSpacing: -0.5,
   },
   biometricBtn: {
     flexDirection: 'row',
@@ -318,7 +342,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: radii.pill,
-    marginTop: spacing.xl,
+    borderWidth: 1,
+    marginTop: spacing.xxl,
   },
   biometricText: { ...t.bodyStrong },
 })

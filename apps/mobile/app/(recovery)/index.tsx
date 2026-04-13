@@ -222,7 +222,10 @@ export default function RecoveryHome() {
         doneMessage={copy.dashboard.okayTapDone}
       />
 
-      <StreakCard days={days} next={next} streakLabel={copy.dashboard.streakLabel} />
+      {/* Streak — extra top margin to create visual breathing room */}
+      <View style={{ marginTop: spacing.md }}>
+        <StreakCard days={days} next={next} streakLabel={copy.dashboard.streakLabel} />
+      </View>
 
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
@@ -230,6 +233,9 @@ export default function RecoveryHome() {
         </Text>
         <MilestonePath days={days} />
       </View>
+
+      {/* Divider before activity section */}
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
       {/* Weekly summary */}
       <WeeklySummary stats={weeklyStats} checkInStreak={checkInStreak} />
@@ -641,7 +647,7 @@ const styles = StyleSheet.create({
     padding: layout.screenPadding,
     paddingTop: layout.screenTopPadding,
     paddingBottom: spacing.xxxl,
-    gap: layout.sectionGap,
+    gap: spacing.xl,
   },
 
   header: {
@@ -733,6 +739,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     gap: spacing.xs,
+  },
+
+  divider: {
+    height: 1,
+    marginVertical: spacing.sm,
   },
 
   // tiles
