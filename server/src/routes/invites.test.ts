@@ -86,7 +86,7 @@ function existingRelStub(existing: unknown = null) {
 
 describe('POST /api/invites', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     _clearTokenCache()
   })
 
@@ -288,7 +288,7 @@ describe('POST /api/invites', () => {
 
 describe('POST /api/invites/accept', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     _clearTokenCache()
   })
 
@@ -786,7 +786,7 @@ describe('POST /api/invites/accept', () => {
 
 describe('POST /api/invites/supporter', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     _clearTokenCache()
   })
 
