@@ -28,6 +28,11 @@ interface CachedAuth {
 
 const tokenCache = new Map<string, CachedAuth>()
 
+/** @internal — exposed for tests to clear cached tokens between runs */
+export function _clearTokenCache() {
+  tokenCache.clear()
+}
+
 function pruneCache() {
   if (tokenCache.size <= TOKEN_CACHE_MAX_SIZE) return
   // Evict oldest entries when cache exceeds max size

@@ -13,6 +13,7 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
+import { _clearTokenCache } from '../middleware/auth'
 import { app } from '../app'
 
 let uidCounter = 0
@@ -97,6 +98,7 @@ function wireMocks(setup: MockSetup) {
 describe('POST /api/messages', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    _clearTokenCache()
   })
 
   it('returns 401 without a token', async () => {

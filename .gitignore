@@ -5,6 +5,7 @@ dist/
 build/
 .expo/
 *.tsbuildinfo
+/app.json
 
 # iOS
 apps/mobile/ios/

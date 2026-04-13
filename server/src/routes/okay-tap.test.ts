@@ -13,6 +13,7 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
+import { _clearTokenCache } from '../middleware/auth'
 import { app } from '../app'
 
 let uidCounter = 0
@@ -36,14 +37,12 @@ function insertChain(data: unknown, error: unknown = null) {
   }
 }
 
-// okay_taps today check: .select().eq().gte().limit()
-function todayChain(data: unknown[], error: unknown = null) {
+// okay_taps today check: .select('id', { count: 'exact', head: true }).eq().gte()
+function todayChain(count: number, error: unknown = null) {
   return {
     select: () => ({
       eq: () => ({
-        gte: () => ({
-          limit: () => Promise.resolve({ data, error }),
-        }),
+        gte: () => Promise.resolve({ count, error }),
       }),
     }),
   }
@@ -56,6 +55,7 @@ function todayChain(data: unknown[], error: unknown = null) {
 describe('POST /api/okay-tap', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    _clearTokenCache()
   })
 
   it('returns 401 without a token', async () => {
@@ -113,6 +113,7 @@ describe('POST /api/okay-tap', () => {
 describe('GET /api/okay-tap/today', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    _clearTokenCache()
   })
 
   it('returns 401 without a token', async () => {
@@ -124,7 +125,7 @@ describe('GET /api/okay-tap/today', () => {
     authedAs()
     fromMock.mockImplementation((table: string) => {
       if (table === 'okay_taps')
-        return todayChain([{ id: 'tap-1' }])
+        return todayChain(1)
       throw new Error(`unexpected table: ${table}`)
     })
     const res = await request(app)
@@ -137,7 +138,7 @@ describe('GET /api/okay-tap/today', () => {
   it('returns tapped: false when no tap exists today', async () => {
     authedAs()
     fromMock.mockImplementation((table: string) => {
-      if (table === 'okay_taps') return todayChain([])
+      if (table === 'okay_taps') return todayChain(0)
       throw new Error(`unexpected table: ${table}`)
     })
     const res = await request(app)
@@ -151,7 +152,7 @@ describe('GET /api/okay-tap/today', () => {
     authedAs()
     fromMock.mockImplementation((table: string) => {
       if (table === 'okay_taps')
-        return todayChain([], { message: 'boom' })
+        return todayChain(0, { message: 'boom' })
       throw new Error(`unexpected table: ${table}`)
     })
     const res = await request(app)
@@ -161,16 +162,14 @@ describe('GET /api/okay-tap/today', () => {
     expect(res.body).toEqual({ error: 'lookup_failed' })
   })
 
-  it('returns tapped: false when data is null', async () => {
+  it('returns tapped: false when count is null', async () => {
     authedAs()
     fromMock.mockImplementation((table: string) => {
       if (table === 'okay_taps') {
         return {
           select: () => ({
             eq: () => ({
-              gte: () => ({
-                limit: () => Promise.resolve({ data: null, error: null }),
-              }),
+              gte: () => Promise.resolve({ count: null, error: null }),
             }),
           }),
         }

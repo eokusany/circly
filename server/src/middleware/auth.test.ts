@@ -11,7 +11,7 @@ vi.mock('../lib/supabase', () => ({
 }))
 
 import { supabase } from '../lib/supabase'
-import { requireAuth } from './auth'
+import { requireAuth, _clearTokenCache } from './auth'
 
 function buildApp() {
   const app = express()
@@ -38,6 +38,7 @@ function mockInvalidToken() {
 describe('requireAuth middleware', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    _clearTokenCache()
   })
 
   describe('missing / malformed Authorization header', () => {

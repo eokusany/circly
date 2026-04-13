@@ -91,6 +91,7 @@ function wireDetector(setup: TableSetup) {
       const self = () => chain
       chain.select = self
       chain.eq = self
+      chain.in = self
       chain.gte = self
       ;(chain as unknown as { then: (r: (v: unknown) => void) => void }).then = (r) =>
         r({ data: setup.notifications_recent ?? [], error: null })

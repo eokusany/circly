@@ -13,6 +13,7 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
+import { _clearTokenCache } from '../middleware/auth'
 import { app } from '../app'
 
 let uidCounter = 0
@@ -28,7 +29,7 @@ function authedAs(id?: string) {
 // Chainable mock helpers per table
 interface TableMocks {
   relationships?: { data: unknown; error?: unknown }
-  warm_pings_count?: { data: unknown[]; error?: unknown }
+  warm_pings_count?: { count: number; error?: unknown }
   warm_pings_insert?: { error?: unknown }
   users?: { data: unknown; error?: unknown }
   notifications_insert?: { error?: unknown }
@@ -36,7 +37,7 @@ interface TableMocks {
 
 function wireMocks(setup: TableMocks) {
   const notifInsert = vi.fn().mockResolvedValue({
-    error: setup.notifications_insert_error ?? null,
+    error: setup.notifications_insert?.error ?? null,
   })
 
   fromMock.mockImplementation((table: string) => {
@@ -63,7 +64,7 @@ function wireMocks(setup: TableMocks) {
             eq: () => ({
               gte: () =>
                 Promise.resolve(
-                  setup.warm_pings_count ?? { data: [], error: null },
+                  setup.warm_pings_count ?? { count: 0, error: null },
                 ),
             }),
           }),
@@ -107,6 +108,7 @@ function wireMocks(setup: TableMocks) {
 describe('POST /api/warm-ping', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    _clearTokenCache()
   })
 
   it('returns 401 without a token', async () => {
@@ -165,7 +167,7 @@ describe('POST /api/warm-ping', () => {
     wireMocks({
       relationships: { data: { id: 'r1', status: 'active' } },
       warm_pings_count: {
-        data: [{ id: '1' }, { id: '2' }, { id: '3' }],
+        count: 3,
       },
     })
     const res = await request(app)
@@ -180,7 +182,7 @@ describe('POST /api/warm-ping', () => {
     authedAs()
     wireMocks({
       relationships: { data: { id: 'r1', status: 'active' } },
-      warm_pings_count: { data: [] },
+      warm_pings_count: { count: 0 },
     })
     const res = await request(app)
       .post('/api/warm-ping')
@@ -194,7 +196,7 @@ describe('POST /api/warm-ping', () => {
     authedAs()
     wireMocks({
       relationships: { data: { id: 'r1', status: 'active' } },
-      warm_pings_count: { data: [] },
+      warm_pings_count: { count: 0 },
       warm_pings_insert: { error: { message: 'boom' } },
     })
     const res = await request(app)
@@ -209,7 +211,7 @@ describe('POST /api/warm-ping', () => {
     authedAs()
     wireMocks({
       relationships: { data: { id: 'r1', status: 'active' } },
-      warm_pings_count: { data: [], error: { message: 'boom' } },
+      warm_pings_count: { count: 0, error: { message: 'boom' } },
     })
     const res = await request(app)
       .post('/api/warm-ping')
