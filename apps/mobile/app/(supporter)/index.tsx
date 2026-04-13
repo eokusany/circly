@@ -333,15 +333,20 @@ export default function SupporterHome() {
         {people.length === 0 ? (
           <EmptyState />
         ) : (
-          <View style={styles.list}>
-            {people.map((p) => (
-              <PersonCard
-                key={p.relationship_id}
-                person={p}
-                onEncourage={() => setSendingFor(p)}
-                onWarmPing={() => sendWarmPing(p)}
-              />
-            ))}
+          <View style={styles.peopleSection}>
+            <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>
+              your circle
+            </Text>
+            <View style={styles.list}>
+              {people.map((p) => (
+                <PersonCard
+                  key={p.relationship_id}
+                  person={p}
+                  onEncourage={() => setSendingFor(p)}
+                  onWarmPing={() => sendWarmPing(p)}
+                />
+              ))}
+            </View>
           </View>
         )}
 
@@ -371,7 +376,7 @@ function EmptyState() {
         no one linked yet
       </Text>
       <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-        invite someone you want to support, or enter a code they shared with you.
+        your circle is where you show up for the people{'\n'}who matter most. invite someone to get started.
       </Text>
       <Button
         label="get started"
@@ -685,6 +690,8 @@ const styles = StyleSheet.create({
   },
   greeting: { ...t.body },
   name: { ...t.h1 },
+  peopleSection: { gap: spacing.md },
+  sectionLabel: { ...t.label },
   list: { gap: spacing.md },
   card: {
     borderRadius: radii.lg,

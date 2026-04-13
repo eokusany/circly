@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { Stack, router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useColorScheme } from 'react-native'
@@ -9,9 +9,12 @@ import type { AppContext, UserRole } from '../store/auth'
 
 SplashScreen.preventAutoHideAsync()
 
+const SPLASH_DURATION = 1800
+
 export default function RootLayout() {
   const scheme = useColorScheme()
   const { setUser, setLoading } = useAuthStore()
+  const initialRouteComplete = useRef(false)
 
   const loadUser = useCallback(async (userId: string) => {
     const { data } = await supabase
@@ -38,38 +41,44 @@ export default function RootLayout() {
         sobrietyStartDate,
       })
       setLoading(false)
-      // Recovery-context users at the "center" role need a sobriety start date.
-      // Family-context users skip this step entirely.
       if (data.role === 'recovery' && data.context === 'recovery' && !sobrietyStartDate) {
         router.replace('/(auth)/sobriety-start')
       } else {
         router.replace(roleHome(data.role))
       }
     } else {
-      // No public.users row yet — this session is mid-onboarding. Route to
-      // context-select, which will flow into role-select when complete.
       setLoading(false)
       router.replace('/(auth)/context-select')
     }
   }, [setUser, setLoading])
 
   useEffect(() => {
+    const splashStart = Date.now()
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      // Hide system splash so branded splash (index.tsx) is visible
+      SplashScreen.hideAsync()
+
+      // Wait remaining splash duration so the logo is seen
+      const elapsed = Date.now() - splashStart
+      const remaining = Math.max(0, SPLASH_DURATION - elapsed)
+      await new Promise((r) => setTimeout(r, remaining))
+
+      initialRouteComplete.current = true
+
       if (session?.user) {
         await loadUser(session.user.id)
       } else {
         setLoading(false)
         router.replace('/(auth)/sign-in')
       }
-      SplashScreen.hideAsync()
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // PASSWORD_RECOVERY: ignore here — verify-reset.tsx handles this flow
-        // in-screen (OTP verify + updateUser + signOut) so we don't want to
-        // route the transient recovery session into the app home.
         if (event === 'PASSWORD_RECOVERY') return
+        // Ignore auth events until the initial splash route is done
+        if (!initialRouteComplete.current) return
         if (event === 'SIGNED_OUT' || !session) {
           setUser(null)
           router.replace('/(auth)/sign-in')

@@ -127,6 +127,8 @@ export default function NotificationsScreen() {
           {
             backgroundColor: isUnread ? colors.accentSoft : colors.surface,
             borderColor: colors.border,
+            borderLeftColor: iconColor,
+            borderLeftWidth: 3,
             opacity: pressed ? 0.85 : 1,
           },
         ]}
@@ -181,9 +183,14 @@ export default function NotificationsScreen() {
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Icon name="bell" size={32} color={colors.textMuted} />
-              <Text style={[t.body, { color: colors.textMuted, textAlign: 'center' }]}>
-                no notifications yet
+              <View style={[styles.emptyIcon, { backgroundColor: colors.surfaceRaised }]}>
+                <Icon name="bell" size={28} color={colors.textMuted} />
+              </View>
+              <Text style={[t.h3, { color: colors.textPrimary, textAlign: 'center' }]}>
+                all quiet
+              </Text>
+              <Text style={[t.small, { color: colors.textSecondary, textAlign: 'center', lineHeight: 20 }]}>
+                updates from the people you support{'\n'}will show up here.
               </Text>
             </View>
           }
@@ -243,7 +250,15 @@ const styles = StyleSheet.create({
   },
   empty: {
     alignItems: 'center',
-    gap: spacing.md,
-    paddingTop: spacing.xxxl,
+    gap: spacing.sm,
+    paddingTop: spacing.xxxl * 2,
+  },
+  emptyIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
 })

@@ -142,7 +142,7 @@ export default function CheckInScreen() {
               ]}
             >
               <View style={[styles.optionIcon, { backgroundColor: isSelected ? colors.accent : colors.surfaceRaised }]}>
-                <Icon name={opt.icon} size={20} color={isSelected ? '#fff' : colors.textSecondary} />
+                <Icon name={opt.icon} size={24} color={isSelected ? '#fff' : colors.textSecondary} />
               </View>
               <View style={styles.optionText}>
                 <Text style={[styles.optionLabel, { color: colors.textPrimary }]}>
@@ -257,22 +257,22 @@ const styles = StyleSheet.create({
   backButton: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
   options: { gap: spacing.md },
   option: {
-    borderRadius: radii.lg,
-    padding: spacing.lg,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.lg,
   },
   optionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  optionText: { flex: 1, gap: 2 },
+  optionText: { flex: 1, gap: spacing.xs },
   optionLabel: { ...t.h3 },
-  optionDescription: { ...t.small },
+  optionDescription: { ...t.body, lineHeight: 20 },
 
   noteWrap: { gap: spacing.sm },
   noteLabel: { ...t.label },
