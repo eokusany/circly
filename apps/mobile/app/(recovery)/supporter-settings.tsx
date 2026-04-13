@@ -18,6 +18,7 @@ import { spacing, type, layout } from '../../constants/theme'
 interface Permissions {
   check_ins: boolean
   milestones: boolean
+  messages: boolean
 }
 
 interface RelationshipRow {
@@ -38,6 +39,7 @@ export default function SupporterSettingsScreen() {
   const [permissions, setPermissions] = useState<Permissions>({
     check_ins: true,
     milestones: true,
+    messages: true,
   })
 
   const load = useCallback(async () => {
@@ -61,6 +63,7 @@ export default function SupporterSettingsScreen() {
     setPermissions({
       check_ins: row.permissions?.check_ins ?? true,
       milestones: row.permissions?.milestones ?? true,
+      messages: row.permissions?.messages ?? true,
     })
     setLoading(false)
   }, [id])
@@ -167,6 +170,17 @@ export default function SupporterSettingsScreen() {
               <Switch
                 value={permissions.milestones}
                 onValueChange={(v) => togglePermission('milestones', v)}
+                disabled={saving}
+              />
+            }
+          />
+          <SettingRow
+            label="can send messages"
+            hideChevron
+            right={
+              <Switch
+                value={permissions.messages}
+                onValueChange={(v) => togglePermission('messages', v)}
                 disabled={saving}
               />
             }
