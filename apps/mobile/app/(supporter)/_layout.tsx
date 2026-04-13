@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Alert, Vibration } from 'react-native'
 import { Tabs } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { Icon } from '../../components/Icon'
 import { useAuthStore } from '../../store/auth'
+import { useNotificationStore } from '../../store/notifications'
 import { supabase } from '../../lib/supabase'
 import { playEmergencySound } from '../../lib/sounds'
 import { notifySuccess } from '../../lib/haptics'
@@ -11,7 +12,9 @@ import { notifySuccess } from '../../lib/haptics'
 export default function SupporterLayout() {
   const colors = useColors()
   const user = useAuthStore((s) => s.user)
-  const [unreadCount, setUnreadCount] = useState(0)
+  const unreadCount = useNotificationStore((s) => s.unreadCount)
+  const setUnreadCount = useNotificationStore((s) => s.setUnreadCount)
+  const increment = useNotificationStore((s) => s.increment)
 
   useEffect(() => {
     if (!user) return
@@ -35,7 +38,7 @@ export default function SupporterLayout() {
         },
         (payload) => {
           const newNotif = payload.new as { type?: string; payload?: { from_display_name?: string } }
-          setUnreadCount((c) => c + 1)
+          increment()
 
           if (newNotif.type === 'emergency') {
             playEmergencySound()

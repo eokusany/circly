@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Alert, Vibration } from 'react-native'
 import { Tabs } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { Icon } from '../../components/Icon'
 import { useAuthStore } from '../../store/auth'
+import { useNotificationStore } from '../../store/notifications'
 import { supabase } from '../../lib/supabase'
 import { scheduleOkayReminder, cancelOkayReminder, parseTime } from '../../lib/notifications'
 import { playEmergencySound } from '../../lib/sounds'
@@ -12,7 +13,9 @@ import { notifySuccess } from '../../lib/haptics'
 export default function RecoveryLayout() {
   const colors = useColors()
   const user = useAuthStore((s) => s.user)
-  const [unreadCount, setUnreadCount] = useState(0)
+  const unreadCount = useNotificationStore((s) => s.unreadCount)
+  const setUnreadCount = useNotificationStore((s) => s.setUnreadCount)
+  const increment = useNotificationStore((s) => s.increment)
 
   // Realtime subscription for instant notification delivery.
   // Lives at the layout level so it's always active regardless of which tab.
@@ -39,7 +42,7 @@ export default function RecoveryLayout() {
         },
         (payload) => {
           const newNotif = payload.new as { type?: string; payload?: { from_display_name?: string } }
-          setUnreadCount((c) => c + 1)
+          increment()
 
           if (newNotif.type === 'emergency') {
             playEmergencySound()
