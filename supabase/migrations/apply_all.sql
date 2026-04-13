@@ -1,5 +1,5 @@
 -- ============================================================
--- Reeco — Initial Schema
+-- Circly — Initial Schema
 -- ============================================================
 
 -- Enable UUID generation
@@ -153,7 +153,7 @@ create index on public.notifications (recipient_id, created_at desc);
 create index on public.relationships (recovery_user_id, status);
 create index on public.relationships (supporter_id, status);
 -- ============================================================
--- Reeco — Row-Level Security Policies
+-- Circly — Row-Level Security Policies
 -- Core principle: the recovery user always owns their data.
 -- Supporters see only what the recovery user has permitted.
 -- Journals are NEVER visible to supporters — enforced here.

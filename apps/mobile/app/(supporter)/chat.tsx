@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { View, Text, StyleSheet, RefreshControl } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
@@ -20,10 +20,11 @@ export default function SupporterChatTab() {
   const [rows, setRows] = useState<ConversationRow[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const hasLoaded = useRef(false)
 
   const load = useCallback(async () => {
     if (!user) return
-    setLoading(true)
+    if (!hasLoaded.current) setLoading(true)
 
     const { data: convoRows } = await supabase
       .from('conversations')
@@ -35,6 +36,7 @@ export default function SupporterChatTab() {
     if (conversations.length === 0) {
       setRows([])
       setLoading(false)
+      hasLoaded.current = true
       return
     }
 
@@ -67,6 +69,7 @@ export default function SupporterChatTab() {
 
     setRows(buildConversationRows(conversations, messages, participants, user.id))
     setLoading(false)
+    hasLoaded.current = true
   }, [user])
 
   useFocusEffect(

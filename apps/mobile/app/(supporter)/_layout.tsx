@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Alert, Vibration } from 'react-native'
 import { Tabs } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
@@ -16,6 +16,8 @@ export default function SupporterLayout() {
   const setUnreadCount = useNotificationStore((s) => s.setUnreadCount)
   const increment = useNotificationStore((s) => s.increment)
 
+  const channelRef = useRef(0)
+
   useEffect(() => {
     if (!user) return
 
@@ -26,8 +28,9 @@ export default function SupporterLayout() {
       .is('read_at', null)
       .then(({ count }) => setUnreadCount(count ?? 0))
 
+    const channelName = `supporter-notifications-${++channelRef.current}`
     const channel = supabase
-      .channel('supporter-notifications')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {

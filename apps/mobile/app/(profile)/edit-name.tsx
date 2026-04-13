@@ -53,7 +53,7 @@ export default function EditNameScreen() {
     >
       <View style={styles.header}>
         <BackButton />
-        <Text style={[styles.title, { color: colors.textPrimary }]}>display name</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>name</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           this is how your people will see you
         </Text>

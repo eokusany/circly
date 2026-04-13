@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 
-export type UserRole = 'recovery' | 'supporter' | 'sponsor'
+export type UserRole = 'recovery' | 'supporter'
 export type AppContext = 'recovery' | 'family'
 
 export interface AppUser {

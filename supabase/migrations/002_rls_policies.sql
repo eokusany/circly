@@ -1,5 +1,5 @@
 -- ============================================================
--- Reeco — Row-Level Security Policies
+-- Circly — Row-Level Security Policies
 -- Core principle: the recovery user always owns their data.
 -- Supporters see only what the recovery user has permitted.
 -- Journals are NEVER visible to supporters — enforced here.
