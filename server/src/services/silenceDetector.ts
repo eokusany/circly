@@ -38,21 +38,29 @@ export async function detectSilentUsers(): Promise<DetectionResult> {
   const userIds = settings.map((s) => s.user_id)
 
   // 2. For each user, find their most recent signal across three tables.
+  // Bound the query by the maximum threshold window to avoid unbounded scans
+  // while still returning all relevant data.
+  const maxThreshold = Math.max(...settings.map((s) => s.silence_threshold_days))
+  const windowStart = new Date(now.getTime() - (maxThreshold + 1) * 24 * 60 * 60 * 1000).toISOString()
+
   const [tapsRes, checkInsRes, messagesRes] = await Promise.all([
     supabase
       .from('okay_taps')
       .select('user_id, tapped_at')
       .in('user_id', userIds)
+      .gte('tapped_at', windowStart)
       .order('tapped_at', { ascending: false }),
     supabase
       .from('check_ins')
       .select('user_id, created_at')
       .in('user_id', userIds)
+      .gte('created_at', windowStart)
       .order('created_at', { ascending: false }),
     supabase
       .from('messages')
       .select('sender_id, created_at')
       .in('sender_id', userIds)
+      .gte('created_at', windowStart)
       .order('created_at', { ascending: false }),
   ])
 
@@ -114,11 +122,14 @@ export async function detectSilentUsers(): Promise<DetectionResult> {
   }>
 
   // 5. Check 48h cooldown: skip supporters who were already nudged recently.
+  // Scope to only the supporters in this batch to avoid scanning all nudges.
+  const supporterIds = Array.from(new Set(relationships.map((r) => r.supporter_id)))
   const cooldownCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString()
   const { data: recentNudges } = await supabase
     .from('notifications')
     .select('recipient_id, payload')
     .eq('type', 'silence_nudge')
+    .in('recipient_id', supporterIds)
     .gte('created_at', cooldownCutoff)
 
   const recentNudgeSet = new Set<string>()

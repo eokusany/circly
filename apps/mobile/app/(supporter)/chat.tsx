@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react'
-import { Text, StyleSheet, ScrollView, RefreshControl } from 'react-native'
+import { useCallback, useMemo, useState } from 'react'
+import { View, Text, StyleSheet, RefreshControl } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
@@ -16,7 +16,7 @@ import { spacing, type as t, layout } from '../../constants/theme'
 
 export default function SupporterChatTab() {
   const colors = useColors()
-  const { user } = useAuthStore()
+  const user = useAuthStore((s) => s.user)
   const [rows, setRows] = useState<ConversationRow[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -52,7 +52,8 @@ export default function SupporterChatTab() {
         .from('messages')
         .select('id, conversation_id, sender_id, body, created_at')
         .in('conversation_id', convoIds)
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false })
+        .limit(convoIds.length),
       otherIds.length > 0
         ? supabase
             .from('users')
@@ -74,35 +75,47 @@ export default function SupporterChatTab() {
     }, [load]),
   )
 
-  return (
-    <ScrollView
-      style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.container}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false) }}
-          tintColor={colors.accent}
-        />
-      }
-    >
-      <Text style={[styles.title, { color: colors.textPrimary }]}>messages</Text>
+  const onPressRow = useCallback(
+    (id: string) => router.push(`/(chat)/${id}`),
+    [],
+  )
 
+  const headerElement = useMemo(
+    () => (
+      <Text style={[styles.title, { color: colors.textPrimary }]}>messages</Text>
+    ),
+    [colors.textPrimary],
+  )
+
+  const refreshControl = useMemo(
+    () => (
+      <RefreshControl
+        refreshing={refreshing}
+        onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false) }}
+        tintColor={colors.accent}
+      />
+    ),
+    [refreshing, load, colors.accent],
+  )
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ConversationList
         rows={rows}
         loading={loading}
-        onPressRow={(id) => router.push(`/(chat)/${id}`)}
+        onPressRow={onPressRow}
+        header={headerElement}
+        refreshControl={refreshControl}
       />
-    </ScrollView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     padding: layout.screenPadding,
     paddingTop: layout.screenTopPadding,
-    paddingBottom: spacing.xxxl,
-    gap: layout.sectionGap,
   },
-  title: { ...t.h1 },
+  title: { ...t.h1, marginBottom: layout.sectionGap },
 })

@@ -29,19 +29,26 @@ encouragementsRouter.post(
       return
     }
 
-    // Look up the relationship and confirm the caller is the supporter on it.
-    const { data: rel, error: relErr } = await supabase
-      .from('relationships')
-      .select('id, recovery_user_id, supporter_id, status')
-      .eq('id', relationshipId)
-      .maybeSingle()
+    // Look up relationship and supporter display name in parallel.
+    const [relResult, supporterResult] = await Promise.all([
+      supabase
+        .from('relationships')
+        .select('id, recovery_user_id, supporter_id, status')
+        .eq('id', relationshipId)
+        .maybeSingle(),
+      supabase
+        .from('users')
+        .select('display_name')
+        .eq('id', req.user!.id)
+        .single(),
+    ])
 
-    if (relErr) {
+    if (relResult.error) {
       res.status(500).json({ error: 'relationship_lookup_failed' })
       return
     }
 
-    const relRow = rel as {
+    const relRow = relResult.data as {
       id: string
       recovery_user_id: string
       supporter_id: string
@@ -57,14 +64,7 @@ encouragementsRouter.post(
       return
     }
 
-    // Look up the supporter's display name for the notification payload.
-    const { data: supporter, error: supErr } = await supabase
-      .from('users')
-      .select('display_name')
-      .eq('id', req.user!.id)
-      .single()
-
-    if (supErr || !supporter) {
+    if (supporterResult.error || !supporterResult.data) {
       res.status(500).json({ error: 'user_lookup_failed' })
       return
     }
@@ -73,7 +73,7 @@ encouragementsRouter.post(
       recipient_id: relRow.recovery_user_id,
       type: 'encouragement',
       payload: {
-        from_display_name: (supporter as { display_name: string }).display_name,
+        from_display_name: (supporterResult.data as { display_name: string }).display_name,
         message,
       },
     })

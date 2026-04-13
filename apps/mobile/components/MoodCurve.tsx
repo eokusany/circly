@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { View, Text, StyleSheet, LayoutChangeEvent, Pressable } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop, Circle } from 'react-native-svg'
 import { useColors } from '../hooks/useColors'
@@ -49,38 +49,47 @@ function fillPath(points: { x: number; y: number }[], height: number): string {
   return `${curvePart} L ${lastPt.x} ${height} L ${firstPt.x} ${height} Z`
 }
 
+const CHART_HEIGHT = 100
+const PADDING_X = 20
+const PADDING_Y = 16
+
 export function MoodCurve({ entries, onEntryPress }: Props) {
   const colors = useColors()
   const [width, setWidth] = useState(0)
   const [tooltip, setTooltip] = useState<{ id: string; label: string; date: string; x: number; y: number } | null>(null)
 
   // Filter to entries with mood data, take last 14
-  const withMood = entries
-    .filter((e) => e.mood_value !== null || e.mood_tag !== null)
-    .slice(0, 14)
-    .reverse() // oldest first for left-to-right
+  const withMood = useMemo(
+    () => entries
+      .filter((e) => e.mood_value !== null || e.mood_tag !== null)
+      .slice(0, 14)
+      .reverse(),
+    [entries],
+  )
 
   if (withMood.length < 3) return null
-
-  const chartHeight = 100
-  const paddingX = 20
-  const paddingY = 16
 
   function handleLayout(e: LayoutChangeEvent) {
     setWidth(e.nativeEvent.layout.width)
   }
 
-  const usableWidth = width - paddingX * 2
-  const usableHeight = chartHeight - paddingY * 2
+  const usableWidth = width - PADDING_X * 2
+  const usableHeight = CHART_HEIGHT - PADDING_Y * 2
 
-  const points = withMood.map((entry, i) => {
-    const moodVal = entry.mood_value ?? valueFromTag(entry.mood_tag) ?? 50
-    const x = paddingX + (i / (withMood.length - 1)) * usableWidth
-    const y = paddingY + usableHeight - (moodVal / 100) * usableHeight
-    return { x, y, entry }
-  })
+  const points = useMemo(
+    () => withMood.map((entry, i) => {
+      const moodVal = entry.mood_value ?? valueFromTag(entry.mood_tag) ?? 50
+      const x = PADDING_X + (i / (withMood.length - 1)) * usableWidth
+      const y = PADDING_Y + usableHeight - (moodVal / 100) * usableHeight
+      return { x, y, entry }
+    }),
+    [withMood, usableWidth, usableHeight],
+  )
 
-  const pathPoints = points.map(({ x, y }) => ({ x, y }))
+  const pathPoints = useMemo(
+    () => points.map(({ x, y }) => ({ x, y })),
+    [points],
+  )
 
   return (
     <View
@@ -91,7 +100,7 @@ export function MoodCurve({ entries, onEntryPress }: Props) {
 
       {width > 0 && (
         <View style={styles.chartWrap}>
-          <Svg width={width - spacing.lg * 2} height={chartHeight}>
+          <Svg width={width - spacing.lg * 2} height={CHART_HEIGHT}>
             <Defs>
               <LinearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1">
                 <Stop offset="0" stopColor={colors.accent} stopOpacity="0.2" />
@@ -101,7 +110,7 @@ export function MoodCurve({ entries, onEntryPress }: Props) {
 
             {/* Gradient fill */}
             <Path
-              d={fillPath(pathPoints, chartHeight)}
+              d={fillPath(pathPoints, CHART_HEIGHT)}
               fill="url(#curveGrad)"
             />
 
