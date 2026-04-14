@@ -8,14 +8,13 @@ import { api, ApiError } from '../../lib/api'
 import { Icon } from '../../components/Icon'
 import { SkeletonCard } from '../../components/SkeletonCard'
 import { ErrorState } from '../../components/ErrorState'
-import { tapLight, tapMedium, notifyWarning, notifySuccess } from '../../lib/haptics'
+import { notifyWarning, notifySuccess } from '../../lib/haptics'
 import { spacing, radii, type, layout } from '../../constants/theme'
 import {
   MILESTONES,
   nextMilestone,
   streakDays,
   toISODate,
-  parseISODate,
   type Milestone,
 } from '../../lib/streak'
 import { useCopy } from '../../lib/copy'
@@ -587,8 +586,8 @@ function ActionTile({
 
 function CelebrationBanner() {
   const colors = useColors()
-  const scale = useRef(new Animated.Value(0.8)).current
-  const opacity = useRef(new Animated.Value(0)).current
+  const scale = useMemo(() => new Animated.Value(0.8), [])
+  const opacity = useMemo(() => new Animated.Value(0), [])
 
   useEffect(() => {
     Animated.parallel([

@@ -104,7 +104,7 @@ export default function ChatThreadScreen() {
   }, [user, id])
 
   useEffect(() => {
-    load()
+    void load() // eslint-disable-line react-hooks/set-state-in-effect -- load is a data fetcher
   }, [load])
 
   // Realtime subscription for new messages

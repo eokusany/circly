@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -43,10 +43,10 @@ export default function JournalEntryScreen() {
   const [showSaveCheck, setShowSaveCheck] = useState(false)
 
   // Animations
-  const saveScale = useRef(new Animated.Value(1)).current
-  const saveCheckOpacity = useRef(new Animated.Value(0)).current
-  const deleteShake = useRef(new Animated.Value(0)).current
-  const promptOpacity = useRef(new Animated.Value(1)).current
+  const saveScale = useMemo(() => new Animated.Value(1), [])
+  const saveCheckOpacity = useMemo(() => new Animated.Value(0), [])
+  const deleteShake = useMemo(() => new Animated.Value(0), [])
+  const promptOpacity = useMemo(() => new Animated.Value(1), [])
 
   const todayPrompt = getPromptForToday()
 
@@ -56,7 +56,7 @@ export default function JournalEntryScreen() {
       setShowSaveCheck(false)
       saveCheckOpacity.setValue(0)
       saveScale.setValue(1)
-    }, [])
+    }, [saveCheckOpacity, saveScale])
   )
 
   useEffect(() => {
@@ -246,7 +246,7 @@ export default function JournalEntryScreen() {
           >
             <View style={styles.promptHeader}>
               <Icon name="zap" size={14} color={colors.accent} />
-              <Text style={[styles.promptLabel, { color: colors.accent }]}>today's prompt</Text>
+              <Text style={[styles.promptLabel, { color: colors.accent }]}>today&apos;s prompt</Text>
               <TouchableOpacity onPress={handleDismissPrompt} hitSlop={12} style={styles.promptDismiss}>
                 <Text style={[styles.promptSkip, { color: colors.textMuted }]}>skip</Text>
               </TouchableOpacity>

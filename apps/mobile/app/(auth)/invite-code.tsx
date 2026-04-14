@@ -9,7 +9,6 @@ import {
 } from 'react-native'
 import { router } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
-import { useAuthStore } from '../../store/auth'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
 import { api, ApiError } from '../../lib/api'
@@ -17,7 +16,6 @@ import { spacing, type as t, layout } from '../../constants/theme'
 
 export default function InviteCodeScreen() {
   const colors = useColors()
-  const user = useAuthStore((s) => s.user)
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
 

@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, Animated } from 'react-native'
+import { useEffect, useMemo } from 'react'
+import { Text, StyleSheet, Animated } from 'react-native'
 import { useColors } from '../hooks/useColors'
 import { Icon } from './Icon'
 import { notifySuccess } from '../lib/haptics'
@@ -12,8 +12,8 @@ interface WarmPingToastProps {
 
 export function WarmPingToast({ senderName, onDismiss }: WarmPingToastProps) {
   const colors = useColors()
-  const opacity = useRef(new Animated.Value(0)).current
-  const translateY = useRef(new Animated.Value(-20)).current
+  const opacity = useMemo(() => new Animated.Value(0), [])
+  const translateY = useMemo(() => new Animated.Value(-20), [])
 
   useEffect(() => {
     if (!senderName) return

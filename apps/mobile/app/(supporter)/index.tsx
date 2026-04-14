@@ -7,7 +7,6 @@ import {
   Pressable,
   Modal,
   Alert,
-  ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
 } from 'react-native'

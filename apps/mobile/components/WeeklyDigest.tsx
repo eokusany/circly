@@ -63,8 +63,9 @@ export function WeeklyDigest({ entries }: Props) {
   // Only show on Monday+ (after the week has ended)
   const today = new Date().getDay()
   // getDay: 0=Sun, 1=Mon. Show Mon–Wed (days 1,2,3) to give time to see it
-  if (today === 0 || today > 3) return null
+  const isDigestDay = today >= 1 && today <= 3
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- weekId is a stable identifier for the week
   const range = useMemo(() => getLastWeekRange(), [weekId])
   const weekEntries = useMemo(
     () => entries.filter((e) => {
@@ -91,7 +92,7 @@ export function WeeklyDigest({ entries }: Props) {
     return { count, firstMood, lastMood, topMood, encouragement }
   }, [weekEntries])
 
-  if (weekEntries.length < 3 || dismissed) return null
+  if (!isDigestDay || weekEntries.length < 3 || dismissed) return null
 
   const { count, firstMood, lastMood, topMood, encouragement } = stats
 

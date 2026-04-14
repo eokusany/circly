@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { sendPushToUsers } from './pushNotifications'
 
 export interface DetectionResult {
   users_detected: number
@@ -183,6 +184,14 @@ export async function detectSilentUsers(): Promise<DetectionResult> {
 
   if (insertErr) {
     return { users_detected: silentUsers.length, nudges_sent: 0 }
+  }
+
+  // Send push notifications for each nudge
+  for (const notif of notifications) {
+    void sendPushToUsers([notif.recipient_id], {
+      type: notif.type,
+      payload: notif.payload as Record<string, unknown>,
+    })
   }
 
   return {
