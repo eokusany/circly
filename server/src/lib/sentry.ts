@@ -7,7 +7,7 @@ export function initSentry() {
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV ?? 'development',
     tracesSampleRate: 0.2,
-    sendDefaultPii: true,
+    sendDefaultPii: false,
   })
 }
 

@@ -228,7 +228,10 @@ function AnimatedEmptyState({ emptyBody }: { emptyBody: string }) {
   const bellRotation = useMemo(() => new Animated.Value(0), [])
 
   useEffect(() => {
-    const swing = Animated.sequence([
+    let timeoutId: ReturnType<typeof setTimeout>
+    let cancelled = false
+
+    const swing = () => Animated.sequence([
       Animated.timing(bellRotation, { toValue: 1, duration: 300, useNativeDriver: true }),
       Animated.timing(bellRotation, { toValue: -1, duration: 300, useNativeDriver: true }),
       Animated.timing(bellRotation, { toValue: 0.5, duration: 200, useNativeDriver: true }),
@@ -237,13 +240,19 @@ function AnimatedEmptyState({ emptyBody }: { emptyBody: string }) {
     ])
 
     const loop = () => {
-      const timeout = setTimeout(() => {
-        swing.start(() => loop())
-      }, 3000)
-      return timeout
+      swing().start(() => {
+        if (cancelled) return
+        timeoutId = setTimeout(loop, 3000)
+      })
     }
 
-    swing.start(() => loop())
+    loop()
+
+    return () => {
+      cancelled = true
+      clearTimeout(timeoutId)
+      bellRotation.stopAnimation()
+    }
   }, [bellRotation])
 
   const rotate = bellRotation.interpolate({

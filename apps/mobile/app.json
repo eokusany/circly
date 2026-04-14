@@ -15,7 +15,34 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.circly.app"
+      "bundleIdentifier": "com.circly.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Use Face ID to lock your private journal.",
+        "NSUserTrackingUsageDescription": "This identifier helps us improve the app experience."
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "35F9.1"
+            ]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -25,6 +52,13 @@
       "package": "com.circly.app",
       "edgeToEdgeEnabled": true
     },
+    "extra": {
+      "eas": {
+        "projectId": "cd6c72c6-4683-49cf-b83c-a2c983176187"
+      },
+      "privacyPolicyUrl": "https://circly.app/privacy",
+      "router": {}
+    },
     "plugins": [
       "expo-router",
       "expo-font",
@@ -33,7 +67,15 @@
         {
           "sounds": []
         }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "circly-ay",
+          "project": "circly-mobile"
+        }
       ]
-    ]
+    ],
+    "owner": "emanxoo"
   }
 }

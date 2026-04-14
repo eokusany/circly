@@ -33,7 +33,7 @@ export async function playEmergencySound(): Promise<void> {
       }
     })
   } catch (err) {
-    console.warn('emergency sound failed:', err)
+    // Best-effort: sound may fail on simulator or without audio focus
   }
 }
 

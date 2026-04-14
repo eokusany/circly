@@ -24,17 +24,6 @@ export async function scheduleOkayReminder(hour: number, minute: number): Promis
   const granted = await requestPermissions()
   if (!granted) return
 
-  // Set notification handler so it shows when app is foregrounded
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-    }),
-  })
-
   await Notifications.scheduleNotificationAsync({
     identifier: OKAY_REMINDER_ID,
     content: {
