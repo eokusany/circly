@@ -21,7 +21,7 @@ pushTokenRouter.post('/push-token', requireAuth, async (req, res) => {
     )
 
   if (error) {
-    return res.status(500).json({ error: error.message })
+    return res.status(500).json({ error: 'token_upsert_failed' })
   }
 
   return res.json({ ok: true })

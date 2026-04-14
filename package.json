@@ -19,11 +19,5 @@
     "eslint-config-prettier": "^9.1.0",
     "prettier": "^3.2.5"
   },
-  "dependencies": {
-    "@expo/vector-icons": "^15.0.3",
-    "expo-haptics": "~15.0.8",
-    "expo-local-authentication": "~17.0.8",
-    "expo-secure-store": "~15.0.8",
-    "react-native-svg": "15.12.1"
-  }
+  "dependencies": {}
 }

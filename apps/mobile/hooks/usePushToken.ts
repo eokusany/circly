@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Platform } from 'react-native'
 import * as Notifications from 'expo-notifications'
+import Constants from 'expo-constants'
 import { api } from '../lib/api'
 
 /**
@@ -25,7 +26,10 @@ export function usePushToken(userId: string | undefined) {
 
       if (finalStatus !== 'granted') return
 
-      const tokenData = await Notifications.getExpoPushTokenAsync()
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId
+      const tokenData = await Notifications.getExpoPushTokenAsync({
+        ...(projectId ? { projectId } : {}),
+      })
       const token = tokenData.data
 
       try {

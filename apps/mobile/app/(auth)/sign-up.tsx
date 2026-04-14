@@ -22,6 +22,10 @@ export default function SignUpScreen() {
       Alert.alert('missing fields', 'please fill in all fields.')
       return
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      Alert.alert('invalid email', 'please enter a valid email address.')
+      return
+    }
     if (password.length < 8) {
       Alert.alert('weak password', 'password must be at least 8 characters.')
       return
@@ -50,7 +54,7 @@ export default function SignUpScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <Image source={logo} style={styles.logoImage} resizeMode="contain" />
+        <Image source={logo} style={[styles.logoImage, { tintColor: colors.accent }]} resizeMode="contain" />
         <Text style={[styles.title, { color: colors.textPrimary }]}>create account</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           your circle starts here

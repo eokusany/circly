@@ -33,38 +33,43 @@ export default function RootLayout() {
   const initialRouteComplete = useRef(false)
 
   const loadUser = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from('users')
-      .select('id, email, display_name, role, context, profiles(sobriety_start_date)')
-      .eq('id', userId)
-      .single<{
-        id: string
-        email: string
-        display_name: string
-        role: UserRole
-        context: AppContext | null
-        profiles: { sobriety_start_date: string | null } | null
-      }>()
+    try {
+      const { data } = await supabase
+        .from('users')
+        .select('id, email, display_name, role, context, profiles(sobriety_start_date)')
+        .eq('id', userId)
+        .single<{
+          id: string
+          email: string
+          display_name: string
+          role: UserRole
+          context: AppContext | null
+          profiles: { sobriety_start_date: string | null } | null
+        }>()
 
-    if (data) {
-      const sobrietyStartDate = data.profiles?.sobriety_start_date ?? null
-      setUser({
-        id: data.id,
-        email: data.email,
-        displayName: data.display_name,
-        role: data.role,
-        context: data.context,
-        sobrietyStartDate,
-      })
-      setLoading(false)
-      if (data.role === 'recovery' && data.context === 'recovery' && !sobrietyStartDate) {
-        router.replace('/(auth)/sobriety-start')
+      if (data) {
+        const sobrietyStartDate = data.profiles?.sobriety_start_date ?? null
+        setUser({
+          id: data.id,
+          email: data.email,
+          displayName: data.display_name,
+          role: data.role,
+          context: data.context,
+          sobrietyStartDate,
+        })
+        setLoading(false)
+        if (data.role === 'recovery' && data.context === 'recovery' && !sobrietyStartDate) {
+          router.replace('/(auth)/sobriety-start')
+        } else {
+          router.replace(roleHome(data.role))
+        }
       } else {
-        router.replace(roleHome(data.role))
+        setLoading(false)
+        router.replace('/(auth)/context-select')
       }
-    } else {
+    } catch {
       setLoading(false)
-      router.replace('/(auth)/context-select')
+      router.replace('/(auth)/sign-in')
     }
   }, [setUser, setLoading])
 
@@ -88,6 +93,10 @@ export default function RootLayout() {
         setLoading(false)
         router.replace('/(auth)/sign-in')
       }
+    }).catch(() => {
+      SplashScreen.hideAsync()
+      setLoading(false)
+      router.replace('/(auth)/sign-in')
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

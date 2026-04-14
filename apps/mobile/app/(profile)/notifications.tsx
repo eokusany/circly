@@ -49,7 +49,7 @@ export default function NotificationsScreen() {
         setPrefs({ ...DEFAULT_PREFS, ...data.notification_preferences })
       } else if (error) {
         // Non-fatal — show defaults and let the user save to create the row.
-        console.warn('failed to load notification preferences:', error.message)
+        // Non-fatal: defaults will be shown, user can save to create the row
       }
       setLoading(false)
     })()

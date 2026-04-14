@@ -10,6 +10,7 @@ import { SkeletonCard } from '../../components/SkeletonCard'
 import { ErrorState } from '../../components/ErrorState'
 import { notifyWarning, notifySuccess } from '../../lib/haptics'
 import { spacing, radii, type, layout } from '../../constants/theme'
+import { useLayout } from '../../hooks/useLayout'
 import {
   MILESTONES,
   nextMilestone,
@@ -29,12 +30,14 @@ interface WeeklyStats {
 
 export default function RecoveryHome() {
   const colors = useColors()
+  const { screenTopPadding } = useLayout()
   const copy = useCopy()
   const user = useAuthStore((s) => s.user)
   const [todayStatus, setTodayStatus] = useState<CheckInStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const hasLoaded = useRef(false)
+  const lastFetchedAt = useRef(0)
   const [sendingEmergency, setSendingEmergency] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [checkInStreak, setCheckInStreak] = useState(0)
@@ -163,11 +166,13 @@ export default function RecoveryHome() {
     setOkayTapped(okayTapRes.tapped)
     setLoading(false)
     hasLoaded.current = true
+    lastFetchedAt.current = Date.now()
   }, [user])
 
   useFocusEffect(
     useCallback(() => {
-      loadDashboard()
+      const stale = Date.now() - lastFetchedAt.current > 30_000
+      if (!hasLoaded.current || stale) loadDashboard()
     }, [loadDashboard])
   )
 
@@ -193,7 +198,7 @@ export default function RecoveryHome() {
 
   if (loading && !refreshing) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: layout.screenTopPadding }]}>
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: screenTopPadding }]}>
         <SkeletonCard count={4} height={100} />
       </View>
     )
@@ -201,7 +206,7 @@ export default function RecoveryHome() {
 
   if (error) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: layout.screenTopPadding }]}>
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: screenTopPadding }]}>
         <ErrorState onRetry={loadDashboard} />
       </View>
     )
@@ -510,6 +515,8 @@ function CheckInTile({ status }: { status: CheckInStatus | null }) {
   return (
     <Pressable
       onPress={() => router.push('/(recovery)/check-in')}
+      accessibilityRole="button"
+      accessibilityLabel={checkedIn ? `Checked in today: ${meta?.label ?? ''}. Tap to edit` : 'Check in for today'}
       style={({ pressed }) => [
         styles.tile,
         {
@@ -554,6 +561,9 @@ function ActionTile({
   return (
     <Pressable
       onPress={inactive ? undefined : onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${description}`}
+      accessibilityState={{ disabled: inactive }}
       style={({ pressed }) => [
         styles.tile,
         {
