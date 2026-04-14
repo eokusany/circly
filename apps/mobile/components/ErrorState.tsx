@@ -21,7 +21,7 @@ export function ErrorState({
         <Icon name="wifi-off" size={24} color={colors.danger} />
       </View>
       <Text style={[styles.title, { color: colors.textPrimary }]}>
-        couldn't load
+        couldn&apos;t load
       </Text>
       <Text style={[styles.body, { color: colors.textSecondary }]}>
         {message}

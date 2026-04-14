@@ -143,19 +143,18 @@ function SwipeableCard({
   onDismiss: () => void
 }) {
   const colors = useColors()
-  const entryOpacity = useRef(new Animated.Value(0)).current
-  const entryY = useRef(new Animated.Value(12)).current
-  const translateX = useRef(new Animated.Value(0)).current
-  const height = useRef(new Animated.Value(1)).current
-
+  const entryOpacity = useMemo(() => new Animated.Value(0), [])
+  const entryY = useMemo(() => new Animated.Value(12), [])
+  const translateX = useMemo(() => new Animated.Value(0), [])
   useEffect(() => {
     const delay = Math.min(index * 50, 300)
     Animated.parallel([
       Animated.timing(entryOpacity, { toValue: 1, duration: 250, delay, useNativeDriver: true }),
       Animated.spring(entryY, { toValue: 0, delay, useNativeDriver: true, friction: 8 }),
     ]).start()
-  }, [])
+  }, [entryOpacity, entryY, index])
 
+  // eslint-disable-next-line react-hooks/refs -- PanResponder must be accessed during render
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) =>
@@ -211,7 +210,7 @@ function SwipeableCard({
         <Text style={[t.small, { color: colors.textMuted }]}>dismiss</Text>
       </Animated.View>
       <Animated.View
-        {...panResponder.panHandlers}
+        {...panResponder.panHandlers} // eslint-disable-line react-hooks/refs
         style={{ transform: [{ translateX }] }}
       >
         {children}
@@ -226,7 +225,7 @@ function SwipeableCard({
 
 function AnimatedEmptyState({ emptyBody }: { emptyBody: string }) {
   const colors = useColors()
-  const bellRotation = useRef(new Animated.Value(0)).current
+  const bellRotation = useMemo(() => new Animated.Value(0), [])
 
   useEffect(() => {
     const swing = Animated.sequence([
@@ -245,7 +244,7 @@ function AnimatedEmptyState({ emptyBody }: { emptyBody: string }) {
     }
 
     swing.start(() => loop())
-  }, [])
+  }, [bellRotation])
 
   const rotate = bellRotation.interpolate({
     inputRange: [-1, 1],
@@ -306,7 +305,7 @@ export function NotificationList({ emptyBody }: Props) {
       setBadge(items.filter((n) => !n.read_at).length)
     }
     setLoading(false)
-  }, [user])
+  }, [user, setBadge])
 
   useFocusEffect(
     useCallback(() => { load() }, [load]),
@@ -315,7 +314,7 @@ export function NotificationList({ emptyBody }: Props) {
   const sections = useMemo(() => groupIntoSections(notifications), [notifications])
   const hasUnread = useMemo(() => notifications.some((n) => !n.read_at), [notifications])
 
-  async function markAsRead(id: string) {
+  const markAsRead = useCallback(async (id: string) => {
     // Only decrement if this notification was actually unread
     const wasUnread = notifications.find((n) => n.id === id && !n.read_at)
     await supabase
@@ -326,7 +325,7 @@ export function NotificationList({ emptyBody }: Props) {
       prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n)),
     )
     if (wasUnread) decrementBadge()
-  }
+  }, [notifications, decrementBadge])
 
   async function markAllRead() {
     const unreadIds = notifications.filter((n) => !n.read_at).map((n) => n.id)
@@ -343,7 +342,7 @@ export function NotificationList({ emptyBody }: Props) {
     resetBadge()
   }
 
-  async function handleAction(n: NotificationItem) {
+  const handleAction = useCallback(async (n: NotificationItem) => {
     // Silence nudge → send warm ping back
     if (n.type === 'silence_nudge') {
       const forUserId = n.payload.for_user_id as string | undefined
@@ -369,7 +368,7 @@ export function NotificationList({ emptyBody }: Props) {
     if (n.type === 'message' && n.payload.conversation_id) {
       router.push(`/(chat)/${n.payload.conversation_id as string}`)
     }
-  }
+  }, [markAsRead])
 
   const renderItem = useCallback(({ item, index }: { item: NotificationItem; index: number }) => {
     const meta = TYPE_META[item.type] ?? { icon: 'bell' as IconName, label: 'notification', color: 'accent' as const }
@@ -466,7 +465,7 @@ export function NotificationList({ emptyBody }: Props) {
         </Pressable>
       </SwipeableCard>
     )
-  }, [colors, notifications])
+  }, [colors, handleAction, markAsRead])
 
   const renderSectionHeader = useCallback(({ section }: { section: Section }) => (
     <View style={styles.sectionHeader}>

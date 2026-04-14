@@ -8,10 +8,12 @@ import { useNotificationStore } from '../../store/notifications'
 import { supabase } from '../../lib/supabase'
 import { playEmergencySound } from '../../lib/sounds'
 import { notifySuccess } from '../../lib/haptics'
+import { usePushToken } from '../../hooks/usePushToken'
 
 export default function SupporterLayout() {
   const colors = useColors()
   const user = useAuthStore((s) => s.user)
+  usePushToken(user?.id)
   const unreadCount = useNotificationStore((s) => s.unreadCount)
   const setUnreadCount = useNotificationStore((s) => s.setUnreadCount)
   const increment = useNotificationStore((s) => s.increment)
@@ -58,7 +60,7 @@ export default function SupporterLayout() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user])
+  }, [user, increment, setUnreadCount])
 
   return (
     <Tabs

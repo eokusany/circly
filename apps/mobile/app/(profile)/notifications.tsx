@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
-import { router } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
 import { useColors } from '../../hooks/useColors'
@@ -139,7 +138,7 @@ export default function NotificationsScreen() {
       </SettingSection>
 
       <Text style={[styles.footnote, { color: colors.textMuted }]}>
-        push notifications will honor these choices once we add them in a future update.
+        push notifications will honor these choices when enabled on your device.
       </Text>
     </ScrollView>
   )

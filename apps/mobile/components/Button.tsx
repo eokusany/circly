@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useMemo } from 'react'
 import { Pressable, Text, StyleSheet, ActivityIndicator, Animated, ViewStyle } from 'react-native'
 import { useColors } from '../hooks/useColors'
 import { radii, spacing } from '../constants/theme'
@@ -23,7 +23,7 @@ export function Button({
   const colors = useColors()
   const isPrimary = variant === 'primary'
   const isInactive = loading || disabled
-  const scale = useRef(new Animated.Value(1)).current
+  const scale = useMemo(() => new Animated.Value(1), [])
 
   function handlePressIn() {
     Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, friction: 8 }).start()

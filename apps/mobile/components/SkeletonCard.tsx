@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import { View, Animated, StyleSheet, ViewStyle } from 'react-native'
 import { useColors } from '../hooks/useColors'
 import { radii, spacing } from '../constants/theme'
@@ -13,7 +13,7 @@ interface Props {
 
 function Shimmer({ height, style }: { height: number; style?: ViewStyle }) {
   const colors = useColors()
-  const opacity = useRef(new Animated.Value(0.4)).current
+  const opacity = useMemo(() => new Animated.Value(0.4), [])
 
   useEffect(() => {
     const loop = Animated.loop(

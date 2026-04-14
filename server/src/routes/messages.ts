@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth'
 import { messageLimiter } from '../middleware/rateLimit'
 import { supabase } from '../lib/supabase'
+import { sendPushToUsers } from '../services/pushNotifications'
 
 export const messagesRouter = Router()
 
@@ -120,6 +121,11 @@ messagesRouter.post(
         if (notifications.length > 0) {
           const { error } = await supabase.from('notifications').insert(notifications)
           if (error) console.warn('notification insert failed:', error)
+
+          void sendPushToUsers(otherIds, {
+            type: 'message',
+            payload: { from_display_name: senderName, conversation_id: conversationId },
+          })
         }
       } catch (err) {
         console.warn('notification flow failed:', err)

@@ -3,7 +3,22 @@ import { Stack, router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useColorScheme } from 'react-native'
 import * as SplashScreen from 'expo-splash-screen'
+import * as Notifications from 'expo-notifications'
+import { initSentry } from '../lib/sentry'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 import { supabase } from '../lib/supabase'
+
+initSentry()
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+})
 import { useAuthStore } from '../store/auth'
 import type { AppContext, UserRole } from '../store/auth'
 
@@ -95,10 +110,10 @@ export default function RootLayout() {
   }, [loadUser, setLoading, setUser])
 
   return (
-    <>
+    <ErrorBoundary>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }} />
-    </>
+    </ErrorBoundary>
   )
 }
 
