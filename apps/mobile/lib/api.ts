@@ -2,6 +2,10 @@ import { supabase } from './supabase'
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000'
 
+if (!__DEV__ && BASE_URL.startsWith('http://')) {
+  throw new Error('EXPO_PUBLIC_API_URL must use HTTPS in production builds')
+}
+
 export class ApiError extends Error {
   status: number
   body: unknown

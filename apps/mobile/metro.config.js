@@ -17,13 +17,12 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ]
 
-// Force a single React (19.1.0) for the entire bundle. Metro's default node_modules
-// resolution walks up from the requiring file, so react-native (in root node_modules)
-// resolves to root's react 19.2.4 while expo-router resolves to apps/mobile's 19.1.0.
-// Return the exact filePath to bypass Metro's resolution entirely.
+// Force a single React (19.1.0) for the entire bundle. The pinned version in
+// package.json creates a local copy that matches react-native's renderer.
+// Without this override, some imports resolve to root's hoisted react (19.2.4).
 const reactDir = path.resolve(projectRoot, 'node_modules/react')
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Bare 'react' import → exact path to local 19.1.0
+  // Bare 'react' import → exact path to the single hoisted copy
   if (moduleName === 'react') {
     return { type: 'sourceFile', filePath: path.join(reactDir, 'index.js') }
   }

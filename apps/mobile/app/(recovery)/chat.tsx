@@ -54,8 +54,7 @@ export default function ChatTab() {
         .from('messages')
         .select('id, conversation_id, sender_id, body, created_at')
         .in('conversation_id', convoIds)
-        .order('created_at', { ascending: false })
-        .limit(convoIds.length),
+        .order('created_at', { ascending: false }),
       otherIds.length > 0
         ? supabase
             .from('users')

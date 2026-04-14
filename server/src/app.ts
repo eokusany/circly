@@ -16,7 +16,11 @@ import { pushTokenRouter } from './routes/push-token'
 export const app = express()
 
 app.use(helmet())
-app.use(cors({ origin: process.env.CORS_ORIGIN ?? '*' }))
+const corsOrigin = process.env.CORS_ORIGIN
+if (!corsOrigin && process.env.NODE_ENV === 'production') {
+  throw new Error('CORS_ORIGIN must be set in production')
+}
+app.use(cors({ origin: corsOrigin ?? '*' }))
 app.use(express.json())
 
 app.get('/health', (_req, res) => {
