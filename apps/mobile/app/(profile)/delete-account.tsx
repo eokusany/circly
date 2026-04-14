@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native'
 import { router } from 'expo-router'
+import * as SecureStore from 'expo-secure-store'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
 import { useColors } from '../../hooks/useColors'
@@ -54,6 +55,14 @@ export default function DeleteAccountScreen() {
               Alert.alert('something went wrong', error.message)
               return
             }
+
+            // Wipe local secure-store data so nothing persists across accounts.
+            await Promise.all([
+              SecureStore.deleteItemAsync('journal_pin'),
+              SecureStore.deleteItemAsync('journal_biometric'),
+              SecureStore.deleteItemAsync('journal_cooldown_until'),
+              SecureStore.deleteItemAsync('journal_fail_count'),
+            ])
 
             // The auth row is gone. Sign out to clear the local session.
             // _layout.tsx routes to sign-in via the auth listener.
@@ -125,9 +134,9 @@ export default function DeleteAccountScreen() {
         label="delete my account"
         onPress={handleDelete}
         loading={loading}
+        color={colors.danger}
         style={{
           opacity: confirmText.trim().toLowerCase() === CONFIRM_PHRASE ? 1 : 0.4,
-          backgroundColor: colors.danger,
         }}
       />
 

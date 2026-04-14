@@ -60,6 +60,7 @@ export default function ChatThreadScreen() {
   const user = useAuthStore((s) => s.user)
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [otherName, setOtherName] = useState('')
@@ -69,36 +70,41 @@ export default function ChatThreadScreen() {
   // Load conversation info + messages
   const load = useCallback(async () => {
     if (!user || !id) return
+    setLoadError(false)
 
-    const [convoRes, msgsRes] = await Promise.all([
-      supabase
-        .from('conversations')
-        .select('participant_ids')
-        .eq('id', id)
-        .single(),
-      supabase
-        .from('messages')
-        .select('id, conversation_id, sender_id, body, created_at')
-        .eq('conversation_id', id)
-        .order('created_at', { ascending: true })
-        .limit(100),
-    ])
+    try {
+      const [convoRes, msgsRes] = await Promise.all([
+        supabase
+          .from('conversations')
+          .select('participant_ids')
+          .eq('id', id)
+          .single(),
+        supabase
+          .from('messages')
+          .select('id, conversation_id, sender_id, body, created_at')
+          .eq('conversation_id', id)
+          .order('created_at', { ascending: true })
+          .limit(100),
+      ])
 
-    if (convoRes.data) {
-      const pids = (convoRes.data as { participant_ids: string[] }).participant_ids
-      const otherId = pids.find((p) => p !== user.id)
-      if (otherId) {
-        const { data: u } = await supabase
-          .from('users')
-          .select('display_name')
-          .eq('id', otherId)
-          .single()
-        if (u) setOtherName((u as { display_name: string }).display_name)
+      if (convoRes.data) {
+        const pids = (convoRes.data as { participant_ids: string[] }).participant_ids
+        const otherId = pids.find((p) => p !== user.id)
+        if (otherId) {
+          const { data: u } = await supabase
+            .from('users')
+            .select('display_name')
+            .eq('id', otherId)
+            .single()
+          if (u) setOtherName((u as { display_name: string }).display_name)
+        }
       }
-    }
 
-    if (msgsRes.data) {
-      setMessages(msgsRes.data as Message[])
+      if (msgsRes.data) {
+        setMessages(msgsRes.data as Message[])
+      }
+    } catch {
+      setLoadError(true)
     }
     setLoading(false)
   }, [user, id])
@@ -168,7 +174,7 @@ export default function ChatThreadScreen() {
       )
       notifySuccess()
     } catch (err) {
-      console.warn('send message failed:', err)
+      // Optimistic send failed — revert
       // Remove optimistic message and restore text
       setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
       setText(body)
@@ -234,6 +240,16 @@ export default function ChatThreadScreen() {
         {loading ? (
           <View style={styles.loadingWrap}>
             <ActivityIndicator color={colors.accent} />
+          </View>
+        ) : loadError ? (
+          <View style={styles.loadingWrap}>
+            <Icon name="wifi-off" size={32} color={colors.textMuted} />
+            <Text style={[t.body, { color: colors.textMuted, textAlign: 'center', marginTop: spacing.md }]}>
+              could not load messages
+            </Text>
+            <Pressable onPress={load} style={[styles.retryBtn, { backgroundColor: colors.accent }]}>
+              <Text style={[t.bodyStrong, { color: '#fff' }]}>retry</Text>
+            </Pressable>
           </View>
         ) : (
           <FlatList
@@ -305,7 +321,8 @@ export default function ChatThreadScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+  retryBtn: { marginTop: spacing.md, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: radii.lg },
   messageList: {
     paddingHorizontal: layout.screenPadding,
     paddingTop: spacing.lg,

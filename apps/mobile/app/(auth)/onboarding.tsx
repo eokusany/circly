@@ -90,7 +90,7 @@ export default function OnboardingScreen() {
           <View style={[styles.slide, { width: SCREEN_WIDTH }]}>
             <View style={styles.slideContent}>
               {item.icon === 'logo' ? (
-                <Image source={logo} style={styles.logoImage} resizeMode="contain" />
+                <Image source={logo} style={[styles.logoImage, { tintColor: colors.accent }]} resizeMode="contain" />
               ) : (
                 <View style={[styles.iconCircle, { backgroundColor: colors.accentSoft }]}>
                   <Icon name={item.icon} size={32} color={colors.accent} />

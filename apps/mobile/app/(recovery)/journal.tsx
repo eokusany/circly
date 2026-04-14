@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
+  FlatList,
   ActivityIndicator,
   RefreshControl,
   Animated,
@@ -108,7 +108,9 @@ export default function JournalScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <ScrollView
+      <FlatList
+        data={loading ? [] : entries}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.container}
         refreshControl={
           <RefreshControl
@@ -117,61 +119,54 @@ export default function JournalScreen() {
             tintColor={colors.accent}
           />
         }
-      >
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>journal</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            a private space for your thoughts. only you can see this.
-          </Text>
-        </View>
-
-        {loading ? (
-          <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
-        ) : entries.length === 0 ? (
-          <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={[styles.emptyIcon, { backgroundColor: colors.accentSoft }]}>
-              <Icon name="book-open" size={28} color={colors.accent} />
-            </View>
-            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-              your first entry is waiting
-            </Text>
-            <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-              write whatever comes to mind. a feeling, a memory, a gratitude.
-              no one else will ever read this.
-            </Text>
-          </View>
-        ) : (
-          <Animated.View style={[styles.content, { opacity: contentOpacity }]}>
-            {/* Weekly digest */}
-            <WeeklyDigest entries={entries} />
-
-            {/* Streak calendar */}
-            <View style={styles.section}>
-              <StreakCalendar entryDates={entryDates} />
+        ListHeaderComponent={
+          <>
+            <View style={styles.header}>
+              <Text style={[styles.title, { color: colors.textPrimary }]}>journal</Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                a private space for your thoughts. only you can see this.
+              </Text>
             </View>
 
-            {/* Mood curve */}
-            <View style={styles.section}>
-              <MoodCurve
-                entries={entries}
-                onEntryPress={(id) =>
-                  router.push({ pathname: '/(recovery)/journal-entry', params: { id } })
-                }
-              />
-            </View>
-
-            {/* Entry list */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>entries</Text>
-              <View style={styles.list}>
-                {entries.map((entry, index) => (
-                  <AnimatedEntryCard key={entry.id} entry={entry} index={index} />
-                ))}
+            {loading ? (
+              <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
+            ) : entries.length === 0 ? (
+              <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={[styles.emptyIcon, { backgroundColor: colors.accentSoft }]}>
+                  <Icon name="book-open" size={28} color={colors.accent} />
+                </View>
+                <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+                  your first entry is waiting
+                </Text>
+                <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
+                  write whatever comes to mind. a feeling, a memory, a gratitude.
+                  no one else will ever read this.
+                </Text>
               </View>
-            </View>
-          </Animated.View>
+            ) : (
+              <Animated.View style={[styles.content, { opacity: contentOpacity }]}>
+                <WeeklyDigest entries={entries} />
+                <View style={styles.section}>
+                  <StreakCalendar entryDates={entryDates} />
+                </View>
+                <View style={styles.section}>
+                  <MoodCurve
+                    entries={entries}
+                    onEntryPress={(id) =>
+                      router.push({ pathname: '/(recovery)/journal-entry', params: { id } })
+                    }
+                  />
+                </View>
+                <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>entries</Text>
+              </Animated.View>
+            )}
+          </>
+        }
+        renderItem={({ item, index }) => (
+          <AnimatedEntryCard entry={item} index={Math.min(index, 10)} />
         )}
-      </ScrollView>
+        ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
+      />
 
       <Animated.View
         style={[
@@ -199,7 +194,7 @@ const AnimatedEntryCard = React.memo(function AnimatedEntryCard({ entry, index }
       slideAnim.setValue(0)
       Animated.spring(slideAnim, {
         toValue: 1,
-        delay: index * 50,
+        delay: Math.min(index, 10) * 50,
         useNativeDriver: true,
       }).start()
     }, [slideAnim, index])

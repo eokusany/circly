@@ -39,7 +39,7 @@ export default function SignInScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <Image source={logo} style={styles.logoImage} resizeMode="contain" />
+        <Image source={logo} style={[styles.logoImage, { tintColor: colors.accent }]} resizeMode="contain" />
         <Text style={[styles.title, { color: colors.textPrimary }]}>welcome back</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {"keep going, you're doing great"}

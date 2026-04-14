@@ -9,6 +9,8 @@ interface Props {
   loading?: boolean
   disabled?: boolean
   variant?: 'primary' | 'ghost'
+  /** Override the primary background color (e.g. danger red). */
+  color?: string
   style?: ViewStyle
 }
 
@@ -18,6 +20,7 @@ export function Button({
   loading = false,
   disabled = false,
   variant = 'primary',
+  color,
   style,
 }: Props) {
   const colors = useColors()
@@ -47,7 +50,7 @@ export function Button({
           styles.base,
           isPrimary
             ? {
-                backgroundColor: pressed ? colors.accentPressed : colors.accent,
+                backgroundColor: color ?? (pressed ? colors.accentPressed : colors.accent),
               }
             : {
                 backgroundColor: 'transparent',
