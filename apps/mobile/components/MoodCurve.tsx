@@ -142,7 +142,7 @@ export function MoodCurve({ entries, onEntryPress }: Props) {
             />
 
             {/* Data points */}
-            {points.map((pt, i) => (
+            {points.map((pt) => (
               <Circle
                 key={pt.entry.id}
                 cx={pt.x}

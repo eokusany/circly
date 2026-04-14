@@ -52,6 +52,7 @@ export function StreakCalendar({ entryDates, onDatePress }: Props) {
   const viewDate = useMemo(() => {
     const d = new Date(now.getFullYear(), now.getMonth() + offset, 1)
     return d
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- now is intentionally excluded
   }, [offset])
   const year = viewDate.getFullYear()
   const month = viewDate.getMonth()

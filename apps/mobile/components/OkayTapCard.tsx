@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useMemo, useEffect } from 'react'
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native'
 import { useColors } from '../hooks/useColors'
 import { Icon } from './Icon'
@@ -14,7 +14,7 @@ interface Props {
 
 export function OkayTapCard({ tapped, onTap, prompt, doneMessage }: Props) {
   const colors = useColors()
-  const scale = useRef(new Animated.Value(1)).current
+  const scale = useMemo(() => new Animated.Value(1), [])
 
   useEffect(() => {
     if (tapped) {

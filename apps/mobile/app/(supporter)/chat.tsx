@@ -12,7 +12,7 @@ import {
   type RawMessage,
   type RawParticipant,
 } from '../../lib/conversations'
-import { spacing, type as t, layout } from '../../constants/theme'
+import { type as t, layout } from '../../constants/theme'
 
 export default function SupporterChatTab() {
   const colors = useColors()

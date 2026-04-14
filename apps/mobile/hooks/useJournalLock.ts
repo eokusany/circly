@@ -16,6 +16,25 @@ export function useJournalLock() {
   const [biometricEnabled, setBiometricEnabled] = useState(false)
   const [failCount, setFailCount] = useState(0)
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null)
+  const [isCoolingDown, setIsCoolingDown] = useState(false)
+
+  // Keep isCoolingDown in sync with cooldownUntil and auto-clear when expired
+  /* eslint-disable react-hooks/set-state-in-effect -- syncs derived state from cooldownUntil */
+  useEffect(() => {
+    if (cooldownUntil === null) {
+      setIsCoolingDown(false)
+      return
+    }
+    const remaining = cooldownUntil - Date.now()
+    if (remaining <= 0) {
+      setIsCoolingDown(false)
+      return
+    }
+    setIsCoolingDown(true)
+    const timer = setTimeout(() => setIsCoolingDown(false), remaining)
+    return () => clearTimeout(timer)
+  }, [cooldownUntil])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     ;(async () => {
@@ -123,8 +142,6 @@ export function useJournalLock() {
   const lock = useCallback(() => {
     setState('locked')
   }, [])
-
-  const isCoolingDown = cooldownUntil !== null && Date.now() < cooldownUntil
 
   return {
     state,

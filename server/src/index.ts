@@ -1,4 +1,8 @@
 import 'dotenv/config'
+import { initSentry } from './lib/sentry'
+
+initSentry()
+
 import { app } from './app'
 import { detectSilentUsers } from './services/silenceDetector'
 

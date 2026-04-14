@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth'
 import { emergencyLimiter } from '../middleware/rateLimit'
 import { supabase } from '../lib/supabase'
+import { sendPushToUsers } from '../services/pushNotifications'
 
 export const emergencyRouter = Router()
 
@@ -56,6 +57,11 @@ emergencyRouter.post(
       res.status(500).json({ error: 'notification_insert_failed' })
       return
     }
+
+    void sendPushToUsers(
+      supporters.map((r) => r.supporter_id),
+      { type: 'emergency', payload: { from_display_name: userRow.display_name } },
+    )
 
     res.json({ supporters_notified: supporters.length })
   },
