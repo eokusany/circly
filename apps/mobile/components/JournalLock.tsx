@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -62,19 +62,19 @@ export function JournalLock({
     return () => clearInterval(interval)
   }, [isCoolingDown])
 
-  const lockScale = useRef(new Animated.Value(1)).current
-  const lockOpacity = useRef(new Animated.Value(1)).current
-  const contentOpacity = useRef(new Animated.Value(0)).current
-  const contentTranslate = useRef(new Animated.Value(20)).current
-  const shakeAnim = useRef(new Animated.Value(0)).current
+  const lockScale = useMemo(() => new Animated.Value(1), [])
+  const lockOpacity = useMemo(() => new Animated.Value(1), [])
+  const contentOpacity = useMemo(() => new Animated.Value(0), [])
+  const contentTranslate = useMemo(() => new Animated.Value(20), [])
+  const shakeAnim = useMemo(() => new Animated.Value(0), [])
 
   // Animate individual dots
-  const dotScales = [
-    useRef(new Animated.Value(1)).current,
-    useRef(new Animated.Value(1)).current,
-    useRef(new Animated.Value(1)).current,
-    useRef(new Animated.Value(1)).current,
-  ]
+  const dotScales = useMemo(() => [
+    new Animated.Value(1),
+    new Animated.Value(1),
+    new Animated.Value(1),
+    new Animated.Value(1),
+  ], [])
 
   const isSetup = lockState === 'setup'
 
@@ -84,6 +84,7 @@ export function JournalLock({
         if (success) playUnlockAnimation()
       })
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onBiometric/playUnlockAnimation are stable
   }, [lockState, biometricEnabled, biometricAvailable])
 
   // Pop the latest dot when pin length changes
@@ -93,7 +94,7 @@ export function JournalLock({
       scale.setValue(1.5)
       Animated.spring(scale, { toValue: 1, friction: 4, useNativeDriver: true }).start()
     }
-  }, [pin.length])
+  }, [pin.length, dotScales])
 
   function playUnlockAnimation() {
     setUnlocking(true)

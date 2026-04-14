@@ -7,7 +7,7 @@ import {
   Pressable,
   Alert,
 } from 'react-native'
-import { router, useFocusEffect, Stack } from 'expo-router'
+import { useFocusEffect, Stack } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { api } from '../../lib/api'
 import { Button } from '../../components/Button'
@@ -157,7 +157,7 @@ export default function SilenceSettingsScreen() {
             daily reminder time
           </Text>
           <Text style={[styles.hint, { color: colors.textSecondary }]}>
-            when should we remind you to tap "I'm okay"?
+            when should we remind you to tap &quot;I&apos;m okay&quot;?
           </Text>
           <View style={styles.chipRow}>
             {TIME_OPTIONS.map((time) => (
@@ -194,7 +194,7 @@ export default function SilenceSettingsScreen() {
             taking a break?
           </Text>
           <Text style={[styles.hint, { color: colors.textSecondary }]}>
-            snooze detection so your circle doesn't get nudged while you're away.
+            snooze detection so your circle doesn&apos;t get nudged while you&apos;re away.
           </Text>
           {snoozeActive ? (
             <View
@@ -209,7 +209,7 @@ export default function SilenceSettingsScreen() {
                   snoozed until {settings.snooze_until}
                 </Text>
                 <Text style={[t.small, { color: colors.textSecondary }]}>
-                  your circle won't be nudged during this time.
+                  your circle won&apos;t be nudged during this time.
                 </Text>
               </View>
               <Button

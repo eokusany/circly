@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth'
 import { encouragementLimiter } from '../middleware/rateLimit'
 import { supabase } from '../lib/supabase'
+import { sendPushToUsers } from '../services/pushNotifications'
 
 export const encouragementsRouter = Router()
 
@@ -82,6 +83,14 @@ encouragementsRouter.post(
       res.status(500).json({ error: 'notification_insert_failed' })
       return
     }
+
+    void sendPushToUsers([relRow.recovery_user_id], {
+      type: 'encouragement',
+      payload: {
+        from_display_name: (supporterResult.data as { display_name: string }).display_name,
+        message,
+      },
+    })
 
     res.json({ ok: true })
   },

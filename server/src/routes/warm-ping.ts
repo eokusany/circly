@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { requireAuth } from '../middleware/auth'
 import { supabase } from '../lib/supabase'
+import { sendPushToUsers } from '../services/pushNotifications'
 
 export const warmPingRouter = Router()
 
@@ -90,6 +91,11 @@ warmPingRouter.post('/warm-ping', requireAuth, async (req, res) => {
       from_user_id: senderId,
       from_display_name: displayName,
     },
+  })
+
+  void sendPushToUsers([recipientId], {
+    type: 'warm_ping',
+    payload: { from_display_name: displayName },
   })
 
   res.json({ ok: true })

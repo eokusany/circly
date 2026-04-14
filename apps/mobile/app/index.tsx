@@ -1,17 +1,18 @@
-import { useEffect, useRef } from 'react'
-import { View, Text, Image, Animated, StyleSheet } from 'react-native'
+import { useEffect, useMemo } from 'react'
+import { View, Image, Animated, StyleSheet } from 'react-native'
 import { useColors } from '../hooks/useColors'
 import { type as t, spacing } from '../constants/theme'
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const logo = require('../assets/logo.png')
 
 // Branded splash shown while _layout.tsx checks the session.
 // SplashScreen hides after the auth check completes and routes away.
 export default function SplashBrandScreen() {
   const colors = useColors()
-  const logoOpacity = useRef(new Animated.Value(0)).current
-  const logoScale = useRef(new Animated.Value(0.9)).current
-  const taglineOpacity = useRef(new Animated.Value(0)).current
+  const logoOpacity = useMemo(() => new Animated.Value(0), [])
+  const logoScale = useMemo(() => new Animated.Value(0.9), [])
+  const taglineOpacity = useMemo(() => new Animated.Value(0), [])
 
   useEffect(() => {
     Animated.parallel([
@@ -32,7 +33,7 @@ export default function SplashBrandScreen() {
         useNativeDriver: true,
       }).start()
     })
-  }, [])
+  }, [logoOpacity, logoScale, taglineOpacity])
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

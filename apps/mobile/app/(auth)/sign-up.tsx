@@ -5,8 +5,9 @@ import { supabase } from '../../lib/supabase'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
-import { spacing, radii, type as t } from '../../constants/theme'
+import { spacing, type as t } from '../../constants/theme'
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const logo = require('../../assets/logo.png')
 
 export default function SignUpScreen() {

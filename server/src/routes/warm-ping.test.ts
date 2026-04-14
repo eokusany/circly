@@ -36,10 +36,6 @@ interface TableMocks {
 }
 
 function wireMocks(setup: TableMocks) {
-  const notifInsert = vi.fn().mockResolvedValue({
-    error: setup.notifications_insert?.error ?? null,
-  })
-
   fromMock.mockImplementation((table: string) => {
     if (table === 'relationships') {
       const result = setup.relationships ?? { data: null, error: null }

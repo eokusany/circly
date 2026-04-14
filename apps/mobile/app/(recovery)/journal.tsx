@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   View,
   Text,
@@ -42,8 +42,8 @@ export default function JournalScreen() {
   const [refreshing, setRefreshing] = useState(false)
 
   // Animations
-  const fabAnim = useRef(new Animated.Value(0)).current
-  const contentOpacity = useRef(new Animated.Value(0)).current
+  const fabAnim = useMemo(() => new Animated.Value(0), [])
+  const contentOpacity = useMemo(() => new Animated.Value(0), [])
 
   // Re-lock journal when app goes to background
   useEffect(() => {
@@ -73,7 +73,7 @@ export default function JournalScreen() {
 
     // FAB slide up
     Animated.spring(fabAnim, { toValue: 1, useNativeDriver: true }).start()
-  }, [user])
+  }, [user, contentOpacity, fabAnim])
 
   useFocusEffect(
     useCallback(() => {
@@ -192,7 +192,7 @@ export default function JournalScreen() {
 }
 
 const AnimatedEntryCard = React.memo(function AnimatedEntryCard({ entry, index }: { entry: JournalRow; index: number }) {
-  const slideAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useMemo(() => new Animated.Value(0), [])
 
   useFocusEffect(
     useCallback(() => {
@@ -202,7 +202,7 @@ const AnimatedEntryCard = React.memo(function AnimatedEntryCard({ entry, index }
         delay: index * 50,
         useNativeDriver: true,
       }).start()
-    }, [index])
+    }, [slideAnim, index])
   )
 
   const translateY = slideAnim.interpolate({

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -12,8 +12,9 @@ import { router } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
 import { Icon, type IconName } from '../../components/Icon'
-import { spacing, radii, type as t, layout } from '../../constants/theme'
+import { spacing, type as t, layout } from '../../constants/theme'
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const logo = require('../../assets/logo.png')
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
@@ -50,7 +51,7 @@ const SLIDES: Slide[] = [
 export default function OnboardingScreen() {
   const colors = useColors()
   const [currentIndex, setCurrentIndex] = useState(0)
-  const scrollX = useRef(new Animated.Value(0)).current
+  const scrollX = useMemo(() => new Animated.Value(0), [])
   const flatListRef = useRef<FlatList>(null)
 
   const isLast = currentIndex === SLIDES.length - 1

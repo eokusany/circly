@@ -10,42 +10,6 @@ vi.mock('../lib/supabase', () => ({
 
 import { detectSilentUsers } from './silenceDetector'
 
-// Helper to build chainable Supabase query mocks.
-function listChain(data: unknown[], error: unknown = null) {
-  const chain: Record<string, unknown> = {
-    select: () => chain,
-    eq: () => chain,
-    in: () => chain,
-    or: () => chain,
-    gte: () => chain,
-    order: () => chain,
-    // Terminal: resolve
-    then: (resolve: (v: unknown) => void) => resolve({ data, error }),
-  }
-  // Make the chain thenable so await works
-  return chain
-}
-
-function insertMock(error: unknown = null) {
-  return { insert: vi.fn().mockResolvedValue({ error }) }
-}
-
-// Converts a chain-builder to a Promise-like by wrapping it
-function promisify(chain: Record<string, unknown>) {
-  return {
-    ...chain,
-    then: (resolve: (v: unknown) => void, reject?: (v: unknown) => void) => {
-      try {
-        // Walk the chain
-        return Promise.resolve({ data: (chain as { _data: unknown })._data, error: null }).then(resolve, reject)
-      } catch (err) {
-        if (reject) return reject(err)
-        throw err
-      }
-    },
-  }
-}
-
 // Simpler approach: mock fromMock to return appropriate data per table
 interface TableSetup {
   silence_settings?: unknown[]
@@ -105,7 +69,6 @@ function wireDetector(setup: TableSetup) {
 }
 
 const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-const oneDayAgo = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
 const justNow = new Date().toISOString()
 
 describe('detectSilentUsers', () => {

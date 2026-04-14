@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -25,10 +25,10 @@ export function MoodSlider({ value, onChange }: Props) {
   const trackLayoutRef = useRef({ x: 0, width: 0 })
   const [trackWidth, setTrackWidth] = useState(0)
   const lastMoodRef = useRef(moodFromValue(value).tag)
-  const labelScale = useRef(new Animated.Value(1)).current
+  const labelScale = useMemo(() => new Animated.Value(1), [])
   const trackRef = useRef<View>(null)
   const valueRef = useRef(value)
-  valueRef.current = value
+  valueRef.current = value // eslint-disable-line react-hooks/refs -- mutable ref sync
 
   function pageXToValue(pageX: number): number {
     const { x, width } = trackLayoutRef.current
@@ -50,6 +50,7 @@ export function MoodSlider({ value, onChange }: Props) {
     }
   }
 
+  /* eslint-disable react-hooks/refs -- PanResponder must be accessed during render */
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -66,6 +67,7 @@ export function MoodSlider({ value, onChange }: Props) {
       },
     }),
   ).current
+  /* eslint-enable react-hooks/refs */
 
   function handleLayout(e: LayoutChangeEvent) {
     const { width } = e.nativeEvent.layout
@@ -89,6 +91,7 @@ export function MoodSlider({ value, onChange }: Props) {
         ref={trackRef}
         style={styles.trackWrap}
         onLayout={handleLayout}
+        // eslint-disable-next-line react-hooks/refs
         {...panResponder.panHandlers}
       >
         {/* Track background */}
