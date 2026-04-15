@@ -10,7 +10,8 @@
     "server": "npm --workspace server dev",
     "lint": "npm --workspace apps/mobile run lint && npm --workspace server run lint",
     "typecheck": "npm --workspace apps/mobile run typecheck && npm --workspace server run typecheck",
-    "test": "npm --workspace server run test"
+    "test": "npm --workspace server run test",
+    "seed:demo": "npx tsx scripts/seed-demo.ts"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",

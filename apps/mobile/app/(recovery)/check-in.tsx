@@ -19,6 +19,7 @@ import { supabase } from '../../lib/supabase'
 import { toISODate, parseISODate } from '../../lib/streak'
 import { tapLight, tapMedium } from '../../lib/haptics'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
+import { useCopy } from '../../lib/copy'
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
@@ -29,15 +30,16 @@ interface CheckInRow {
   check_in_date: string
 }
 
-const OPTIONS: { value: CheckInStatus; icon: IconName; label: string; description: string }[] = [
-  { value: 'good_day', icon: 'sun', label: 'good day', description: 'feeling strong and steady' },
-  { value: 'sober', icon: 'anchor', label: 'sober', description: 'getting through, one moment at a time' },
-  { value: 'struggling', icon: 'cloud', label: 'struggling', description: 'it\'s a hard one, you showed up' },
-]
+const STATUS_ORDER: CheckInStatus[] = ['good_day', 'sober', 'struggling']
 
 export default function CheckInScreen() {
   const colors = useColors()
   const user = useAuthStore((s) => s.user)
+  const copy = useCopy()
+  const options = STATUS_ORDER.map((value) => ({
+    value,
+    ...copy.dashboard.checkInStatuses[value],
+  }))
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<CheckInStatus | null>(null)
@@ -129,7 +131,7 @@ export default function CheckInScreen() {
       </View>
 
       <View style={styles.options}>
-        {OPTIONS.map((opt) => {
+        {options.map((opt) => {
           const isSelected = status === opt.value
           return (
             <TouchableOpacity
@@ -205,7 +207,8 @@ export default function CheckInScreen() {
 
 function HistoryItem({ row }: { row: CheckInRow }) {
   const colors = useColors()
-  const opt = OPTIONS.find((o) => o.value === row.status)
+  const copy = useCopy()
+  const statusCopy = copy.dashboard.checkInStatuses[row.status]
   return (
     <View
       style={[
@@ -214,7 +217,7 @@ function HistoryItem({ row }: { row: CheckInRow }) {
       ]}
     >
       <View style={[styles.historyIcon, { backgroundColor: colors.surfaceRaised }]}>
-        <Icon name={opt?.icon ?? 'circle'} size={16} color={colors.textSecondary} />
+        <Icon name={statusCopy?.icon ?? 'circle'} size={16} color={colors.textSecondary} />
       </View>
       <View style={styles.historyBody}>
         <Text style={[styles.historyDate, { color: colors.textPrimary }]}>
@@ -226,7 +229,7 @@ function HistoryItem({ row }: { row: CheckInRow }) {
           </Text>
         ) : (
           <Text style={[styles.historyNote, { color: colors.textSecondary }]}>
-            {opt?.label ?? row.status}
+            {statusCopy?.label ?? row.status}
           </Text>
         )}
       </View>
