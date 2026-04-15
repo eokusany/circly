@@ -495,7 +495,7 @@ export function NotificationList({ emptyBody }: Props) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>notifications</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>alerts</Text>
         </View>
         <View style={styles.skeletonWrap}>
           <SkeletonCard count={4} height={80} />
@@ -507,7 +507,7 @@ export function NotificationList({ emptyBody }: Props) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>notifications</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>alerts</Text>
         {hasUnread && (
           <Pressable
             onPress={markAllRead}

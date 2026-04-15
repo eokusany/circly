@@ -46,7 +46,7 @@ export interface ContextCopy {
     streakLabel: string // e.g. "sober for" / "connected for"
     checkInStatuses: Record<
       'good_day' | 'sober' | 'struggling',
-      { icon: IconName; label: string }
+      { icon: IconName; label: string; description: string }
     >
     checkInPrompt: string // e.g. "how are you today?"
     journalLabel: string
@@ -94,9 +94,9 @@ const recovery: ContextCopy = {
   dashboard: {
     streakLabel: 'sober for',
     checkInStatuses: {
-      good_day: { icon: 'sun', label: 'good day' },
-      sober: { icon: 'anchor', label: 'sober' },
-      struggling: { icon: 'cloud', label: 'struggling' },
+      good_day: { icon: 'sun', label: 'good day', description: 'feeling strong and steady' },
+      sober: { icon: 'anchor', label: 'sober', description: 'getting through, one moment at a time' },
+      struggling: { icon: 'cloud', label: 'struggling', description: "it's a hard one, you showed up" },
     },
     checkInPrompt: 'how are you today?',
     journalLabel: 'journal',
@@ -142,9 +142,9 @@ const family: ContextCopy = {
   dashboard: {
     streakLabel: 'connected for',
     checkInStatuses: {
-      good_day: { icon: 'sun', label: 'great day' },
-      sober: { icon: 'heart', label: 'feeling well' },
-      struggling: { icon: 'cloud-rain', label: 'need some help' },
+      good_day: { icon: 'sun', label: 'great day', description: 'feeling strong and steady' },
+      sober: { icon: 'heart', label: 'feeling well', description: 'present and showing up' },
+      struggling: { icon: 'cloud-rain', label: 'need some help', description: "it's a hard one, you showed up" },
     },
     checkInPrompt: 'how are you today?',
     journalLabel: 'reflections',

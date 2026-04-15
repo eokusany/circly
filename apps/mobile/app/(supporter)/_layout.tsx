@@ -50,7 +50,7 @@ export default function SupporterLayout() {
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'notifications',
+          title: 'alerts',
           tabBarIcon: ({ color, size }) => <Icon name="bell" size={size} color={color} />,
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           tabBarBadgeStyle: { backgroundColor: colors.danger, fontSize: 10 },
