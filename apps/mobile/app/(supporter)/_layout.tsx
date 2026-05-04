@@ -42,13 +42,6 @@ export default function SupporterLayout() {
         }}
       />
       <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'messages',
-          tabBarIcon: ({ color, size }) => <Icon name="message-circle" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="notifications"
         options={{
           title: 'alerts',
@@ -58,13 +51,15 @@ export default function SupporterLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="invite"
         options={{
-          title: 'profile',
-          tabBarIcon: ({ color, size }) => <Icon name="user" size={size} color={color} />,
+          title: 'add',
+          tabBarIcon: ({ color, size }) => <Icon name="user-plus" size={size} color={color} />,
         }}
       />
-      <Tabs.Screen name="invite" options={{ href: null }} />
+      {/* Hidden routes */}
+      <Tabs.Screen name="chat" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   )
 }
