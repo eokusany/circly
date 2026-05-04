@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { View, Text, StyleSheet, ScrollView, Alert, RefreshControl, Animated } from 'react-native'
+import { View, Text, StyleSheet, Alert, RefreshControl, Animated } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
@@ -26,6 +26,7 @@ import {
 import { useCopy } from '../../lib/copy'
 import { OkayTapCard } from '../../components/OkayTapCard'
 import { AppHeader } from '../../components/AppHeader'
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView'
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
@@ -246,7 +247,7 @@ export default function RecoveryHome() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
@@ -335,7 +336,7 @@ export default function RecoveryHome() {
         />
       </View>
 
-    </ScrollView>
+    </KeyboardAwareScrollView>
   )
 }
 
