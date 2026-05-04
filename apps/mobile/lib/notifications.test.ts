@@ -71,3 +71,34 @@ describe('registerDailyCheckinCategory', () => {
     ])
   })
 })
+
+import { fireCheckinConfirmation } from './notifications'
+
+describe('fireCheckinConfirmation', () => {
+  beforeEach(() => {
+    mockSchedule.mockClear()
+  })
+
+  it('fires the good_day confirmation as non-tappable', async () => {
+    await fireCheckinConfirmation('good_day')
+    const arg = mockSchedule.mock.calls[0][0]
+    expect(arg.identifier).toBe('okay-tap-confirm')
+    expect(arg.content.body).toBe('logged. have a good one. ✓')
+    expect(arg.content.data).toEqual({})
+    expect(arg.trigger).toBeNull()
+  })
+
+  it('fires the sober confirmation as non-tappable', async () => {
+    await fireCheckinConfirmation('sober')
+    const arg = mockSchedule.mock.calls[0][0]
+    expect(arg.content.body).toBe('logged. one foot in front of the other. ✓')
+    expect(arg.content.data).toEqual({})
+  })
+
+  it('fires the struggling confirmation with a deep-link payload', async () => {
+    await fireCheckinConfirmation('struggling')
+    const arg = mockSchedule.mock.calls[0][0]
+    expect(arg.content.body).toBe('logged. your circle has been notified. tap to talk →')
+    expect(arg.content.data).toEqual({ tapRoute: '/(recovery)/chat' })
+  })
+})

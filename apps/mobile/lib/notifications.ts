@@ -75,3 +75,21 @@ export async function registerDailyCheckinCategory(): Promise<void> {
     },
   ])
 }
+
+import { confirmationFor, type CheckInStatus } from './notificationActions'
+
+const CONFIRM_ID = 'okay-tap-confirm'
+
+export async function fireCheckinConfirmation(status: CheckInStatus): Promise<void> {
+  const copy = confirmationFor(status)
+  await Notifications.scheduleNotificationAsync({
+    identifier: CONFIRM_ID,
+    content: {
+      title: 'circly',
+      body: copy.body,
+      data: copy.tapRoute ? { tapRoute: copy.tapRoute } : {},
+      ...(Platform.OS === 'android' && { channelId: 'default' }),
+    },
+    trigger: null,
+  })
+}
