@@ -29,7 +29,7 @@ The spec mentions "store/auth.ts or wherever the in-app check-in upsert lives" �
 ## File Structure
 
 **New files:**
-- `supabase/migrations/014_check_ins_source.sql` — migration adding the `source` column
+- `supabase/migrations/015_check_ins_source.sql` — migration adding the `source` column
 - `apps/mobile/lib/notificationActions.ts` — pure mapping helpers + the queue + the response handler (testable in isolation)
 - `apps/mobile/lib/notificationActions.test.ts` — unit tests for the above
 
@@ -47,14 +47,14 @@ The spec mentions "store/auth.ts or wherever the in-app check-in upsert lives" �
 ### Task 1: Migration — add `source` column to `check_ins`
 
 **Files:**
-- Create: `supabase/migrations/014_check_ins_source.sql`
+- Create: `supabase/migrations/015_check_ins_source.sql`
 
 - [ ] **Step 1: Write the migration SQL**
 
-Create `supabase/migrations/014_check_ins_source.sql` with:
+Create `supabase/migrations/015_check_ins_source.sql` with:
 
 ```sql
--- 014: notification check-in source
+-- 015: notification check-in source
 -- Adds a `source` column to check_ins so we can distinguish notification-driven
 -- entries from in-app submissions. Backfills existing rows to 'in_app'.
 
@@ -68,7 +68,7 @@ alter table public.check_ins
 Run (from repo root, against your local Supabase):
 
 ```bash
-psql "$SUPABASE_DB_URL" -f supabase/migrations/014_check_ins_source.sql
+psql "$SUPABASE_DB_URL" -f supabase/migrations/015_check_ins_source.sql
 ```
 
 Expected: `ALTER TABLE` with no errors.
@@ -94,7 +94,7 @@ Expected: ERROR mentioning the check constraint. (The user_id FK will also fail;
 - [ ] **Step 4: Commit**
 
 ```bash
-git add supabase/migrations/014_check_ins_source.sql
+git add supabase/migrations/015_check_ins_source.sql
 git commit -m "add source column to check_ins for notification-driven entries"
 ```
 

@@ -31,7 +31,7 @@ The spec references `AppHeader.tsx`, `CheckInActivityCard`, `SilenceAlertCard`, 
 
 **New files (with sibling tests where applicable):**
 
-- `supabase/migrations/014_avatars_storage.sql` — creates the `avatars` storage bucket and RLS
+- `supabase/migrations/017_avatars_storage.sql` — creates the `avatars` storage bucket and RLS
 - `apps/mobile/lib/alerts.ts` — pure helpers (`partitionByRead`, `groupRepeats`, `colorForUserId`, `formatTimeAgo`)
 - `apps/mobile/lib/alerts.test.ts` — unit tests
 - `apps/mobile/components/Avatar.tsx` — image-or-initials avatar
@@ -59,11 +59,11 @@ The spec references `AppHeader.tsx`, `CheckInActivityCard`, `SilenceAlertCard`, 
 ### Task 1: Migration — `avatars` storage bucket and RLS
 
 **Files:**
-- Create: `supabase/migrations/014_avatars_storage.sql`
+- Create: `supabase/migrations/017_avatars_storage.sql`
 
 - [ ] **Step 1: Write the migration SQL**
 
-Create `supabase/migrations/014_avatars_storage.sql` with exactly:
+Create `supabase/migrations/017_avatars_storage.sql` with exactly:
 
 ```sql
 -- 014: avatars storage bucket
@@ -113,7 +113,7 @@ create policy "avatars: owner delete"
 Run (from repo root):
 
 ```bash
-psql "$SUPABASE_DB_URL" -f supabase/migrations/014_avatars_storage.sql
+psql "$SUPABASE_DB_URL" -f supabase/migrations/017_avatars_storage.sql
 ```
 
 Expected: `INSERT 0 1` (or `INSERT 0 0` if the bucket already exists), then four `CREATE POLICY` lines, no errors.
@@ -131,7 +131,7 @@ Expected output contains a row with `id = avatars` and `public = t`.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add supabase/migrations/014_avatars_storage.sql
+git add supabase/migrations/017_avatars_storage.sql
 git commit -m "add avatars storage bucket and owner-scoped rls"
 ```
 
