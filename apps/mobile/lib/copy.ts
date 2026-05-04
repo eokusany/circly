@@ -1,8 +1,8 @@
 // Context-aware copy map.
 //
 // Circly supports multiple care contexts from a single codebase. The data model
-// and component tree stay the same across contexts — only the user-facing text
-// adapts. Every piece of copy that differs between "recovery" and "family" (or
+// and component tree stay the same across contexts. Only the user-facing text
+// adapts. Every piece of copy that differs between "recovery" and "life" (or
 // any future context) lives here.
 //
 // Rules:
@@ -10,13 +10,13 @@
 // - Adding a new context = adding a new entry in COPY. No component changes.
 // - The two DB roles (recovery, supporter) are shared across all contexts,
 //   but each context may relabel them. `roles` lists which ones show up in
-//   role-select and in what display order.
+//   account-select-style flows and in what display order.
 
 import { useAuthStore } from '../store/auth'
 import type { UserRole } from '../store/auth'
 import type { IconName } from '../components/Icon'
 
-export type AppContext = 'recovery' | 'family'
+export type AppContext = 'recovery' | 'life'
 
 export interface RoleCopy {
   label: string
@@ -25,23 +25,11 @@ export interface RoleCopy {
 }
 
 export interface ContextCopy {
-  // Context card on context-select screen
-  contextCard: {
-    label: string
-    description: string
-    icon: IconName
-  }
-
-  // Role select header + role cards
-  roleSelect: {
-    title: string
-    subtitle: string
-  }
   roles: UserRole[]
   roleCopy: Record<UserRole, RoleCopy>
 
   // Recovery-user-equivalent dashboard labels
-  // ("recovery" in DB = "person at the center" in family context)
+  // ("recovery" in DB = "person at the center" in life context)
   dashboard: {
     streakLabel: string // e.g. "sober for" / "connected for"
     checkInStatuses: Record<
@@ -51,7 +39,7 @@ export interface ContextCopy {
     checkInPrompt: string // e.g. "how are you today?"
     journalLabel: string
     journalDescription: string
-    getSupportLabel: string // always "get support" — kept here for symmetry
+    getSupportLabel: string // always "get support". kept here for symmetry
     getSupportDescription: string
     okayTapPrompt: string
     okayTapDone: string
@@ -63,19 +51,9 @@ export interface ContextCopy {
   signUpSubtitle: string
 }
 
-// ── recovery context ─────────────────────────────────────────────────────
+// recovery context
 
 const recovery: ContextCopy = {
-  contextCard: {
-    label: 'recovery journey',
-    description:
-      'track your sobriety, check in daily, and stay connected with your support network',
-    icon: 'sunrise',
-  },
-  roleSelect: {
-    title: 'who are you here as?',
-    subtitle: 'this shapes your experience. you can only choose once.',
-  },
   roles: ['recovery', 'supporter'],
   roleCopy: {
     recovery: {
@@ -111,19 +89,9 @@ const recovery: ContextCopy = {
   signUpSubtitle: 'your circle starts here',
 }
 
-// ── family context ───────────────────────────────────────────────────────
+// life context
 
-const family: ContextCopy = {
-  contextCard: {
-    label: 'staying close',
-    description:
-      'stay connected with someone you love. check in, share moments, be present.',
-    icon: 'heart',
-  },
-  roleSelect: {
-    title: 'who are you here as?',
-    subtitle: 'this shapes your experience. you can only choose once.',
-  },
+const life: ContextCopy = {
   roles: ['recovery', 'supporter'],
   roleCopy: {
     recovery: {
@@ -159,18 +127,18 @@ const family: ContextCopy = {
   signUpSubtitle: 'your circle starts here',
 }
 
-// ── public API ───────────────────────────────────────────────────────────
+// public API
 
 export const COPY: Record<AppContext, ContextCopy> = {
   recovery,
-  family,
+  life,
 }
 
 export const DEFAULT_CONTEXT: AppContext = 'recovery'
 
 /**
  * Returns the copy block for the current user's context. Safe to call before
- * the user has picked a context — falls back to the default so screens that
+ * the user has picked a context. Falls back to the default so screens that
  * render during onboarding still have labels to show.
  */
 export function useCopy(): ContextCopy {
