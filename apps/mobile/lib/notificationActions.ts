@@ -37,3 +37,34 @@ const CONFIRMATIONS: Record<CheckInStatus, ConfirmationCopy> = {
 export function confirmationFor(status: CheckInStatus): ConfirmationCopy {
   return CONFIRMATIONS[status]
 }
+
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+export const PENDING_QUEUE_KEY = 'pending_notification_checkins'
+
+export interface PendingCheckIn {
+  userId: string
+  status: CheckInStatus
+  checkInDate: string
+}
+
+export async function readPending(): Promise<PendingCheckIn[]> {
+  const raw = await AsyncStorage.getItem(PENDING_QUEUE_KEY)
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? (parsed as PendingCheckIn[]) : []
+  } catch {
+    return []
+  }
+}
+
+export async function enqueuePending(entry: PendingCheckIn): Promise<void> {
+  const current = await readPending()
+  current.push(entry)
+  await AsyncStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(current))
+}
+
+export async function clearPending(): Promise<void> {
+  await AsyncStorage.removeItem(PENDING_QUEUE_KEY)
+}
