@@ -95,6 +95,7 @@ export default function AccountSelectScreen() {
       id: authUser.id,
       email: authUser.email!,
       displayName,
+      avatarUrl: null,
       role: choice.role,
       context: choice.context,
       sobrietyStartDate: null,
