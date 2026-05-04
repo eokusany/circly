@@ -1,11 +1,16 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { Stack, router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { useColorScheme } from 'react-native'
+import { useColorScheme, AppState, type AppStateStatus } from 'react-native'
 import * as SplashScreen from 'expo-splash-screen'
 import * as SystemUI from 'expo-system-ui'
 import * as Notifications from 'expo-notifications'
 import { initSentry } from '../lib/sentry'
+import {
+  registerDailyCheckinCategory,
+  setupNotificationResponseListener,
+  flushPendingNotificationCheckins,
+} from '../lib/notifications'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { supabase } from '../lib/supabase'
 import { Colors } from '../constants/colors'
@@ -125,6 +130,24 @@ export default function RootLayout() {
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(themeBg)
   }, [themeBg])
+
+  useEffect(() => {
+    void registerDailyCheckinCategory()
+    const listener = setupNotificationResponseListener()
+    void flushPendingNotificationCheckins()
+
+    const onChange = (state: AppStateStatus) => {
+      if (state === 'active') {
+        void flushPendingNotificationCheckins()
+      }
+    }
+    const sub = AppState.addEventListener('change', onChange)
+
+    return () => {
+      listener.remove()
+      sub.remove()
+    }
+  }, [])
 
   return (
     <ErrorBoundary>
