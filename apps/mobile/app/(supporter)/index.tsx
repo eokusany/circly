@@ -9,6 +9,8 @@ import {
   Alert,
   TouchableOpacity,
   RefreshControl,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
@@ -665,6 +667,10 @@ function EncouragementSheet({
       onRequestClose={onClose}
     >
       <Pressable style={styles.sheetBackdrop} onPress={onClose}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.sheetKeyboardWrap}
+        >
         <Pressable
           style={[
             styles.sheet,
@@ -721,6 +727,7 @@ function EncouragementSheet({
             <Text style={{ color: colors.textSecondary }}>cancel</Text>
           </TouchableOpacity>
         </Pressable>
+        </KeyboardAvoidingView>
       </Pressable>
     </Modal>
   )
@@ -828,6 +835,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
+  },
+  sheetKeyboardWrap: {
+    width: '100%',
   },
   sheet: {
     borderTopLeftRadius: radii.xl,

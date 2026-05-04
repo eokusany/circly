@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, TextInput as RNTextInput } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput as RNTextInput, useColorScheme } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView'
 import { toISODate, parseISODate } from '../../lib/streak'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
 
@@ -84,10 +85,9 @@ export default function SobrietyStartScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>when did you start?</Text>
@@ -147,7 +147,7 @@ export default function SobrietyStartScreen() {
       </TouchableOpacity>
 
       <Button label="continue" onPress={handleContinue} loading={loading} />
-    </ScrollView>
+    </KeyboardAwareScrollView>
   )
 }
 
@@ -163,6 +163,7 @@ function DateField({
   maxLength: number
 }) {
   const colors = useColors()
+  const scheme = useColorScheme() ?? 'light'
   return (
     <View style={styles.dateField}>
       <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>{label}</Text>
@@ -170,6 +171,7 @@ function DateField({
         value={value}
         onChangeText={(t) => onChangeText(t.replace(/[^0-9]/g, ''))}
         keyboardType="number-pad"
+        keyboardAppearance={scheme === 'dark' ? 'dark' : 'light'}
         maxLength={maxLength}
         style={[
           styles.dateInput,

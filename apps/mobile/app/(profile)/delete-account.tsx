@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
 import { router } from 'expo-router'
 import * as SecureStore from 'expo-secure-store'
 import { supabase } from '../../lib/supabase'
@@ -8,6 +8,7 @@ import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
 import { BackButton } from '../../components/BackButton'
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView'
 import { spacing, type as t, layout } from '../../constants/theme'
 
 const CONFIRM_PHRASE = 'delete'
@@ -76,10 +77,9 @@ export default function DeleteAccountScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
         <BackButton />
@@ -143,7 +143,7 @@ export default function DeleteAccountScreen() {
       <TouchableOpacity onPress={() => router.back()} style={styles.cancelWrap}>
         <Text style={[styles.cancel, { color: colors.accent }]}>nevermind, take me back</Text>
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   )
 }
 

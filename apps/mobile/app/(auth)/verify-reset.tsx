@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView'
 
 export default function VerifyResetScreen() {
   const colors = useColors()
@@ -61,10 +62,9 @@ export default function VerifyResetScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
         <Text style={[styles.logo, { color: colors.accent }]}>circly</Text>
@@ -104,7 +104,7 @@ export default function VerifyResetScreen() {
           <Text style={{ color: colors.accent, fontWeight: '600' }}>back to sign in</Text>
         </Text>
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   )
 }
 

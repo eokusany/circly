@@ -4,17 +4,18 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   TextInput as RNTextInput,
   Alert,
   ActivityIndicator,
+  useColorScheme,
 } from 'react-native'
 import { router } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { Button } from '../../components/Button'
 import { BackButton } from '../../components/BackButton'
-import { Icon, type IconName } from '../../components/Icon'
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView'
+import { Icon } from '../../components/Icon'
 import { supabase } from '../../lib/supabase'
 import { toISODate, parseISODate } from '../../lib/streak'
 import { tapLight, tapMedium } from '../../lib/haptics'
@@ -34,6 +35,7 @@ const STATUS_ORDER: CheckInStatus[] = ['good_day', 'sober', 'struggling']
 
 export default function CheckInScreen() {
   const colors = useColors()
+  const scheme = useColorScheme() ?? 'light'
   const user = useAuthStore((s) => s.user)
   const copy = useCopy()
   const options = STATUS_ORDER.map((value) => ({
@@ -111,10 +113,9 @@ export default function CheckInScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
         <BackButton />
@@ -173,6 +174,7 @@ export default function CheckInScreen() {
           placeholder="anything on your mind?"
           placeholderTextColor={colors.textMuted}
           multiline
+          keyboardAppearance={scheme === 'dark' ? 'dark' : 'light'}
           style={[
             styles.noteInput,
             {
@@ -201,7 +203,7 @@ export default function CheckInScreen() {
           </View>
         </View>
       )}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   )
 }
 

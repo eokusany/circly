@@ -3,10 +3,12 @@ import { Stack, router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useColorScheme } from 'react-native'
 import * as SplashScreen from 'expo-splash-screen'
+import * as SystemUI from 'expo-system-ui'
 import * as Notifications from 'expo-notifications'
 import { initSentry } from '../lib/sentry'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { supabase } from '../lib/supabase'
+import { Colors } from '../constants/colors'
 
 initSentry()
 
@@ -118,10 +120,21 @@ export default function RootLayout() {
     return () => subscription.unsubscribe()
   }, [loadUser, setLoading, setUser])
 
+  const themeBg = Colors[scheme ?? 'light'].background
+
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(themeBg)
+  }, [themeBg])
+
   return (
     <ErrorBoundary>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: themeBg },
+        }}
+      />
     </ErrorBoundary>
   )
 }

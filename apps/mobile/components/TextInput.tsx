@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TextInput as RNTextInput, View, Text, StyleSheet } from 'react-native'
+import { TextInput as RNTextInput, View, Text, StyleSheet, useColorScheme } from 'react-native'
 import { useColors } from '../hooks/useColors'
 import { radii, spacing, type as t } from '../constants/theme'
 
@@ -35,6 +35,7 @@ export function TextInput({
   numberOfLines,
 }: Props) {
   const colors = useColors()
+  const scheme = useColorScheme() ?? 'light'
   const [focused, setFocused] = useState(false)
 
   const borderColor = error
@@ -73,6 +74,7 @@ export function TextInput({
         maxLength={maxLength}
         multiline={multiline}
         numberOfLines={numberOfLines}
+        keyboardAppearance={scheme === 'dark' ? 'dark' : 'light'}
         accessibilityLabel={label}
       />
       {error ? (

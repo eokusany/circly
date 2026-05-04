@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  useColorScheme,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Stack, useLocalSearchParams, router } from 'expo-router'
@@ -56,6 +57,7 @@ function formatTime(iso: string): string {
 
 export default function ChatThreadScreen() {
   const colors = useColors()
+  const scheme = useColorScheme() ?? 'light'
   const { id } = useLocalSearchParams<{ id: string }>()
   const user = useAuthStore((s) => s.user)
   const [messages, setMessages] = useState<Message[]>([])
@@ -66,6 +68,8 @@ export default function ChatThreadScreen() {
   const [otherName, setOtherName] = useState('')
   const flatListRef = useRef<FlatList>(null)
   const insets = useSafeAreaInsets()
+  // iOS Stack header (44pt nav bar) + safe area top — match keyboard offset to header
+  const headerHeight = insets.top + 44
 
   // Load conversation info + messages
   const load = useCallback(async () => {
@@ -235,7 +239,7 @@ export default function ChatThreadScreen() {
       <KeyboardAvoidingView
         style={[styles.container, { backgroundColor: colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
       >
         {loading ? (
           <View style={styles.loadingWrap}>
@@ -275,14 +279,13 @@ export default function ChatThreadScreen() {
           />
         )}
 
-        <View style={[styles.inputBar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+        <View style={[styles.inputBar, { backgroundColor: colors.background, paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
           <TextInput
             style={[
               styles.input,
               {
-                backgroundColor: colors.background,
+                backgroundColor: colors.surfaceRaised,
                 color: colors.textPrimary,
-                borderColor: colors.border,
               },
             ]}
             value={text}
@@ -295,6 +298,7 @@ export default function ChatThreadScreen() {
             returnKeyType="send"
             blurOnSubmit={false}
             onSubmitEditing={send}
+            keyboardAppearance={scheme === 'dark' ? 'dark' : 'light'}
           />
           <Pressable
             onPress={send}
@@ -356,13 +360,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderTopWidth: 1,
     gap: spacing.sm,
   },
   input: {
     flex: 1,
     borderRadius: radii.lg,
-    borderWidth: 1,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     maxHeight: 100,

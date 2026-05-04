@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Alert,
   Share,
   Pressable,
@@ -16,6 +15,7 @@ import { api, ApiError } from '../../lib/api'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
 import { BackButton } from '../../components/BackButton'
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView'
 import { Icon } from '../../components/Icon'
 import { spacing, radii, type, layout } from '../../constants/theme'
 
@@ -154,7 +154,7 @@ export default function RecoverySettings() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView
+      <KeyboardAwareScrollView
         style={{ backgroundColor: colors.background }}
         contentContainerStyle={styles.container}
       >
@@ -281,7 +281,7 @@ export default function RecoverySettings() {
           </Pressable>
         </View>
 
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </>
   )
 }

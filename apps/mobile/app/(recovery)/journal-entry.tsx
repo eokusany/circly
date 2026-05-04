@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   TextInput as RNTextInput,
   Alert,
   ActivityIndicator,
   Animated,
+  useColorScheme,
 } from 'react-native'
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
@@ -16,6 +16,7 @@ import { useAuthStore } from '../../store/auth'
 import { useTimeOfDay, getTimeTint } from '../../hooks/useTimeOfDay'
 import { Button } from '../../components/Button'
 import { BackButton } from '../../components/BackButton'
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView'
 import { Icon } from '../../components/Icon'
 import { MoodSlider } from '../../components/MoodSlider'
 import { supabase } from '../../lib/supabase'
@@ -26,6 +27,7 @@ import { spacing, radii, type as t, layout } from '../../constants/theme'
 
 export default function JournalEntryScreen() {
   const colors = useColors()
+  const scheme = useColorScheme() ?? 'light'
   const user = useAuthStore((s) => s.user)
   const params = useLocalSearchParams<{ id?: string }>()
   const editingId = params.id ?? null
@@ -209,10 +211,9 @@ export default function JournalEntryScreen() {
 
   return (
     <Animated.View style={[{ flex: 1 }, { transform: [{ scale: saveScale }] }]}>
-      <ScrollView
+      <KeyboardAwareScrollView
         style={[{ backgroundColor: colors.background }]}
         contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
       >
         {/* Time-of-day tint overlay */}
         {timeTint !== 'rgba(0, 0, 0, 0)' && (
@@ -267,6 +268,7 @@ export default function JournalEntryScreen() {
           placeholderTextColor={colors.textMuted}
           multiline
           autoFocus={!editingId}
+          keyboardAppearance={scheme === 'dark' ? 'dark' : 'light'}
           style={[
             styles.bodyInput,
             {
@@ -311,7 +313,7 @@ export default function JournalEntryScreen() {
             </TouchableOpacity>
           </Animated.View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Save success overlay — only rendered after save succeeds */}
       {showSaveCheck && (
