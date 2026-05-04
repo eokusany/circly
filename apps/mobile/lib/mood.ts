@@ -11,22 +11,23 @@ export interface Mood {
 }
 
 /**
- * Ordered from lowest (struggling) to highest (grateful).
+ * Ordered from lowest (struggling) to highest (thriving).
  * Ranges are contiguous and cover 0–100.
  */
 export const MOODS: Mood[] = [
-  { tag: 'struggling', icon: 'alert-circle', label: 'struggling', min: 0, max: 14 },
-  { tag: 'anxious',    icon: 'cloud',        label: 'anxious',    min: 15, max: 28 },
-  { tag: 'sad',        icon: 'cloud-rain',    label: 'sad',        min: 29, max: 42 },
-  { tag: 'neutral',    icon: 'minus',         label: 'neutral',    min: 43, max: 57 },
-  { tag: 'calm',       icon: 'wind',          label: 'calm',       min: 58, max: 71 },
-  { tag: 'hopeful',    icon: 'trending-up',   label: 'hopeful',    min: 72, max: 85 },
-  { tag: 'grateful',   icon: 'sun',           label: 'grateful',   min: 86, max: 100 },
+  { tag: 'struggling', icon: 'alert-circle', label: 'struggling', min: 0,  max: 14  },
+  { tag: 'anxious',    icon: 'cloud',        label: 'anxious',    min: 15, max: 28  },
+  { tag: 'sad',        icon: 'cloud-rain',   label: 'sad',        min: 29, max: 42  },
+  { tag: 'neutral',    icon: 'minus',        label: 'neutral',    min: 43, max: 57  },
+  { tag: 'calm',       icon: 'wind',         label: 'calm',       min: 58, max: 71  },
+  { tag: 'hopeful',    icon: 'trending-up',  label: 'hopeful',    min: 72, max: 85  },
+  { tag: 'thriving',   icon: 'sun',          label: 'thriving',   min: 86, max: 100 },
 ]
 
 /** Legacy mood tags that were removed — map to nearest equivalent. */
 const LEGACY_MAP: Record<string, string> = {
-  angry: 'struggling',
+  angry:    'struggling',
+  grateful: 'thriving',   // migrated
 }
 
 export function findMood(tag: string | null | undefined): Mood | null {
