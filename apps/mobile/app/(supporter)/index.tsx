@@ -26,6 +26,9 @@ import { tapMedium, notifySuccess } from '../../lib/haptics'
 import { streakDays, toISODate, type MilestoneType } from '../../lib/streak'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
 import { AppHeader } from '../../components/AppHeader'
+import { CheckInActivityCard } from '../../components/feed/CheckInActivityCard'
+import { SilenceAlertCard } from '../../components/feed/SilenceAlertCard'
+import { SharedIntentionCard } from '../../components/feed/SharedIntentionCard'
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
@@ -78,6 +81,7 @@ export default function SupporterHome() {
   const [sendingFor, setSendingFor] = useState<LinkedPerson | null>(null)
   const [nudges, setNudges] = useState<SilenceNudge[]>([])
   const [emergencies, setEmergencies] = useState<EmergencyAlert[]>([])
+  const [linkedIntentions, setLinkedIntentions] = useState<Record<string, string>>({})
 
   async function sendWarmPing(person: LinkedPerson) {
     try {
@@ -232,6 +236,19 @@ export default function SupporterHome() {
     }
     setEmergencies(parsedEmergencies)
 
+    // Fetch today's intentions for linked users
+    const { data: intentionsData } = await supabase
+      .from('daily_intentions')
+      .select('user_id, intention')
+      .in('user_id', ids)
+      .eq('date', today)
+
+    const intentionsByUser: Record<string, string> = {}
+    for (const row of (intentionsData ?? []) as Array<{ user_id: string; intention: string }>) {
+      intentionsByUser[row.user_id] = row.intention
+    }
+    setLinkedIntentions(intentionsByUser)
+
     const enriched = base.map((p) => ({
       ...p,
       today_check_in: checkInByUser.get(p.recovery_user_id) ?? null,
@@ -353,6 +370,50 @@ export default function SupporterHome() {
                 />
               ))}
             </View>
+          </View>
+        )}
+
+        {people.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>your feed</Text>
+
+            {people.map((person) => {
+              const nudge = nudges.find((n) => n.for_user_id === person.recovery_user_id)
+              const intention = linkedIntentions[person.recovery_user_id]
+              const initial = (person.display_name[0] ?? '?').toUpperCase()
+
+              return (
+                <View key={person.recovery_user_id} style={{ gap: spacing.md }}>
+                  {person.today_check_in ? (
+                    <CheckInActivityCard
+                      userName={person.display_name}
+                      userInitial={initial}
+                      status={person.today_check_in}
+                      onEncourage={() => router.push({
+                        pathname: '/(supporter)/chat',
+                        params: { userId: person.recovery_user_id },
+                      })}
+                    />
+                  ) : nudge && nudge.days_since >= 3 ? (
+                    <SilenceAlertCard
+                      userName={person.display_name}
+                      daysQuiet={nudge.days_since}
+                      onMessage={() => router.push({
+                        pathname: '/(supporter)/chat',
+                        params: { userId: person.recovery_user_id },
+                      })}
+                    />
+                  ) : null}
+
+                  {intention && (
+                    <SharedIntentionCard
+                      userName={person.display_name}
+                      intention={intention}
+                    />
+                  )}
+                </View>
+              )
+            })}
           </View>
         )}
 
@@ -718,6 +779,8 @@ const styles = StyleSheet.create({
   },
   peopleSection: { gap: spacing.md },
   sectionLabel: { ...t.label },
+  section: { gap: spacing.lg },
+  sectionTitle: { ...t.label },
   list: { gap: spacing.md },
   card: {
     borderRadius: radii.lg,
