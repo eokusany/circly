@@ -209,6 +209,7 @@ export default function JournalEntryScreen() {
     )
   }
 
+  // Hide the in-screen prompt card when an external prompt was passed via nav params
   const showPrompt = !editingId && !promptDismissed && !incomingPrompt
 
   return (
