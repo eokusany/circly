@@ -58,14 +58,14 @@ export default function OnboardingScreen() {
 
   function handleNext() {
     if (isLast) {
-      router.replace('/(auth)/context-select')
+      router.replace('/(auth)/account-select')
     } else {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1 })
     }
   }
 
   function handleSkip() {
-    router.replace('/(auth)/context-select')
+    router.replace('/(auth)/account-select')
   }
 
   return (
