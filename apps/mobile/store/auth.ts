@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 
 export type UserRole = 'recovery' | 'supporter'
-export type AppContext = 'recovery' | 'family'
+export type AppContext = 'recovery' | 'life'
 
 export interface AppUser {
   id: string
