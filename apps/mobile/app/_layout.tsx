@@ -67,7 +67,7 @@ export default function RootLayout() {
         }
       } else {
         setLoading(false)
-        router.replace('/(auth)/context-select')
+        router.replace('/(auth)/role-select')
       }
     } catch {
       setLoading(false)
