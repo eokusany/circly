@@ -39,7 +39,8 @@ const PROMPTS: Record<Stage, string[]> = {
 }
 
 export function getPromptForDay(days: number): string {
-  const stage = stageFor(Math.max(0, days))
+  const safeDays = Math.max(0, days)
+  const stage = stageFor(safeDays)
   const pool = PROMPTS[stage]
-  return pool[days % pool.length]
+  return pool[safeDays % pool.length]
 }
