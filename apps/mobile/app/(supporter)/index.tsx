@@ -25,13 +25,7 @@ import { Icon, type IconName } from '../../components/Icon'
 import { tapMedium, notifySuccess } from '../../lib/haptics'
 import { streakDays, toISODate, type MilestoneType } from '../../lib/streak'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
-
-function getGreeting(): string {
-  const h = new Date().getHours()
-  if (h < 12) return 'good morning'
-  if (h < 17) return 'good afternoon'
-  return 'good evening'
-}
+import { AppHeader } from '../../components/AppHeader'
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
@@ -289,38 +283,14 @@ export default function SupporterHome() {
           />
         }
       >
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text style={[styles.greeting, { color: colors.textSecondary }]}>
-              {getGreeting()}
-            </Text>
-            <Text style={[styles.name, { color: colors.textPrimary }]}>
-              {user?.displayName ?? 'friend'}
-            </Text>
-            {people.length > 0 && (
-              <Text style={[styles.summary, { color: colors.textMuted }]}>
-                {people.length} {people.length === 1 ? 'person' : 'people'} in your circle
-                {checkedInCount > 0
-                  ? ` · ${checkedInCount} checked in today`
-                  : ''}
-              </Text>
-            )}
-          </View>
-          <Pressable
-            onPress={() => router.push('/(supporter)/invite')}
-            style={({ pressed }) => [
-              styles.headerButton,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-            accessibilityLabel="invite someone"
-          >
-            <Icon name="user-plus" size={18} color={colors.textPrimary} />
-          </Pressable>
-        </View>
+        <AppHeader
+          displayName={user?.displayName ?? ''}
+          unreadMessages={0}
+          onSOS={() => {}}
+          onAddSupporter={() => router.push('/(supporter)/invite')}
+          onMessages={() => router.push('/(supporter)/chat')}
+          onProfile={() => router.push('/(supporter)/profile')}
+        />
 
         {emergencies.length > 0 && (
           <View style={styles.list}>
@@ -746,24 +716,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
     gap: layout.sectionGap,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  headerText: { flex: 1, gap: spacing.xs },
-  headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  greeting: { ...t.body },
-  name: { ...t.h1 },
-  summary: { ...t.small, marginTop: spacing.xs },
   peopleSection: { gap: spacing.md },
   sectionLabel: { ...t.label },
   list: { gap: spacing.md },
