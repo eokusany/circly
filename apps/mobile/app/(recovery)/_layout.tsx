@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { Tabs } from 'expo-router'
+import { Tabs, router } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { Icon } from '../../components/Icon'
+import { CenterCheckInButton } from '../../components/CenterCheckInButton'
 import { useAuthStore } from '../../store/auth'
 import { useNotificationStore } from '../../store/notifications'
 import { supabase } from '../../lib/supabase'
@@ -16,7 +17,6 @@ export default function RecoveryLayout() {
   useRealtimeNotifications(user?.id)
   const unreadCount = useNotificationStore((s) => s.unreadCount)
 
-  // Schedule daily "I'm okay" reminder based on user's silence settings.
   useEffect(() => {
     if (!user) return
 
@@ -37,7 +37,6 @@ export default function RecoveryLayout() {
         snooze_until: string | null
       } | null
 
-      // If disabled or snoozed, cancel any existing reminder
       const snoozed = settings?.snooze_until && settings.snooze_until >= new Date().toISOString().split('T')[0]
       if (!settings?.okay_tap_enabled || snoozed) {
         await cancelOkayReminder()
@@ -88,10 +87,12 @@ export default function RecoveryLayout() {
         }}
       />
       <Tabs.Screen
-        name="chat"
+        name="check-in"
         options={{
-          title: 'messages',
-          tabBarIcon: ({ color, size }) => <Icon name="message-circle" size={size} color={color} />,
+          title: '',
+          tabBarButton: () => (
+            <CenterCheckInButton onPress={() => router.push('/(recovery)/check-in')} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -104,16 +105,16 @@ export default function RecoveryLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="settings"
         options={{
-          title: 'profile',
-          tabBarIcon: ({ color, size }) => <Icon name="user" size={size} color={color} />,
+          title: 'add',
+          tabBarIcon: ({ color, size }) => <Icon name="user-plus" size={size} color={color} />,
         }}
       />
-      {/* Hide sub-screens from the tab bar */}
-      <Tabs.Screen name="check-in" options={{ href: null }} />
+      {/* Hidden routes — still navigable but not in the tab bar. */}
+      <Tabs.Screen name="chat" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="journal-entry" options={{ href: null }} />
-      <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="supporter-settings" options={{ href: null }} />
       <Tabs.Screen name="silence-settings" options={{ href: null }} />
     </Tabs>
