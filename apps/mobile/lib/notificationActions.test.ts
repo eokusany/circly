@@ -169,3 +169,38 @@ describe('recordNotificationCheckIn', () => {
     expect(result).toBe('failed')
   })
 })
+
+import { flushPending } from './notificationActions'
+
+describe('flushPending', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear()
+  })
+
+  it('does nothing when the queue is empty', async () => {
+    const sb = makeFakeSupabase('ok')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await flushPending({ supabase: sb as any })
+    expect(result).toEqual({ attempted: 0, succeeded: 0, remaining: 0 })
+    expect(sb.from).not.toHaveBeenCalled()
+  })
+
+  it('clears all entries when every retry succeeds', async () => {
+    await enqueuePending({ userId: 'a', status: 'sober', checkInDate: '2026-05-05' })
+    await enqueuePending({ userId: 'b', status: 'good_day', checkInDate: '2026-05-05' })
+    const sb = makeFakeSupabase('ok')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await flushPending({ supabase: sb as any })
+    expect(result).toEqual({ attempted: 2, succeeded: 2, remaining: 0 })
+    expect(await readPending()).toEqual([])
+  })
+
+  it('keeps failed entries in the queue for next time', async () => {
+    await enqueuePending({ userId: 'a', status: 'sober', checkInDate: '2026-05-05' })
+    const sb = makeFakeSupabase('error')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await flushPending({ supabase: sb as any })
+    expect(result).toEqual({ attempted: 1, succeeded: 0, remaining: 1 })
+    expect(await readPending()).toHaveLength(1)
+  })
+})
