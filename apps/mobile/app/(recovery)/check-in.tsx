@@ -83,6 +83,7 @@ export default function CheckInScreen() {
           status,
           note: note.trim() || null,
           check_in_date: todayISO,
+          source: 'in_app',
         },
         { onConflict: 'user_id,check_in_date' }
       )
