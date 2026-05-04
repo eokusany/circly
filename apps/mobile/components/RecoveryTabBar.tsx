@@ -3,8 +3,10 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { router } from 'expo-router'
 import { useColors } from '../hooks/useColors'
 import { Icon } from './Icon'
+import { Badge } from './Badge'
 import { spacing } from '../constants/theme'
 import type { IconName } from './Icon'
+import { useNotificationStore } from '../store/notifications'
 
 const TABS: Array<{ name: string; label: string; icon: IconName }> = [
   { name: 'index',         label: 'home',    icon: 'home'      },
@@ -17,6 +19,7 @@ const HIDDEN = new Set(['check-in', 'journal-entry', 'settings', 'supporter-sett
 
 export function RecoveryTabBar({ state, navigation }: BottomTabBarProps) {
   const colors = useColors()
+  const unreadCount = useNotificationStore((s) => s.unreadCount)
 
   const visibleRoutes = state.routes.filter((r) => !HIDDEN.has(r.name))
   const half = Math.floor(visibleRoutes.length / 2)
@@ -26,6 +29,7 @@ export function RecoveryTabBar({ state, navigation }: BottomTabBarProps) {
   function renderTab(route: typeof state.routes[0], tabDef: typeof TABS[0]) {
     const isFocused = state.routes[state.index].name === route.name
     const color = isFocused ? colors.accent : colors.textMuted
+    const isAlerts = route.name === 'notifications'
 
     return (
       <Pressable
@@ -33,9 +37,17 @@ export function RecoveryTabBar({ state, navigation }: BottomTabBarProps) {
         onPress={() => navigation.navigate(route.name)}
         accessibilityRole="tab"
         accessibilityLabel={tabDef.label}
+        accessibilityState={{ selected: isFocused }}
         style={styles.tab}
       >
-        <Icon name={tabDef.icon} size={22} color={color} />
+        <View style={styles.iconWrap}>
+          <Icon name={tabDef.icon} size={22} color={color} />
+          {isAlerts && unreadCount > 0 && (
+            <View style={styles.tabBadgeWrap}>
+              <Badge count={unreadCount} />
+            </View>
+          )}
+        </View>
         <Text style={[styles.label, { color }]}>{tabDef.label}</Text>
       </Pressable>
     )
@@ -45,7 +57,8 @@ export function RecoveryTabBar({ state, navigation }: BottomTabBarProps) {
     <View style={[styles.container, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
       {/* Left tabs */}
       {left.map((route) => {
-        const def = TABS.find((t) => t.name === route.name)!
+        const def = TABS.find((t) => t.name === route.name)
+        if (!def) return null
         return renderTab(route, def)
       })}
 
@@ -53,6 +66,7 @@ export function RecoveryTabBar({ state, navigation }: BottomTabBarProps) {
       <Pressable
         onPress={() => router.push('/(recovery)/check-in')}
         accessibilityLabel="Check in"
+        accessibilityRole="button"
         style={styles.centerWrap}
       >
         <View style={[styles.centerBtn, { backgroundColor: colors.accent }]}>
@@ -63,7 +77,8 @@ export function RecoveryTabBar({ state, navigation }: BottomTabBarProps) {
 
       {/* Right tabs */}
       {right.map((route) => {
-        const def = TABS.find((t) => t.name === route.name)!
+        const def = TABS.find((t) => t.name === route.name)
+        if (!def) return null
         return renderTab(route, def)
       })}
     </View>
@@ -107,5 +122,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  iconWrap: {
+    position: 'relative',
+  },
+  tabBadgeWrap: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
   },
 })
