@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Alert,
   Share,
   Pressable,
@@ -14,6 +13,7 @@ import { api, ApiError } from '../../lib/api'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
 import { BackButton } from '../../components/BackButton'
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView'
 import { spacing, radii, type, layout } from '../../constants/theme'
 
 interface ServerInvite {
@@ -110,10 +110,9 @@ export default function SupporterInvite() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView
+      <KeyboardAwareScrollView
         style={{ backgroundColor: colors.background }}
         contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
           <BackButton />
@@ -213,7 +212,7 @@ export default function SupporterInvite() {
             disabled={acceptCode.trim().length < 6}
           />
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </>
   )
 }

@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Image } from 'react-native'
+import { View, Text, StyleSheet, Alert, TouchableOpacity, Image } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView'
 import { spacing, type as t } from '../../constants/theme'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -48,10 +49,9 @@ export default function SignUpScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
         <Image source={logo} style={[styles.logoImage, { tintColor: colors.accent }]} resizeMode="contain" />
@@ -92,7 +92,7 @@ export default function SignUpScreen() {
           <Text style={{ color: colors.accent, fontWeight: '600' }}>sign in</Text>
         </Text>
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   )
 }
 

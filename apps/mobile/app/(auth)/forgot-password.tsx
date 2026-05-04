@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, Alert, Pressable } from 'react-native'
+import { View, Text, StyleSheet, Alert, Pressable } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView'
 import { spacing, type as t, layout } from '../../constants/theme'
 
 export default function ForgotPasswordScreen() {
@@ -32,10 +33,9 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
         <Text style={[styles.logo, { color: colors.accent }]}>circly</Text>
@@ -59,7 +59,7 @@ export default function ForgotPasswordScreen() {
       <Pressable onPress={() => router.replace('/(auth)/sign-in')} accessibilityRole="link">
         <Text style={[styles.link, { color: colors.accent }]}>back to sign in</Text>
       </Pressable>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   )
 }
 

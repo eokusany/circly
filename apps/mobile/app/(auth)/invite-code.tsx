@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Alert,
   TouchableOpacity,
 } from 'react-native'
@@ -11,6 +10,7 @@ import { router } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView'
 import { api, ApiError } from '../../lib/api'
 import { spacing, type as t, layout } from '../../constants/theme'
 
@@ -63,10 +63,9 @@ export default function InviteCodeScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>
@@ -94,7 +93,7 @@ export default function InviteCodeScreen() {
           skip for now
         </Text>
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   )
 }
 
