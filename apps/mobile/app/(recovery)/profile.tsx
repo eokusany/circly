@@ -15,7 +15,7 @@ export default function ProfileTab() {
 
   if (!user) return null
 
-  const contextLabel = COPY[user.context ?? DEFAULT_CONTEXT].contextCard.label
+  const contextLabel = COPY[user.context ?? DEFAULT_CONTEXT].roleCopy[user.role].label
   const isRecoveryCenter = user.role === 'recovery' && user.context === 'recovery'
 
   return (
