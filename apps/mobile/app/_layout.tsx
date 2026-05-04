@@ -67,7 +67,7 @@ export default function RootLayout() {
         }
       } else {
         setLoading(false)
-        router.replace('/(auth)/context-select')
+        router.replace('/(auth)/role-select')
       }
     } catch {
       setLoading(false)
@@ -93,12 +93,12 @@ export default function RootLayout() {
         await loadUser(session.user.id)
       } else {
         setLoading(false)
-        router.replace('/(auth)/sign-in')
+        router.replace('/(auth)/')
       }
     }).catch(() => {
       SplashScreen.hideAsync()
       setLoading(false)
-      router.replace('/(auth)/sign-in')
+      router.replace('/(auth)/')
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -108,7 +108,7 @@ export default function RootLayout() {
         if (!initialRouteComplete.current) return
         if (event === 'SIGNED_OUT' || !session) {
           setUser(null)
-          router.replace('/(auth)/sign-in')
+          router.replace('/(auth)/')
         } else if (event === 'TOKEN_REFRESHED' && session.user) {
           // Token was refreshed — no navigation needed, just keep going
         } else if (event === 'SIGNED_IN' && session.user) {

@@ -135,7 +135,7 @@ export function MoodSlider({ value, onChange }: Props) {
       {/* Scale markers */}
       <View style={styles.markers}>
         <Text style={[styles.marker, { color: colors.textMuted }]}>struggling</Text>
-        <Text style={[styles.marker, { color: colors.textMuted }]}>grateful</Text>
+        <Text style={[styles.marker, { color: colors.textMuted }]}>thriving</Text>
       </View>
     </View>
   )

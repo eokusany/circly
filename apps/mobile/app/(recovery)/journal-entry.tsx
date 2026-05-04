@@ -24,13 +24,15 @@ import { moodFromValue, valueFromTag } from '../../lib/mood'
 import { tapLight, notifySuccess, notifyWarning } from '../../lib/haptics'
 import { getPromptForToday } from '../../lib/prompts'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
+import { PromptChip } from '../../components/journal/PromptChip'
 
 export default function JournalEntryScreen() {
   const colors = useColors()
   const scheme = useColorScheme() ?? 'light'
   const user = useAuthStore((s) => s.user)
-  const params = useLocalSearchParams<{ id?: string }>()
+  const params = useLocalSearchParams<{ id?: string; prompt?: string }>()
   const editingId = params.id ?? null
+  const incomingPrompt = params.prompt ?? null
   const timeOfDay = useTimeOfDay()
   const timeTint = getTimeTint(timeOfDay)
 
@@ -39,7 +41,7 @@ export default function JournalEntryScreen() {
   const [body, setBody] = useState('')
   const [moodValue, setMoodValue] = useState(50)
   const [moodSelected, setMoodSelected] = useState(false)
-  const [promptUsed, setPromptUsed] = useState<string | null>(null)
+  const [promptUsed, setPromptUsed] = useState<string | null>(incomingPrompt)
   const [promptDismissed, setPromptDismissed] = useState(false)
 
   const [showSaveCheck, setShowSaveCheck] = useState(false)
@@ -207,7 +209,8 @@ export default function JournalEntryScreen() {
     )
   }
 
-  const showPrompt = !editingId && !promptDismissed
+  // Hide the in-screen prompt card when an external prompt was passed via nav params
+  const showPrompt = !editingId && !promptDismissed && !incomingPrompt
 
   return (
     <Animated.View style={[{ flex: 1 }, { transform: [{ scale: saveScale }] }]}>
@@ -260,6 +263,8 @@ export default function JournalEntryScreen() {
             </TouchableOpacity>
           </Animated.View>
         )}
+
+        {incomingPrompt && <PromptChip prompt={incomingPrompt} />}
 
         <RNTextInput
           value={body}

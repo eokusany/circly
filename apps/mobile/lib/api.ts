@@ -73,6 +73,14 @@ export async function api<T = unknown>(
   return body as T
 }
 
+export async function getTodayIntention(): Promise<{ intention: string | null; date: string }> {
+  return api('/api/intentions/today')
+}
+
+export async function setIntention(intention: string): Promise<{ intention: string; date: string }> {
+  return api('/api/intentions', { method: 'POST', body: JSON.stringify({ intention }) })
+}
+
 function safeJson(text: string): unknown {
   try {
     return JSON.parse(text)

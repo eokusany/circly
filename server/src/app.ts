@@ -12,6 +12,7 @@ import { warmPingRouter } from './routes/warm-ping'
 import { internalRouter } from './routes/internal'
 import { messagesRouter } from './routes/messages'
 import { pushTokenRouter } from './routes/push-token'
+import { intentionsRouter } from './routes/intentions'
 
 export const app = express()
 
@@ -91,6 +92,7 @@ app.use('/api', warmPingRouter)
 app.use('/api', internalRouter)
 app.use('/api', messagesRouter)
 app.use('/api', pushTokenRouter)
+app.use('/api', intentionsRouter)
 
 // Sentry error handler — must be registered after all controllers
 Sentry.setupExpressErrorHandler(app)
