@@ -17,7 +17,7 @@ jest.mock('expo-notifications', () => ({
   SchedulableTriggerInputTypes: { DAILY: 'daily' },
 }))
 
-import { scheduleOkayReminder } from './notifications'
+import { scheduleOkayReminder, registerDailyCheckinCategory } from './notifications'
 import { NOTIFICATION_CATEGORY_ID } from './notificationActions'
 
 describe('scheduleOkayReminder', () => {
@@ -39,5 +39,35 @@ describe('scheduleOkayReminder', () => {
   it('cancels any prior schedule first', async () => {
     await scheduleOkayReminder(9, 0)
     expect(mockCancel).toHaveBeenCalledWith('okay-tap-daily')
+  })
+})
+
+describe('registerDailyCheckinCategory', () => {
+  beforeEach(() => {
+    mockSetCategory.mockClear()
+  })
+
+  it('registers three actions in the expected order with non-foregrounding options', async () => {
+    await registerDailyCheckinCategory()
+    expect(mockSetCategory).toHaveBeenCalledTimes(1)
+    const [categoryId, actions] = mockSetCategory.mock.calls[0]
+    expect(categoryId).toBe('daily-checkin')
+    expect(actions).toEqual([
+      {
+        identifier: 'mood-good',
+        buttonTitle: 'good',
+        options: { opensAppToForeground: false },
+      },
+      {
+        identifier: 'mood-okay',
+        buttonTitle: 'okay',
+        options: { opensAppToForeground: false },
+      },
+      {
+        identifier: 'mood-struggling',
+        buttonTitle: 'struggling',
+        options: { opensAppToForeground: false, isDestructive: true },
+      },
+    ])
   })
 })
