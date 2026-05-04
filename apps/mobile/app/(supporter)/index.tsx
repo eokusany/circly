@@ -54,6 +54,19 @@ const MILESTONE_LABEL: Record<MilestoneType, string> = {
 
 const PRESETS = ['thinking of you', 'proud of you', "you've got this"]
 
+interface SilenceNudge {
+  id: string
+  for_user_id: string
+  from_display_name: string
+  days_since: number
+}
+
+interface EmergencyAlert {
+  id: string
+  from_display_name: string
+  created_at: string
+}
+
 export default function SupporterHome() {
   const colors = useColors()
   const user = useAuthStore((s) => s.user)
@@ -65,19 +78,6 @@ export default function SupporterHome() {
   const [sendingFor, setSendingFor] = useState<LinkedPerson | null>(null)
   const [nudges, setNudges] = useState<SilenceNudge[]>([])
   const [emergencies, setEmergencies] = useState<EmergencyAlert[]>([])
-
-  interface SilenceNudge {
-    id: string
-    for_user_id: string
-    from_display_name: string
-    days_since: number
-  }
-
-  interface EmergencyAlert {
-    id: string
-    from_display_name: string
-    created_at: string
-  }
 
   async function sendWarmPing(person: LinkedPerson) {
     try {
