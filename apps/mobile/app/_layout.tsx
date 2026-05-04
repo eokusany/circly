@@ -60,6 +60,7 @@ export default function RootLayout() {
           id: data.id,
           email: data.email,
           displayName: data.display_name,
+          avatarUrl: null,
           role: data.role,
           context: data.context,
           sobrietyStartDate,

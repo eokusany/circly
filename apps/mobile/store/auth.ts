@@ -8,6 +8,7 @@ export interface AppUser {
   id: string
   email: string
   displayName: string
+  avatarUrl: string | null
   role: UserRole
   context: AppContext | null
   sobrietyStartDate: string | null
