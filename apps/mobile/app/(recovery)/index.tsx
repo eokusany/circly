@@ -330,7 +330,12 @@ export default function RecoveryHome() {
         <IntentionCard
           intention={intention}
           onSave={async (text) => {
-            await setIntention(text)
+            if (!user) return
+            const today = new Date().toISOString().split('T')[0]
+            const { error } = await supabase
+              .from('daily_intentions')
+              .upsert({ user_id: user.id, intention: text, date: today }, { onConflict: 'user_id,date' })
+            if (error) throw error
             setIntentionState(text)
           }}
         />

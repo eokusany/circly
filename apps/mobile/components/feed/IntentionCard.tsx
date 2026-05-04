@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native'
+import { View, Text, Pressable, TextInput, StyleSheet, Alert } from 'react-native'
 import { useColors } from '../../hooks/useColors'
 import { Icon } from '../Icon'
 import { spacing, radii, type } from '../../constants/theme'
@@ -18,9 +18,14 @@ export function IntentionCard({ intention, onSave }: IntentionCardProps) {
   async function handleSave() {
     if (!draft.trim()) return
     setSaving(true)
-    await onSave(draft.trim())
-    setSaving(false)
-    setEditing(false)
+    try {
+      await onSave(draft.trim())
+      setEditing(false)
+    } catch {
+      Alert.alert('could not save', 'please try again')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
