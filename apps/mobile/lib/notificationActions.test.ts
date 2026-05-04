@@ -204,3 +204,88 @@ describe('flushPending', () => {
     expect(await readPending()).toHaveLength(1)
   })
 })
+
+import { handleNotificationResponse } from './notificationActions'
+
+describe('handleNotificationResponse', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear()
+  })
+
+  function makeResponse(actionIdentifier: string) {
+    return { actionIdentifier } as { actionIdentifier: string }
+  }
+
+  it('ignores unknown action identifiers (e.g. plain notification tap)', async () => {
+    const sb = makeFakeSupabase('ok')
+    const fireConfirmation = jest.fn()
+    const fireSignedOutPrompt = jest.fn()
+    await handleNotificationResponse(makeResponse('default'), {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      supabase: sb as any,
+      getUserId: async () => 'user-1',
+      todayISO: '2026-05-05',
+      fireConfirmation,
+      fireSignedOutPrompt,
+    })
+    expect(sb.from).not.toHaveBeenCalled()
+    expect(fireConfirmation).not.toHaveBeenCalled()
+    expect(fireSignedOutPrompt).not.toHaveBeenCalled()
+  })
+
+  it('writes a check-in row and fires the matching confirmation on success', async () => {
+    const sb = makeFakeSupabase('ok')
+    const fireConfirmation = jest.fn()
+    const fireSignedOutPrompt = jest.fn()
+    await handleNotificationResponse(makeResponse('mood-good'), {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      supabase: sb as any,
+      getUserId: async () => 'user-1',
+      todayISO: '2026-05-05',
+      fireConfirmation,
+      fireSignedOutPrompt,
+    })
+    expect(sb.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'good_day', source: 'notification' }),
+      { onConflict: 'user_id,check_in_date' },
+    )
+    expect(fireConfirmation).toHaveBeenCalledWith('good_day')
+    expect(await readPending()).toEqual([])
+  })
+
+  it('queues the entry and still fires confirmation when supabase fails', async () => {
+    const sb = makeFakeSupabase('error')
+    const fireConfirmation = jest.fn()
+    const fireSignedOutPrompt = jest.fn()
+    await handleNotificationResponse(makeResponse('mood-struggling'), {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      supabase: sb as any,
+      getUserId: async () => 'user-1',
+      todayISO: '2026-05-05',
+      fireConfirmation,
+      fireSignedOutPrompt,
+    })
+    const queue = await readPending()
+    expect(queue).toEqual([
+      { userId: 'user-1', status: 'struggling', checkInDate: '2026-05-05' },
+    ])
+    expect(fireConfirmation).toHaveBeenCalledWith('struggling')
+  })
+
+  it('fires the signed-out prompt when there is no user id', async () => {
+    const sb = makeFakeSupabase('ok')
+    const fireConfirmation = jest.fn()
+    const fireSignedOutPrompt = jest.fn()
+    await handleNotificationResponse(makeResponse('mood-okay'), {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      supabase: sb as any,
+      getUserId: async () => null,
+      todayISO: '2026-05-05',
+      fireConfirmation,
+      fireSignedOutPrompt,
+    })
+    expect(sb.from).not.toHaveBeenCalled()
+    expect(fireConfirmation).not.toHaveBeenCalled()
+    expect(fireSignedOutPrompt).toHaveBeenCalledTimes(1)
+  })
+})
