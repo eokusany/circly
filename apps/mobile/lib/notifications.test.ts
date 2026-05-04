@@ -2,6 +2,20 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 )
 
+jest.mock('./supabase', () => ({
+  supabase: {
+    auth: { getSession: jest.fn().mockResolvedValue({ data: { session: null } }) },
+  },
+}))
+
+jest.mock('expo-router', () => ({ router: { push: jest.fn() } }))
+
+jest.mock('./notificationActions', () => ({
+  ...jest.requireActual('./notificationActions'),
+  flushPending: jest.fn().mockResolvedValue({ flushed: 0, failed: 0 }),
+  handleNotificationResponse: jest.fn().mockResolvedValue(undefined),
+}))
+
 const mockSchedule = jest.fn().mockResolvedValue(undefined)
 const mockCancel = jest.fn().mockResolvedValue(undefined)
 const mockSetCategory = jest.fn().mockResolvedValue(undefined)
