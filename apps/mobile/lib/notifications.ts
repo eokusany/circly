@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications'
 import { Platform } from 'react-native'
+import { NOTIFICATION_CATEGORY_ID } from './notificationActions'
 
 const OKAY_REMINDER_ID = 'okay-tap-daily'
 
@@ -28,7 +29,8 @@ export async function scheduleOkayReminder(hour: number, minute: number): Promis
     identifier: OKAY_REMINDER_ID,
     content: {
       title: 'circly',
-      body: "tap to say you're okay — your circle is thinking of you.",
+      body: "how's today going? tap below to check in.",
+      categoryIdentifier: NOTIFICATION_CATEGORY_ID,
       ...(Platform.OS === 'android' && { channelId: 'default' }),
     },
     trigger: {
