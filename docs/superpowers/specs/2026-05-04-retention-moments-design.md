@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-04
 **Status:** Approved
-**Scope:** Five retention/onboarding moments across the three account types (recovery-substance, recovery-family, supporter)
+**Scope:** Five retention/onboarding moments across the three account types (recovery-substance, recovery-life, supporter)
 
 ---
 
@@ -23,17 +23,17 @@ This spec covers the design fix for each.
 The app has two orthogonal axes that combine into three effective account types:
 
 - `role`: `'recovery' | 'supporter'`
-- `context`: `'recovery' | 'family'`
+- `context`: `'recovery' | 'life'`
 
 | Account type | `role` | `context` | What it represents |
 |---|---|---|---|
 | Recovery-substance | `recovery` | `recovery` | Person in substance recovery (has `sobriety_start_date`, has streak) |
-| Recovery-family | `recovery` | `family` | Person who needs day-to-day support but is NOT substance-tracking (no streak) |
+| Recovery-life | `recovery` | `life` | Person who needs day-to-day support outside substance recovery (family, friends, coworkers, anyone). No streak. |
 | Supporter | `supporter` | either | Supports someone else |
 
 Per-section scoping for this spec:
 
-| Section | Recovery-substance | Recovery-family | Supporter |
+| Section | Recovery-substance | Recovery-life | Supporter |
 |---|---|---|---|
 | §2 Start fresh | ✅ applies | ❌ omitted entirely (no streak to reset) | ❌ |
 | §3 Empty day-one feed | ✅ applies | ✅ applies (same flow, identical generic copy) | ❌ unchanged |
@@ -47,7 +47,7 @@ Implementation must branch on **`user.context`** (not just `user.role`) for any 
 
 ## 2. Streak Break / "Start Fresh" Flow (Recovery-substance only)
 
-> **Scope:** Applies only to accounts with `context === 'recovery'`. Recovery-family accounts have no sobriety streak and no equivalent action — this section is omitted entirely from their experience.
+> **Scope:** Applies only to accounts with `context === 'recovery'`. Recovery-life accounts have no sobriety streak and no equivalent action — this section is omitted entirely from their experience.
 
 ### 2.1 Entry points
 
@@ -88,7 +88,7 @@ When a recovery user resets, supporters in their circle see a single feed card o
 
 ## 3. Empty Feed (Day One — both recovery contexts)
 
-> **Scope:** Applies to all `role === 'recovery'` accounts regardless of context. Copy is intentionally generic ("welcome. start with your first check-in.") so it works for both substance and family contexts without branching.
+> **Scope:** Applies to all `role === 'recovery'` accounts regardless of context. Copy is intentionally generic ("welcome. start with your first check-in.") so it works for both substance and life contexts without branching.
 
 ### 3.1 Pre first check-in
 
@@ -196,7 +196,7 @@ Day-count milestones, frequent early and sparse later:
 
 A milestone is "hit" when the streak (days since `sobriety_start_date`) equals one of these values.
 
-### 6.1b Milestone schedule — Recovery-family (`context === 'family'`)
+### 6.1b Milestone schedule — Recovery-life (`context === 'life'`)
 
 Cumulative-check-in milestones (total check-ins ever, not consecutive):
 
@@ -218,7 +218,7 @@ On the first home-screen load after a milestone is hit, a full-screen celebrator
 - Subtle ambient animation (gentle particle drift or soft glow pulse — kept minimal, no confetti)
 - Centered milestone label, varies by context:
   - Recovery-substance: e.g. "1 week.", "1 month.", "1 year."
-  - Recovery-family: e.g. "10 check-ins.", "50 check-ins.", "100 check-ins."
+  - Recovery-life: e.g. "10 check-ins.", "50 check-ins.", "100 check-ins."
 - Affirming line below: "you did this."
 - Single button: "continue"
 - Tap → home feed
@@ -226,7 +226,7 @@ On the first home-screen load after a milestone is hit, a full-screen celebrator
 Shown once per milestone. Gating is per-context:
 
 - Recovery-substance: highest day-count already celebrated stored as `last_milestone_celebrated_days INT`
-- Recovery-family: highest check-in count already celebrated stored as `last_milestone_celebrated_checkins INT`
+- Recovery-life: highest check-in count already celebrated stored as `last_milestone_celebrated_checkins INT`
 
 ### 6.3 Recovery user — persistent feed card
 
@@ -235,7 +235,7 @@ After the takeover dismisses, a special celebratory feed card is appended to the
 - Style: distinct from regular cards — slightly larger, amber background tint, milestone label badge
 - Copy varies by context:
   - Recovery-substance: e.g. "🌱 1 week clean. quiet wins matter."
-  - Recovery-family: e.g. "🌱 50 check-ins. showing up matters."
+  - Recovery-life: e.g. "🌱 50 check-ins. showing up matters."
 - Stays in the feed history permanently (does not auto-disappear)
 
 ### 6.4 Supporter — connection card
@@ -260,7 +260,7 @@ The following minimal state additions are needed (exact schema in the implementa
 - `profiles.first_checkin_celebration_seen BOOLEAN` — gates section 4.3
 - `profiles.supporter_first_run_seen BOOLEAN` — gates section 5.1 / 5.2
 - `profiles.last_milestone_celebrated_days INT` — gates §6.2 for `context='recovery'` users (highest day-count milestone celebrated for the current `sobriety_start_date`; reset to `0` whenever the user starts fresh per §2.2)
-- `profiles.last_milestone_celebrated_checkins INT` — gates §6.2 for `context='family'` users (highest cumulative check-in count already celebrated; never reset, since family users don't have a "start fresh" action)
+- `profiles.last_milestone_celebrated_checkins INT` — gates §6.2 for `context='life'` users (highest cumulative check-in count already celebrated; never reset, since life-context users don't have a "start fresh" action)
 - "Started fresh" supporter card (§2.3) and milestone cards (§6.3, §6.4): generated from existing data — no new persisted card type needed if derivable from `sobriety_start_date` history, current streak, and check-in counts. If `sobriety_start_date` reset events aren't already audited, a small `sobriety_resets` table will be needed (one row per reset).
 
 ---
