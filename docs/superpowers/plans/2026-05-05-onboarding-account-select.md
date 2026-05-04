@@ -13,7 +13,7 @@
 
 New:
 - `apps/mobile/app/(auth)/account-select.tsx`: the single 3-card screen, replaces both `context-select.tsx` and `role-select.tsx`.
-- `supabase/migrations/014_rename_family_context_to_life.sql`: backfill `'family'` rows and update the CHECK constraint.
+- `supabase/migrations/016_rename_family_context_to_life.sql`: backfill `'family'` rows and update the CHECK constraint.
 
 Modified:
 - `apps/mobile/store/auth.ts`: `AppContext = 'recovery' | 'family'` becomes `'recovery' | 'life'`.
@@ -1085,13 +1085,13 @@ cd /Users/emmanuelokusanya/CREATIONS/reeco && git add apps/mobile/app/\(profile\
 ### Task 10: Add the Supabase migration that backfills `'family'` rows and updates the CHECK constraint
 
 **Files:**
-- Create: `/Users/emmanuelokusanya/CREATIONS/reeco/supabase/migrations/014_rename_family_context_to_life.sql`
+- Create: `/Users/emmanuelokusanya/CREATIONS/reeco/supabase/migrations/016_rename_family_context_to_life.sql`
 
 Spec §7 explicitly calls out two SQL statements: backfill (`update profiles set context = 'life' where context = 'family';`) and a CHECK constraint update on the column. The column actually lives on `public.users` (see migration 003). The spec wording has a typo (says "profiles") but migration 003 puts `context` on `public.users`, and the runtime store reads from `users.context`. We migrate `public.users.context`. We also widen the comment to mention `'life'`.
 
 - [ ] **Step 1: Create the migration file**
 
-Write the file `/Users/emmanuelokusanya/CREATIONS/reeco/supabase/migrations/014_rename_family_context_to_life.sql` with these exact contents:
+Write the file `/Users/emmanuelokusanya/CREATIONS/reeco/supabase/migrations/016_rename_family_context_to_life.sql` with these exact contents:
 
 ```sql
 -- Migration 014: rename context value 'family' to 'life'
@@ -1124,7 +1124,7 @@ comment on column public.users.context is
 Run:
 
 ```sh
-cd /Users/emmanuelokusanya/CREATIONS/reeco && cat supabase/migrations/014_rename_family_context_to_life.sql
+cd /Users/emmanuelokusanya/CREATIONS/reeco && cat supabase/migrations/016_rename_family_context_to_life.sql
 ```
 
 Expected: the file prints exactly as written. The implementer should visually confirm both statements (backfill UPDATE and the constraint swap) are present, and that the constraint allows `null`, `'recovery'`, and `'life'`.
@@ -1132,7 +1132,7 @@ Expected: the file prints exactly as written. The implementer should visually co
 - [ ] **Step 3: Commit**
 
 ```sh
-cd /Users/emmanuelokusanya/CREATIONS/reeco && git add supabase/migrations/014_rename_family_context_to_life.sql && git commit -m "migrate users context value family to life and update CHECK constraint"
+cd /Users/emmanuelokusanya/CREATIONS/reeco && git add supabase/migrations/016_rename_family_context_to_life.sql && git commit -m "migrate users context value family to life and update CHECK constraint"
 ```
 
 ---

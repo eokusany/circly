@@ -42,7 +42,7 @@ The branching rule **everywhere** is on `user.context` (not just `user.role`):
 ## File Structure
 
 **Migrations (new):**
-- `supabase/migrations/014_retention_moments.sql` — adds five profile columns + `sobriety_resets` table
+- `supabase/migrations/018_retention_moments.sql` — adds five profile columns + `sobriety_resets` table
 
 **Pure helpers (new, with sibling jest tests — real TDD):**
 - `apps/mobile/lib/milestones.ts` — schedules + helpers for both contexts
@@ -75,11 +75,11 @@ The branching rule **everywhere** is on `user.context` (not just `user.role`):
 
 ### Task 1: Migration — gating columns and `sobriety_resets` audit table
 
-**Files:** Create `supabase/migrations/014_retention_moments.sql`
+**Files:** Create `supabase/migrations/018_retention_moments.sql`
 
 - [ ] **Step 1: Write the migration file**
 
-Create `supabase/migrations/014_retention_moments.sql` with exactly:
+Create `supabase/migrations/018_retention_moments.sql` with exactly:
 
 ```sql
 -- Migration 014: retention moments
@@ -169,19 +169,19 @@ create policy "sobriety_resets: select linked supporter"
 
 - [ ] **Step 2: Append the migration to `apply_all.sql`**
 
-Append the contents of `014_retention_moments.sql` to `supabase/migrations/apply_all.sql` (this matches the convention used by migrations 001-013). Open `supabase/migrations/apply_all.sql`, scroll to the end, and append a blank line followed by the entire body of `014_retention_moments.sql`.
+Append the contents of `018_retention_moments.sql` to `supabase/migrations/apply_all.sql` (this matches the convention used by migrations 001-013). Open `supabase/migrations/apply_all.sql`, scroll to the end, and append a blank line followed by the entire body of `018_retention_moments.sql`.
 
 - [ ] **Step 3: Verify SQL parses (smoke check via psql dry-run if available, otherwise eyeball)**
 
-Run: `ls supabase/migrations/014_retention_moments.sql && wc -l supabase/migrations/014_retention_moments.sql`
+Run: `ls supabase/migrations/018_retention_moments.sql && wc -l supabase/migrations/018_retention_moments.sql`
 
 Expected output (line count may differ slightly):
 ```
-supabase/migrations/014_retention_moments.sql
-      63 supabase/migrations/014_retention_moments.sql
+supabase/migrations/018_retention_moments.sql
+      63 supabase/migrations/018_retention_moments.sql
 ```
 
-If a local Postgres is available run `psql -f supabase/migrations/014_retention_moments.sql` against a scratch DB and expect:
+If a local Postgres is available run `psql -f supabase/migrations/018_retention_moments.sql` against a scratch DB and expect:
 ```
 ALTER TABLE
 ALTER TABLE
@@ -205,7 +205,7 @@ CREATE POLICY
 - [ ] **Step 4: Commit**
 
 ```
-git add supabase/migrations/014_retention_moments.sql supabase/migrations/apply_all.sql
+git add supabase/migrations/018_retention_moments.sql supabase/migrations/apply_all.sql
 git commit -m "add retention-moments migration with profile gating columns and sobriety_resets table"
 ```
 
