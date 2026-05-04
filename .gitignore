@@ -20,3 +20,4 @@ docs/SCALING_ROADMAP.md
 # Logs
 *.log
 npm-debug.log*
+.worktrees/
