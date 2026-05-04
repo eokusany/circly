@@ -105,3 +105,38 @@ export async function recordNotificationCheckIn(
     return 'failed'
   }
 }
+
+export interface FlushResult {
+  attempted: number
+  succeeded: number
+  remaining: number
+}
+
+export async function flushPending(deps: RecordCheckInDeps): Promise<FlushResult> {
+  const queue = await readPending()
+  if (queue.length === 0) {
+    return { attempted: 0, succeeded: 0, remaining: 0 }
+  }
+
+  const stillPending: PendingCheckIn[] = []
+  let succeeded = 0
+  for (const entry of queue) {
+    const result = await recordNotificationCheckIn(
+      { userId: entry.userId, status: entry.status, todayISO: entry.checkInDate },
+      deps,
+    )
+    if (result === 'ok') {
+      succeeded += 1
+    } else {
+      stillPending.push(entry)
+    }
+  }
+
+  if (stillPending.length === 0) {
+    await clearPending()
+  } else {
+    await AsyncStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(stillPending))
+  }
+
+  return { attempted: queue.length, succeeded, remaining: stillPending.length }
+}
