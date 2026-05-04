@@ -68,3 +68,40 @@ export async function enqueuePending(entry: PendingCheckIn): Promise<void> {
 export async function clearPending(): Promise<void> {
   await AsyncStorage.removeItem(PENDING_QUEUE_KEY)
 }
+
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+export interface RecordCheckInArgs {
+  userId: string
+  status: CheckInStatus
+  todayISO: string
+}
+
+export interface RecordCheckInDeps {
+  supabase: SupabaseClient
+}
+
+export async function recordNotificationCheckIn(
+  args: RecordCheckInArgs,
+  deps: RecordCheckInDeps,
+): Promise<'ok' | 'failed'> {
+  try {
+    const { error } = await deps.supabase
+      .from('check_ins')
+      .upsert(
+        {
+          user_id: args.userId,
+          status: args.status,
+          note: null,
+          check_in_date: args.todayISO,
+          source: 'notification',
+        },
+        { onConflict: 'user_id,check_in_date' },
+      )
+      .select('id')
+      .single()
+    return error ? 'failed' : 'ok'
+  } catch {
+    return 'failed'
+  }
+}

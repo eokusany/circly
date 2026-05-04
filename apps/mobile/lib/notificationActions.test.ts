@@ -106,3 +106,66 @@ describe('pending queue', () => {
     expect(await readPending()).toEqual([])
   })
 })
+
+import { recordNotificationCheckIn } from './notificationActions'
+
+function makeFakeSupabase(behavior: 'ok' | 'error') {
+  const upsert = jest.fn().mockReturnValue({
+    select: jest.fn().mockReturnValue({
+      single: jest.fn().mockResolvedValue(
+        behavior === 'ok'
+          ? { data: { id: 'row-1' }, error: null }
+          : { data: null, error: { message: 'network down' } },
+      ),
+    }),
+  })
+  const from = jest.fn().mockReturnValue({ upsert })
+  return { from, upsert } as const
+}
+
+describe('recordNotificationCheckIn', () => {
+  it('upserts a row with status, source=notification, note=null, todays date', async () => {
+    const sb = makeFakeSupabase('ok')
+    const result = await recordNotificationCheckIn(
+      { userId: 'user-1', status: 'sober', todayISO: '2026-05-05' },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { supabase: sb as any },
+    )
+    expect(result).toBe('ok')
+    expect(sb.from).toHaveBeenCalledWith('check_ins')
+    expect(sb.upsert).toHaveBeenCalledWith(
+      {
+        user_id: 'user-1',
+        status: 'sober',
+        note: null,
+        check_in_date: '2026-05-05',
+        source: 'notification',
+      },
+      { onConflict: 'user_id,check_in_date' },
+    )
+  })
+
+  it('returns "failed" when supabase returns an error', async () => {
+    const sb = makeFakeSupabase('error')
+    const result = await recordNotificationCheckIn(
+      { userId: 'user-1', status: 'good_day', todayISO: '2026-05-05' },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { supabase: sb as any },
+    )
+    expect(result).toBe('failed')
+  })
+
+  it('returns "failed" when the call throws', async () => {
+    const sb = {
+      from: jest.fn().mockImplementation(() => {
+        throw new Error('boom')
+      }),
+    }
+    const result = await recordNotificationCheckIn(
+      { userId: 'user-1', status: 'good_day', todayISO: '2026-05-05' },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { supabase: sb as any },
+    )
+    expect(result).toBe('failed')
+  })
+})
