@@ -389,19 +389,13 @@ export default function SupporterHome() {
                       userName={person.display_name}
                       userInitial={initial}
                       status={person.today_check_in}
-                      onEncourage={() => router.push({
-                        pathname: '/(supporter)/chat',
-                        params: { userId: person.recovery_user_id },
-                      })}
+                      onEncourage={() => router.push('/(supporter)/chat')}
                     />
                   ) : nudge && nudge.days_since >= 3 ? (
                     <SilenceAlertCard
                       userName={person.display_name}
                       daysQuiet={nudge.days_since}
-                      onMessage={() => router.push({
-                        pathname: '/(supporter)/chat',
-                        params: { userId: person.recovery_user_id },
-                      })}
+                      onMessage={() => router.push('/(supporter)/chat')}
                     />
                   ) : null}
 

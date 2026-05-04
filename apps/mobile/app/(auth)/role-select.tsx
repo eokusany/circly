@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet, Alert } from 'react-native'
 import { router } from 'expo-router'
+import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
 import { useColors } from '../../hooks/useColors'
 import { Icon } from '../../components/Icon'
@@ -26,14 +27,53 @@ const OPTIONS: Array<{ role: 'recovery' | 'supporter'; label: string; descriptio
 export default function RoleSelectScreen() {
   const colors = useColors()
   const { screenTopPadding } = useLayout()
-  const setRole = useAuthStore((s) => s.setRole)
+  const setUser = useAuthStore((s) => s.setUser)
   const [selected, setSelected] = useState<'recovery' | 'supporter' | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  function handleContinue() {
+  async function handleContinue() {
     if (!selected) return
-    setRole(selected)
-    if (selected === 'recovery') router.push('/(auth)/sobriety-start')
-    else router.push('/(auth)/invite-code')
+
+    setLoading(true)
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) {
+      setLoading(false)
+      return
+    }
+
+    const displayName =
+      (authUser.user_metadata?.display_name as string) ||
+      authUser.email?.split('@')[0] ||
+      'user'
+
+    const { error } = await supabase.from('users').insert({
+      id: authUser.id,
+      email: authUser.email!,
+      display_name: displayName,
+      role: selected,
+    })
+
+    if (error) {
+      setLoading(false)
+      Alert.alert('something went wrong', error.message)
+      return
+    }
+
+    await supabase.from('profiles').insert({ user_id: authUser.id })
+
+    setUser({
+      id: authUser.id,
+      email: authUser.email!,
+      displayName: displayName,
+      role: selected,
+      context: null,
+      sobrietyStartDate: null,
+    })
+
+    setLoading(false)
+
+    if (selected === 'recovery') router.replace('/(auth)/sobriety-start')
+    else router.replace('/(auth)/invite-code')
   }
 
   return (
@@ -81,11 +121,13 @@ export default function RoleSelectScreen() {
 
       <Pressable
         onPress={handleContinue}
-        disabled={!selected}
-        style={[styles.cta, { backgroundColor: colors.accent, opacity: selected ? 1 : 0.4 }]}
+        disabled={!selected || loading}
+        style={[styles.cta, { backgroundColor: colors.accent, opacity: selected && !loading ? 1 : 0.4 }]}
         accessibilityRole="button"
       >
-        <Text style={[type.bodyStrong, { color: colors.background }]}>Continue</Text>
+        <Text style={[type.bodyStrong, { color: colors.background }]}>
+          {loading ? 'Setting up…' : 'Continue'}
+        </Text>
       </Pressable>
     </View>
   )

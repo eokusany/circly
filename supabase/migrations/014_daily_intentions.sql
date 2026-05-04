@@ -1,6 +1,6 @@
 create table if not exists daily_intentions (
   id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null references profiles(id) on delete cascade,
+  user_id     uuid not null references public.users(id) on delete cascade,
   intention   text not null,
   created_at  timestamptz not null default now(),
   date        date not null default current_date,
@@ -22,7 +22,7 @@ create policy "Supporters read linked intentions"
     exists (
       select 1 from relationships r
       where r.supporter_id = auth.uid()
-        and r.user_id = daily_intentions.user_id
+        and r.recovery_user_id = daily_intentions.user_id
         and r.status = 'active'
     )
   );
