@@ -12,7 +12,6 @@ const TABS: Array<{ name: string; label: string; icon: IconName }> = [
   { name: 'index',         label: 'home',    icon: 'home'      },
   { name: 'journal',       label: 'journal', icon: 'book-open' },
   { name: 'notifications', label: 'alerts',  icon: 'bell'      },
-  { name: 'profile',       label: 'profile', icon: 'user'      },
 ]
 
 const HIDDEN = new Set(['check-in', 'journal-entry', 'settings', 'supporter-settings', 'silence-settings', 'chat'])
@@ -22,7 +21,7 @@ export function RecoveryTabBar({ state, navigation, insets }: BottomTabBarProps)
   const unreadCount = useNotificationStore((s) => s.unreadCount)
 
   const visibleRoutes = state.routes.filter((r) => !HIDDEN.has(r.name))
-  const half = Math.floor(visibleRoutes.length / 2)
+  const half = Math.ceil(visibleRoutes.length / 2)
   const left = visibleRoutes.slice(0, half)
   const right = visibleRoutes.slice(half)
 

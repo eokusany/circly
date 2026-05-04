@@ -11,7 +11,6 @@ const TABS: Array<{ name: string; label: string; icon: IconName }> = [
   { name: 'index',         label: 'home',        icon: 'home'  },
   { name: 'invite',        label: 'connections', icon: 'users' },
   { name: 'notifications', label: 'alerts',      icon: 'bell'  },
-  { name: 'profile',       label: 'profile',     icon: 'user'  },
 ]
 
 export function SupporterTabBar({ state, navigation, insets }: BottomTabBarProps) {
