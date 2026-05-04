@@ -55,3 +55,23 @@ export function parseTime(time: string): { hour: number; minute: number } {
   const [h, m] = time.split(':').map(Number)
   return { hour: h ?? 9, minute: m ?? 0 }
 }
+
+export async function registerDailyCheckinCategory(): Promise<void> {
+  await Notifications.setNotificationCategoryAsync(NOTIFICATION_CATEGORY_ID, [
+    {
+      identifier: 'mood-good',
+      buttonTitle: 'good',
+      options: { opensAppToForeground: false },
+    },
+    {
+      identifier: 'mood-okay',
+      buttonTitle: 'okay',
+      options: { opensAppToForeground: false },
+    },
+    {
+      identifier: 'mood-struggling',
+      buttonTitle: 'struggling',
+      options: { opensAppToForeground: false, isDestructive: true },
+    },
+  ])
+}
