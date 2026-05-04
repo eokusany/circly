@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
   card: { borderRadius: radii.xl, borderWidth: 1, padding: spacing.lg, gap: spacing.md },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 15, fontWeight: '700' },
+  avatarText: { ...type.bodyStrong, fontWeight: '700' },
   meta: { flex: 1, gap: 2 },
   cta: { borderRadius: radii.md, padding: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 })

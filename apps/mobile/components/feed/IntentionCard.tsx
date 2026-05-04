@@ -55,7 +55,7 @@ export function IntentionCard({ intention, onSave }: IntentionCardProps) {
             disabled={saving || !draft.trim()}
             style={[styles.saveBtn, { backgroundColor: colors.accent, opacity: saving ? 0.6 : 1 }]}
           >
-            <Text style={[type.small, { color: colors.background, fontWeight: '700' }]}>
+            <Text style={[type.small, { color: '#fff', fontWeight: '700' }]}>
               {saving ? 'Saving...' : 'Save'}
             </Text>
           </Pressable>

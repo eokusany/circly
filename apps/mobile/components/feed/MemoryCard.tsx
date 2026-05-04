@@ -11,7 +11,7 @@ interface MemoryCardProps {
 
 export function MemoryCard({ entryText, daysAgo, dayNumber }: MemoryCardProps) {
   const colors = useColors()
-  const label = daysAgo === 7 ? 'one week ago' : daysAgo === 30 ? 'one month ago' : `${daysAgo} days ago`
+  const label = daysAgo === 7 ? 'one week ago' : daysAgo === 30 ? 'one month ago' : `${daysAgo} ${daysAgo === 1 ? 'day' : 'days'} ago`
   return (
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={styles.labelRow}>
