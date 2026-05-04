@@ -10,7 +10,11 @@ interface PromptChipProps {
 export function PromptChip({ prompt }: PromptChipProps) {
   const colors = useColors()
   return (
-    <View style={[styles.chip, { backgroundColor: colors.accentSoft, borderColor: colors.accent }]}>
+    <View
+      accessible={true}
+      accessibilityLabel={`Reflection prompt: ${prompt}`}
+      style={[styles.chip, { backgroundColor: colors.accentSoft, borderColor: colors.accent }]}
+    >
       <View style={styles.labelRow}>
         <Icon name="sun" size={11} color={colors.accent} />
         <Text style={[styles.label, { color: colors.accent }]}>reflection prompt</Text>
@@ -24,5 +28,5 @@ const styles = StyleSheet.create({
   chip: { borderRadius: radii.lg, borderWidth: 1, padding: spacing.md, gap: spacing.xs },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   label: { ...type.label },
-  text: { ...type.small, fontStyle: 'italic', lineHeight: 18 },
+  text: { ...type.small, fontStyle: 'italic' },
 })
