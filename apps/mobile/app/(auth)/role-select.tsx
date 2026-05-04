@@ -1,28 +1,37 @@
-import { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native'
+import { useState } from 'react'
+import { View, Text, Pressable, StyleSheet, Alert } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/auth'
 import { useColors } from '../../hooks/useColors'
-import { Button } from '../../components/Button'
 import { Icon } from '../../components/Icon'
-import { tapLight } from '../../lib/haptics'
-import type { UserRole } from '../../store/auth'
-import { spacing, radii, type as t, layout } from '../../constants/theme'
-import { COPY, DEFAULT_CONTEXT, type AppContext } from '../../lib/copy'
+import { spacing, radii, type } from '../../constants/theme'
+import { useLayout } from '../../hooks/useLayout'
+import type { IconName } from '../../components/Icon'
+
+const OPTIONS: Array<{ role: 'recovery' | 'supporter'; label: string; description: string; icon: IconName }> = [
+  {
+    role: 'recovery',
+    label: "I'm in recovery",
+    description: 'Track your progress and stay connected with the people who care about you.',
+    icon: 'trending-up',
+  },
+  {
+    role: 'supporter',
+    label: "I'm supporting someone",
+    description: "Stay in the loop and show up for someone you love without overstepping.",
+    icon: 'heart',
+  },
+]
 
 export default function RoleSelectScreen() {
   const colors = useColors()
+  const { screenTopPadding } = useLayout()
   const setUser = useAuthStore((s) => s.setUser)
-  const [selected, setSelected] = useState<UserRole | null>(null)
+  const [selected, setSelected] = useState<'recovery' | 'supporter' | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Context was stashed in auth metadata by context-select. If it's missing
-  // (shouldn't happen in the normal flow, but be defensive) we fall back to
-  // the default context rather than crashing. No early return — we read it
-  // inside the handler so we don't need to await the session here.
-
-  async function handleConfirm() {
+  async function handleContinue() {
     if (!selected) return
 
     setLoading(true)
@@ -37,16 +46,11 @@ export default function RoleSelectScreen() {
       authUser.email?.split('@')[0] ||
       'user'
 
-    const context =
-      ((authUser.user_metadata?.context as AppContext | undefined) ?? DEFAULT_CONTEXT)
-
-    // Create the public.users row with role + context in one shot.
     const { error } = await supabase.from('users').insert({
       id: authUser.id,
       email: authUser.email!,
       display_name: displayName,
       role: selected,
-      context,
     })
 
     if (error) {
@@ -55,7 +59,6 @@ export default function RoleSelectScreen() {
       return
     }
 
-    // Create the profiles row
     await supabase.from('profiles').insert({ user_id: authUser.id })
 
     setUser({
@@ -63,151 +66,83 @@ export default function RoleSelectScreen() {
       email: authUser.email!,
       displayName: displayName,
       role: selected,
-      context,
+      context: null,
       sobrietyStartDate: null,
     })
 
     setLoading(false)
 
-    switch (selected) {
-      case 'recovery':
-        // Only recovery context asks for a sobriety start date. In family
-        // context, "the person at the center" goes straight to the dashboard.
-        if (context === 'recovery') {
-          router.replace('/(auth)/sobriety-start')
-        } else {
-          router.replace('/(recovery)')
-        }
-        break
-      case 'supporter':
-        router.replace('/(auth)/invite-code')
-        break
-    }
+    if (selected === 'recovery') router.replace('/(auth)/sobriety-start')
+    else router.replace('/(auth)/invite-code')
   }
 
-  // Context was stashed in auth metadata by context-select. Load it on mount
-  // so the role cards render in the right language. Falls back to default if
-  // metadata is missing (defensive — shouldn't happen in the normal flow).
-  const [activeContext, setActiveContext] = useState<AppContext>(DEFAULT_CONTEXT)
-
-  useEffect(() => {
-    let cancelled = false
-    supabase.auth.getUser().then(({ data }) => {
-      if (cancelled) return
-      const ctx = data.user?.user_metadata?.context as AppContext | undefined
-      if (ctx) setActiveContext(ctx)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const copy = COPY[activeContext]
-  const roles = copy.roles
-
   return (
-    <ScrollView
-      style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.container}
-    >
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>
-          {copy.roleSelect.title}
-        </Text>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: screenTopPadding }]}>
+      <View style={styles.heading}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>what brings you here?</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {copy.roleSelect.subtitle}
+          This shapes your experience. You can change it later.
         </Text>
+      </View>
+
+      <View style={styles.options}>
+        {OPTIONS.map(({ role, label, description, icon }) => {
+          const active = selected === role
+          return (
+            <Pressable
+              key={role}
+              onPress={() => setSelected(role)}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: active ? colors.accentSoft : colors.surface,
+                  borderColor: active ? colors.accent : colors.border,
+                },
+              ]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: active }}
+            >
+              <Icon name={icon} size={22} color={active ? colors.accent : colors.textMuted} />
+              <View style={styles.cardText}>
+                <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{label}</Text>
+                <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{description}</Text>
+              </View>
+            </Pressable>
+          )
+        })}
+
         <View style={[styles.privacyNote, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Icon name="shield" size={14} color={colors.textMuted} />
-          <Text style={[styles.privacyText, { color: colors.textMuted }]}>
-            your journal is always private. you control what your supporters can see.
+          <Icon name="lock" size={14} color={colors.textMuted} />
+          <Text style={[type.small, { color: colors.textMuted, flex: 1 }]}>
+            Your role is private. Only people you invite can see your activity.
           </Text>
         </View>
       </View>
 
-      <View style={styles.cards}>
-        {roles.map((roleValue) => {
-          const role = copy.roleCopy[roleValue]
-          const isSelected = selected === roleValue
-          return (
-            <TouchableOpacity
-              key={roleValue}
-              style={[
-                styles.card,
-                {
-                  backgroundColor: isSelected ? colors.accentSoft : colors.surface,
-                  borderColor: isSelected ? colors.accent : colors.border,
-                  borderWidth: isSelected ? 2 : 1,
-                },
-              ]}
-              onPress={() => { setSelected(roleValue); tapLight() }}
-              activeOpacity={0.85}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: isSelected ? colors.accent : colors.surfaceRaised }]}>
-                <Icon name={role.icon} size={20} color={isSelected ? '#fff' : colors.textSecondary} />
-              </View>
-              <View style={styles.cardText}>
-                <Text style={[styles.cardLabel, { color: colors.textPrimary }]}>
-                  {role.label}
-                </Text>
-                <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>
-                  {role.description}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )
-        })}
-      </View>
-
-      <Button
-        label="continue"
-        onPress={handleConfirm}
-        loading={loading}
-        style={{ opacity: selected ? 1 : 0.4 }}
-      />
-    </ScrollView>
+      <Pressable
+        onPress={handleContinue}
+        disabled={!selected || loading}
+        style={[styles.cta, { backgroundColor: colors.accent, opacity: selected && !loading ? 1 : 0.4 }]}
+        accessibilityRole="button"
+      >
+        <Text style={[type.bodyStrong, { color: colors.background }]}>
+          {loading ? 'Setting up…' : 'Continue'}
+        </Text>
+      </Pressable>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: layout.screenPadding,
-    paddingTop: layout.screenTopPadding,
-    paddingBottom: spacing.xxxl,
-    gap: layout.sectionGap,
-    justifyContent: 'space-between',
-  },
-  header: { gap: spacing.md },
-  privacyNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    marginTop: spacing.xs,
-  },
-  privacyText: { ...t.small, flex: 1 },
-  title: { ...t.h1 },
-  subtitle: { ...t.body },
-  cards: { gap: spacing.md },
-  card: {
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
+  container: { flex: 1, padding: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.xl },
+  heading: { gap: spacing.sm },
+  title: { fontSize: 24, fontWeight: '800' },
+  subtitle: { ...type.body, lineHeight: 22 },
+  options: { flex: 1, gap: spacing.md },
+  card: { borderRadius: radii.xl, borderWidth: 1.5, padding: spacing.lg, flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
   cardText: { flex: 1, gap: spacing.xs },
-  cardLabel: { ...t.h3 },
-  cardDescription: { ...t.small },
+  cardTitle: { ...type.h3 },
+  cardDesc: { ...type.small, lineHeight: 18 },
+  privacyNote: { borderRadius: radii.lg, borderWidth: 1, padding: spacing.md, flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
+  cta: { borderRadius: radii.xl, paddingVertical: spacing.lg, alignItems: 'center' },
 })

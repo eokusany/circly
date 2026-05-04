@@ -37,7 +37,7 @@ describe('MOODS array', () => {
       'neutral',
       'calm',
       'hopeful',
-      'grateful',
+      'thriving',
     ])
   })
 })
@@ -56,8 +56,8 @@ describe('moodFromValue', () => {
     [71, 'calm'],
     [72, 'hopeful'],
     [85, 'hopeful'],
-    [86, 'grateful'],
-    [100, 'grateful'],
+    [86, 'thriving'],
+    [100, 'thriving'],
   ])('maps %d to %s', (value, expectedTag) => {
     expect(moodFromValue(value).tag).toBe(expectedTag)
   })
@@ -66,8 +66,8 @@ describe('moodFromValue', () => {
     expect(moodFromValue(-10).tag).toBe('struggling')
   })
 
-  it('clamps values above 100 to grateful', () => {
-    expect(moodFromValue(150).tag).toBe('grateful')
+  it('clamps values above 100 to thriving', () => {
+    expect(moodFromValue(150).tag).toBe('thriving')
   })
 
   it('rounds fractional values before lookup', () => {

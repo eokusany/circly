@@ -1,10 +1,15 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, RefreshControl, Animated } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Alert, RefreshControl, Animated } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
-import { api, ApiError } from '../../lib/api'
+import { api, ApiError, getTodayIntention, setIntention } from '../../lib/api'
+import { getPromptForDay } from '../../lib/reflectionPrompts'
+import { DailyPulseCard } from '../../components/feed/DailyPulseCard'
+import { MemoryCard } from '../../components/feed/MemoryCard'
+import { IntentionCard } from '../../components/feed/IntentionCard'
+import { StrugglingCard } from '../../components/feed/StrugglingCard'
 import { Icon } from '../../components/Icon'
 import { SkeletonCard } from '../../components/SkeletonCard'
 import { ErrorState } from '../../components/ErrorState'
@@ -20,6 +25,7 @@ import {
 } from '../../lib/streak'
 import { useCopy } from '../../lib/copy'
 import { OkayTapCard } from '../../components/OkayTapCard'
+import { AppHeader } from '../../components/AppHeader'
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
@@ -44,6 +50,8 @@ export default function RecoveryHome() {
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({ checkIns: 0, journalEntries: 0 })
   const [showCelebration, setShowCelebration] = useState(false)
   const [okayTapped, setOkayTapped] = useState(false)
+  const [intention, setIntentionState] = useState<string | null>(null)
+  const [memoryEntry, setMemoryEntry] = useState<{ text: string; daysAgo: number; dayNumber: number } | null>(null)
 
   async function handleGetSupport() {
     Alert.alert(
@@ -104,9 +112,9 @@ export default function RecoveryHome() {
     const todayISO = toISODate(today)
 
     // Load all dashboard data in parallel
-    let checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes
+    let checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes, intentionRes, memoryRes
     try {
-    ;[checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes] = await Promise.all([
+    ;[checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes, intentionRes, memoryRes] = await Promise.all([
       // Today's check-in
       supabase
         .from('check_ins')
@@ -135,6 +143,18 @@ export default function RecoveryHome() {
         .gte('created_at', new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()).toISOString()),
       // Today's okay tap
       api<{ tapped: boolean }>('/api/okay-tap/today').catch(() => ({ tapped: false })),
+      // Fetch today's intention
+      getTodayIntention().catch(() => ({ intention: null, date: '' })),
+      // Fetch memory: journal entry from ~30 days ago (±5 day window)
+      supabase
+        .from('journal_entries')
+        .select('body, created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', new Date(Date.now() - 35 * 86400000).toISOString())
+        .lte('created_at', new Date(Date.now() - 25 * 86400000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ])
     } catch {
       setError(true)
@@ -164,6 +184,19 @@ export default function RecoveryHome() {
     })
 
     setOkayTapped(okayTapRes.tapped)
+
+    setIntentionState((intentionRes as { intention: string | null }).intention)
+
+    const memoryData = memoryRes as { data: { body: string; created_at: string } | null } | null
+    if (memoryData?.data) {
+      const entryDate = new Date(memoryData.data.created_at)
+      const daysAgo = Math.round((Date.now() - entryDate.getTime()) / 86400000)
+      const dayNumber = user?.sobrietyStartDate
+        ? Math.max(1, Math.round((entryDate.getTime() - new Date(user.sobrietyStartDate).getTime()) / 86400000))
+        : daysAgo
+      setMemoryEntry({ text: memoryData.data.body, daysAgo, dayNumber })
+    }
+
     setLoading(false)
     hasLoaded.current = true
     lastFetchedAt.current = Date.now()
@@ -220,30 +253,14 @@ export default function RecoveryHome() {
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent} />
       }
     >
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={[styles.greeting, { color: colors.textSecondary }]}>
-            {getGreeting()}
-          </Text>
-          <Text style={[styles.name, { color: colors.textPrimary }]}>
-            {user?.displayName ?? 'friend'}
-          </Text>
-        </View>
-        <Pressable
-          onPress={() => router.push('/(recovery)/settings')}
-          style={({ pressed }) => [
-            styles.headerButton,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              opacity: pressed ? 0.7 : 1,
-            },
-          ]}
-          accessibilityLabel="invite supporters"
-        >
-          <Icon name="user-plus" size={18} color={colors.textPrimary} />
-        </Pressable>
-      </View>
+      <AppHeader
+        displayName={user?.displayName ?? ''}
+        unreadMessages={0}
+        onSOS={handleGetSupport}
+        onAddSupporter={() => router.push('/(recovery)/settings')}
+        onMessages={() => router.push('/(recovery)/chat')}
+        onProfile={() => router.push('/(recovery)/profile')}
+      />
 
       {showCelebration && <CelebrationBanner />}
 
@@ -279,23 +296,41 @@ export default function RecoveryHome() {
       {/* Weekly summary */}
       <WeeklySummary stats={weeklyStats} checkInStreak={checkInStreak} />
 
+      {/* Feed */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>today</Text>
-        <View style={styles.tiles}>
-          <CheckInTile status={todayStatus} />
-          <ActionTile
-            label={copy.dashboard.journalLabel}
-            description={copy.dashboard.journalDescription}
-            onPress={() => router.push('/(recovery)/journal')}
+        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>your feed</Text>
+
+        {todayStatus === 'struggling' && (
+          <StrugglingCard onGetSupport={handleGetSupport} />
+        )}
+
+        {todayStatus !== null && (
+          <DailyPulseCard
+            prompt={getPromptForDay(days)}
+            onWriteAnswer={() =>
+              router.push({
+                pathname: '/(recovery)/journal-entry',
+                params: { prompt: getPromptForDay(days) },
+              })
+            }
           />
-          <ActionTile
-            label={copy.dashboard.getSupportLabel}
-            description={copy.dashboard.getSupportDescription}
-            danger
-            loading={sendingEmergency}
-            onPress={handleGetSupport}
+        )}
+
+        {memoryEntry && (
+          <MemoryCard
+            entryText={memoryEntry.text}
+            daysAgo={memoryEntry.daysAgo}
+            dayNumber={memoryEntry.dayNumber}
           />
-        </View>
+        )}
+
+        <IntentionCard
+          intention={intention}
+          onSave={async (text) => {
+            await setIntention(text)
+            setIntentionState(text)
+          }}
+        />
       </View>
 
     </ScrollView>
@@ -504,93 +539,6 @@ function MilestoneNode({ reached, isCurrent }: { reached: boolean; isCurrent: bo
   )
 }
 
-// ─── tiles ──────────────────────────────────────────────────────────────
-
-function CheckInTile({ status }: { status: CheckInStatus | null }) {
-  const colors = useColors()
-  const copy = useCopy()
-  const checkedIn = status !== null
-  const meta = status ? copy.dashboard.checkInStatuses[status] : null
-
-  return (
-    <Pressable
-      onPress={() => router.push('/(recovery)/check-in')}
-      accessibilityRole="button"
-      accessibilityLabel={checkedIn ? `Checked in today: ${meta?.label ?? ''}. Tap to edit` : 'Check in for today'}
-      style={({ pressed }) => [
-        styles.tile,
-        {
-          backgroundColor: checkedIn ? colors.accentSoft : colors.surface,
-          borderColor: checkedIn ? colors.accent : colors.border,
-          opacity: pressed ? 0.85 : 1,
-        },
-      ]}
-    >
-      <View style={styles.tileHeader}>
-        <Text style={[styles.tileLabel, { color: colors.textPrimary }]}>
-          {checkedIn ? 'checked in' : 'check in'}
-        </Text>
-        {checkedIn && meta && <Icon name={meta.icon} size={18} color={colors.accent} />}
-      </View>
-      <Text style={[styles.tileDescription, { color: colors.textSecondary }]}>
-        {checkedIn && meta
-          ? `today: ${meta.label} · tap to edit`
-          : copy.dashboard.checkInPrompt}
-      </Text>
-    </Pressable>
-  )
-}
-
-function ActionTile({
-  label,
-  description,
-  disabled,
-  danger,
-  loading,
-  onPress,
-}: {
-  label: string
-  description: string
-  disabled?: boolean
-  danger?: boolean
-  loading?: boolean
-  onPress?: () => void
-}) {
-  const colors = useColors()
-  const inactive = disabled || loading
-  return (
-    <Pressable
-      onPress={inactive ? undefined : onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${label}: ${description}`}
-      accessibilityState={{ disabled: inactive }}
-      style={({ pressed }) => [
-        styles.tile,
-        {
-          backgroundColor: colors.surface,
-          borderColor: danger ? colors.danger : colors.border,
-          opacity: inactive ? 0.55 : pressed ? 0.85 : 1,
-        },
-      ]}
-    >
-      <Text
-        style={[
-          styles.tileLabel,
-          { color: danger ? colors.danger : colors.textPrimary },
-        ]}
-      >
-        {label}
-      </Text>
-      <Text style={[styles.tileDescription, { color: colors.textSecondary }]}>
-        {loading ? 'sending...' : description}
-      </Text>
-      {disabled && !loading && (
-        <Text style={[styles.tileSoon, { color: colors.textMuted }]}>coming soon</Text>
-      )}
-    </Pressable>
-  )
-}
-
 // ─── celebration banner ─────────────────────────────────────────────────
 // Shown briefly when a milestone is reached. Uses Animated for a scale-in effect.
 
@@ -673,17 +621,6 @@ const WeeklySummary = React.memo(function WeeklySummary({ stats, checkInStreak }
   )
 })
 
-// ─── helpers ────────────────────────────────────────────────────────────
-
-function getGreeting(): string {
-  const h = new Date().getHours()
-  if (h < 5) return 'late night'
-  if (h < 12) return 'good morning'
-  if (h < 17) return 'good afternoon'
-  if (h < 21) return 'good evening'
-  return 'good night'
-}
-
 const NODE = 36
 
 const styles = StyleSheet.create({
@@ -692,25 +629,6 @@ const styles = StyleSheet.create({
     paddingTop: layout.screenTopPadding,
     paddingBottom: spacing.xxxl,
     gap: spacing.xl,
-  },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  headerText: { flex: 1, gap: spacing.xs },
-  headerActions: { flexDirection: 'row', gap: spacing.sm },
-  greeting: { ...type.body },
-  name: { ...type.h1 },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   // streak card
@@ -788,27 +706,6 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginVertical: spacing.sm,
-  },
-
-  // tiles
-  tiles: { gap: spacing.md },
-  tile: {
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
-  tileHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  tileLabel: { ...type.h3 },
-  tileDescription: { ...type.small },
-  tileSoon: {
-    fontSize: 11,
-    fontStyle: 'italic',
-    marginTop: spacing.xs,
   },
 
 })

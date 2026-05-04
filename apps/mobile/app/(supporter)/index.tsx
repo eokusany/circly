@@ -25,13 +25,10 @@ import { Icon, type IconName } from '../../components/Icon'
 import { tapMedium, notifySuccess } from '../../lib/haptics'
 import { streakDays, toISODate, type MilestoneType } from '../../lib/streak'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
-
-function getGreeting(): string {
-  const h = new Date().getHours()
-  if (h < 12) return 'good morning'
-  if (h < 17) return 'good afternoon'
-  return 'good evening'
-}
+import { AppHeader } from '../../components/AppHeader'
+import { CheckInActivityCard } from '../../components/feed/CheckInActivityCard'
+import { SilenceAlertCard } from '../../components/feed/SilenceAlertCard'
+import { SharedIntentionCard } from '../../components/feed/SharedIntentionCard'
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
@@ -60,6 +57,19 @@ const MILESTONE_LABEL: Record<MilestoneType, string> = {
 
 const PRESETS = ['thinking of you', 'proud of you', "you've got this"]
 
+interface SilenceNudge {
+  id: string
+  for_user_id: string
+  from_display_name: string
+  days_since: number
+}
+
+interface EmergencyAlert {
+  id: string
+  from_display_name: string
+  created_at: string
+}
+
 export default function SupporterHome() {
   const colors = useColors()
   const user = useAuthStore((s) => s.user)
@@ -71,19 +81,7 @@ export default function SupporterHome() {
   const [sendingFor, setSendingFor] = useState<LinkedPerson | null>(null)
   const [nudges, setNudges] = useState<SilenceNudge[]>([])
   const [emergencies, setEmergencies] = useState<EmergencyAlert[]>([])
-
-  interface SilenceNudge {
-    id: string
-    for_user_id: string
-    from_display_name: string
-    days_since: number
-  }
-
-  interface EmergencyAlert {
-    id: string
-    from_display_name: string
-    created_at: string
-  }
+  const [linkedIntentions, setLinkedIntentions] = useState<Record<string, string>>({})
 
   async function sendWarmPing(person: LinkedPerson) {
     try {
@@ -238,6 +236,19 @@ export default function SupporterHome() {
     }
     setEmergencies(parsedEmergencies)
 
+    // Fetch today's intentions for linked users
+    const { data: intentionsData } = await supabase
+      .from('daily_intentions')
+      .select('user_id, intention')
+      .in('user_id', ids)
+      .eq('date', today)
+
+    const intentionsByUser: Record<string, string> = {}
+    for (const row of (intentionsData ?? []) as Array<{ user_id: string; intention: string }>) {
+      intentionsByUser[row.user_id] = row.intention
+    }
+    setLinkedIntentions(intentionsByUser)
+
     const enriched = base.map((p) => ({
       ...p,
       today_check_in: checkInByUser.get(p.recovery_user_id) ?? null,
@@ -289,38 +300,14 @@ export default function SupporterHome() {
           />
         }
       >
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text style={[styles.greeting, { color: colors.textSecondary }]}>
-              {getGreeting()}
-            </Text>
-            <Text style={[styles.name, { color: colors.textPrimary }]}>
-              {user?.displayName ?? 'friend'}
-            </Text>
-            {people.length > 0 && (
-              <Text style={[styles.summary, { color: colors.textMuted }]}>
-                {people.length} {people.length === 1 ? 'person' : 'people'} in your circle
-                {checkedInCount > 0
-                  ? ` · ${checkedInCount} checked in today`
-                  : ''}
-              </Text>
-            )}
-          </View>
-          <Pressable
-            onPress={() => router.push('/(supporter)/invite')}
-            style={({ pressed }) => [
-              styles.headerButton,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-            accessibilityLabel="invite someone"
-          >
-            <Icon name="user-plus" size={18} color={colors.textPrimary} />
-          </Pressable>
-        </View>
+        <AppHeader
+          displayName={user?.displayName ?? ''}
+          unreadMessages={0}
+          onSOS={() => {}}
+          onAddSupporter={() => router.push('/(supporter)/invite')}
+          onMessages={() => router.push('/(supporter)/chat')}
+          onProfile={() => router.push('/(supporter)/profile')}
+        />
 
         {emergencies.length > 0 && (
           <View style={styles.list}>
@@ -383,6 +370,44 @@ export default function SupporterHome() {
                 />
               ))}
             </View>
+          </View>
+        )}
+
+        {people.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>your feed</Text>
+
+            {people.map((person) => {
+              const nudge = nudges.find((n) => n.for_user_id === person.recovery_user_id)
+              const intention = linkedIntentions[person.recovery_user_id]
+              const initial = (person.display_name[0] ?? '?').toUpperCase()
+
+              return (
+                <View key={person.recovery_user_id} style={{ gap: spacing.md }}>
+                  {person.today_check_in ? (
+                    <CheckInActivityCard
+                      userName={person.display_name}
+                      userInitial={initial}
+                      status={person.today_check_in}
+                      onEncourage={() => router.push('/(supporter)/chat')}
+                    />
+                  ) : nudge && nudge.days_since >= 3 ? (
+                    <SilenceAlertCard
+                      userName={person.display_name}
+                      daysQuiet={nudge.days_since}
+                      onMessage={() => router.push('/(supporter)/chat')}
+                    />
+                  ) : null}
+
+                  {intention && (
+                    <SharedIntentionCard
+                      userName={person.display_name}
+                      intention={intention}
+                    />
+                  )}
+                </View>
+              )
+            })}
           </View>
         )}
 
@@ -746,26 +771,10 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
     gap: layout.sectionGap,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  headerText: { flex: 1, gap: spacing.xs },
-  headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  greeting: { ...t.body },
-  name: { ...t.h1 },
-  summary: { ...t.small, marginTop: spacing.xs },
   peopleSection: { gap: spacing.md },
   sectionLabel: { ...t.label },
+  section: { gap: spacing.lg },
+  sectionTitle: { ...t.label },
   list: { gap: spacing.md },
   card: {
     borderRadius: radii.lg,
