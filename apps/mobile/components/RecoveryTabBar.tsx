@@ -17,7 +17,7 @@ const TABS: Array<{ name: string; label: string; icon: IconName }> = [
 
 const HIDDEN = new Set(['check-in', 'journal-entry', 'settings', 'supporter-settings', 'silence-settings', 'chat'])
 
-export function RecoveryTabBar({ state, navigation }: BottomTabBarProps) {
+export function RecoveryTabBar({ state, navigation, insets }: BottomTabBarProps) {
   const colors = useColors()
   const unreadCount = useNotificationStore((s) => s.unreadCount)
 
@@ -27,14 +27,23 @@ export function RecoveryTabBar({ state, navigation }: BottomTabBarProps) {
   const right = visibleRoutes.slice(half)
 
   function renderTab(route: typeof state.routes[0], tabDef: typeof TABS[0]) {
-    const isFocused = state.routes[state.index].name === route.name
+    const isFocused = state.routes[state.index].key === route.key
     const color = isFocused ? colors.accent : colors.textMuted
     const isAlerts = route.name === 'notifications'
 
     return (
       <Pressable
         key={route.name}
-        onPress={() => navigation.navigate(route.name)}
+        onPress={() => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          })
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name)
+          }
+        }}
         accessibilityRole="tab"
         accessibilityLabel={tabDef.label}
         accessibilityState={{ selected: isFocused }}
@@ -54,7 +63,11 @@ export function RecoveryTabBar({ state, navigation }: BottomTabBarProps) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+    <View style={[styles.container, {
+      backgroundColor: colors.surface,
+      borderTopColor: colors.border,
+      paddingBottom: insets.bottom + spacing.sm,
+    }]}>
       {/* Left tabs */}
       {left.map((route) => {
         const def = TABS.find((t) => t.name === route.name)
@@ -90,9 +103,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     borderTopWidth: StyleSheet.hairlineWidth,
-    paddingBottom: spacing.lg,
     paddingHorizontal: spacing.md,
-    height: 80,
   },
   tab: {
     flex: 1,
