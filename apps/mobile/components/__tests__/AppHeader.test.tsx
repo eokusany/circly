@@ -27,9 +27,9 @@ describe('AppHeader', () => {
     expect(screen.getByText('3')).toBeTruthy()
   })
 
-  it('shows 9+ badge when unreadMessages > 9', () => {
-    render(<AppHeader {...baseProps} unreadMessages={15} />)
-    expect(screen.getByText('9+')).toBeTruthy()
+  it('shows 99+ badge when unreadMessages > 99', () => {
+    render(<AppHeader {...baseProps} unreadMessages={100} />)
+    expect(screen.getByText('99+')).toBeTruthy()
   })
 
   it('does not show badge when unreadMessages is 0', () => {

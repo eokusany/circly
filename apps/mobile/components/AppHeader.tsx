@@ -1,6 +1,7 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useColors } from '../hooks/useColors'
 import { Icon } from './Icon'
+import { Badge } from './Badge'
 import { spacing } from '../constants/theme'
 
 interface AppHeaderProps {
@@ -65,8 +66,8 @@ export function AppHeader({
         >
           <Icon name="message-circle" size={16} color={colors.textSecondary} />
           {unreadMessages > 0 && (
-            <View style={[styles.badge, { backgroundColor: colors.danger }]}>
-              <Text style={styles.badgeText}>{unreadMessages > 9 ? '9+' : unreadMessages}</Text>
+            <View style={styles.badgeWrapper}>
+              <Badge count={unreadMessages} />
             </View>
           )}
         </Pressable>
@@ -97,6 +98,7 @@ const styles = StyleSheet.create({
   },
   wordmark: {
     flex: 1,
+    textAlign: 'center',
     fontSize: 18,
     fontWeight: '800',
     letterSpacing: -0.3,
@@ -113,20 +115,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
-  badge: {
+  badgeWrapper: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '700',
+    top: -4,
+    right: -4,
   },
 })
