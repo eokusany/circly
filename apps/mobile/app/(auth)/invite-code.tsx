@@ -85,7 +85,7 @@ export default function InviteCodeScreen() {
           autoCapitalize="characters"
           maxLength={6}
         />
-        <Button label="continue" onPress={handleContinue} loading={loading} />
+        <Button label="Join their circle" onPress={handleContinue} loading={loading} />
       </View>
 
       <TouchableOpacity onPress={goHome}>
