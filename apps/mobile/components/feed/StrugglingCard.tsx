@@ -16,7 +16,7 @@ export function StrugglingCard({ onGetSupport }: StrugglingCardProps) {
         <Text style={[styles.label, { color: colors.danger }]}>you said you're struggling</Text>
       </View>
       <Text style={[type.body, { color: colors.textPrimary }]}>
-        Your supporters have been notified. You're not alone.
+        You don't have to face this alone. Reach out — someone is there for you.
       </Text>
       <Pressable
         onPress={onGetSupport}
