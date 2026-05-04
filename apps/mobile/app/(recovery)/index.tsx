@@ -20,6 +20,7 @@ import {
 } from '../../lib/streak'
 import { useCopy } from '../../lib/copy'
 import { OkayTapCard } from '../../components/OkayTapCard'
+import { AppHeader } from '../../components/AppHeader'
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
@@ -220,30 +221,14 @@ export default function RecoveryHome() {
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent} />
       }
     >
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={[styles.greeting, { color: colors.textSecondary }]}>
-            {getGreeting()}
-          </Text>
-          <Text style={[styles.name, { color: colors.textPrimary }]}>
-            {user?.displayName ?? 'friend'}
-          </Text>
-        </View>
-        <Pressable
-          onPress={() => router.push('/(recovery)/settings')}
-          style={({ pressed }) => [
-            styles.headerButton,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              opacity: pressed ? 0.7 : 1,
-            },
-          ]}
-          accessibilityLabel="invite supporters"
-        >
-          <Icon name="user-plus" size={18} color={colors.textPrimary} />
-        </Pressable>
-      </View>
+      <AppHeader
+        displayName={user?.displayName ?? ''}
+        unreadMessages={0}
+        onSOS={handleGetSupport}
+        onAddSupporter={() => router.push('/(recovery)/settings')}
+        onMessages={() => router.push('/(recovery)/chat')}
+        onProfile={() => router.push('/(recovery)/profile')}
+      />
 
       {showCelebration && <CelebrationBanner />}
 
@@ -673,17 +658,6 @@ const WeeklySummary = React.memo(function WeeklySummary({ stats, checkInStreak }
   )
 })
 
-// ─── helpers ────────────────────────────────────────────────────────────
-
-function getGreeting(): string {
-  const h = new Date().getHours()
-  if (h < 5) return 'late night'
-  if (h < 12) return 'good morning'
-  if (h < 17) return 'good afternoon'
-  if (h < 21) return 'good evening'
-  return 'good night'
-}
-
 const NODE = 36
 
 const styles = StyleSheet.create({
@@ -692,25 +666,6 @@ const styles = StyleSheet.create({
     paddingTop: layout.screenTopPadding,
     paddingBottom: spacing.xxxl,
     gap: spacing.xl,
-  },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  headerText: { flex: 1, gap: spacing.xs },
-  headerActions: { flexDirection: 'row', gap: spacing.sm },
-  greeting: { ...type.body },
-  name: { ...type.h1 },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   // streak card
