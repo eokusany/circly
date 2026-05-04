@@ -140,3 +140,38 @@ export async function flushPending(deps: RecordCheckInDeps): Promise<FlushResult
 
   return { attempted: queue.length, succeeded, remaining: stillPending.length }
 }
+
+export interface HandleResponseDeps {
+  supabase: SupabaseClient
+  getUserId: () => Promise<string | null>
+  todayISO: string
+  fireConfirmation: (status: CheckInStatus) => Promise<void> | void
+  fireSignedOutPrompt: () => Promise<void> | void
+}
+
+export interface NotificationResponseLike {
+  actionIdentifier: string
+}
+
+export async function handleNotificationResponse(
+  response: NotificationResponseLike,
+  deps: HandleResponseDeps,
+): Promise<void> {
+  const status = actionToStatus(response.actionIdentifier)
+  if (!status) return
+
+  const userId = await deps.getUserId()
+  if (!userId) {
+    await deps.fireSignedOutPrompt()
+    return
+  }
+
+  const result = await recordNotificationCheckIn(
+    { userId, status, todayISO: deps.todayISO },
+    { supabase: deps.supabase },
+  )
+  if (result === 'failed') {
+    await enqueuePending({ userId, status, checkInDate: deps.todayISO })
+  }
+  await deps.fireConfirmation(status)
+}
