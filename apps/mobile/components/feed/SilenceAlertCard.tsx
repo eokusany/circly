@@ -22,7 +22,7 @@ export function SilenceAlertCard({ userName, daysQuiet, onMessage }: SilenceAler
       </Text>
       <Pressable
         onPress={onMessage}
-        style={[styles.cta, { backgroundColor: colors.surface }]}
+        style={[styles.cta, { backgroundColor: colors.dangerSoft }]}
         accessibilityLabel={`Message ${userName}`}
       >
         <Text style={[type.small, { color: colors.textSecondary }]}>Send a message</Text>
