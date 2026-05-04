@@ -66,8 +66,10 @@ Card visual:
 | Card | `role` | `context` | Next screen |
 |---|---|---|---|
 | i'm in recovery | `'recovery'` | `'recovery'` | `/(auth)/sobriety-start` |
-| i need daily support | `'recovery'` | `'family'` | `/(recovery)` |
+| i need daily support | `'recovery'` | `'life'` | `/(recovery)` |
 | i'm here to support someone | `'supporter'` | `null` (see 5) | `/(auth)/invite-code` |
+
+> **Naming note:** the `'life'` context token replaces the previous `'family'` value to better reflect that this account type covers any day-to-day support relationship (family, friends, coworkers, partners, anyone). Existing rows using `'family'` will be migrated to `'life'` as part of this work.
 
 The same `users` and `profiles` insert that `role-select.tsx` does today is performed on continue, with both `role` and `context` set in one operation.
 
@@ -96,12 +98,26 @@ Card descriptions are single short sentences and avoid implementation language (
 - `apps/mobile/app/(auth)/context-select.tsx` (delete)
 - `apps/mobile/app/(auth)/onboarding.tsx` - update the two `router.replace('/(auth)/context-select')` redirects to point to `/(auth)/account-select`
 - `apps/mobile/app/_layout.tsx` - any auth-state routing that points at `context-select` or `role-select` updates to `account-select`
-- Tests: any auth-flow tests covering the removed screens are updated for the new screen and removed for the deleted ones
+- `apps/mobile/store/auth.ts` - update the `AppContext` type from `'recovery' | 'family'` to `'recovery' | 'life'`
+- `apps/mobile/lib/copy.ts` - rename the `family` copy bucket key to `life` and any user-visible copy that read "family" gets replaced with neutral phrasing
+- New Supabase migration - `update profiles set context = 'life' where context = 'family';` plus updating the CHECK constraint on the column
+- Tests covering copy keys and any auth-flow tests covering the removed screens are updated for the new screen
+- Profile settings screen - add the "wrong account type? contact us" link per §8
 
-## 8. Out of Scope
+## 8. Account Type Switching
+
+A general account-type switcher in settings is **out of scope for v1**. The trade-off is deliberate: switching has many edge cases (orphaned relationships when changing role, lost streak history when changing context) that are not worth building UI for before knowing real-world demand.
+
+Instead, profile settings include a single line:
+
+> wrong account type? [contact us](mailto:support@circly.app)
+
+This handles the rare misclick by routing the user to a human, and lets the team manually correct the row. Post-launch, if a particular switch direction is repeatedly requested, that specific transition can be designed and built with proper data-handling.
+
+## 9. Out of Scope
 
 - Changing copy on the welcome / onboarding intro screen
 - Changing what happens after `/(recovery)` or `/(supporter)` is reached (covered by other specs)
-- Allowing a user to change their account type later (settings change is a separate ask)
-- A4 supporter context follow-up question (rejected in favor of inference per 5)
+- A general user-facing account-type switcher (see §8 for v1 stance)
+- Supporter context follow-up question (rejected in favor of inference per §5)
 - Visual changes to other auth screens (sign-in, sign-up, forgot-password, etc.)
