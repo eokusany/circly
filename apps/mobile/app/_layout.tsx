@@ -72,7 +72,7 @@ export default function RootLayout() {
         }
       } else {
         setLoading(false)
-        router.replace('/(auth)/context-select')
+        router.replace('/(auth)/account-select')
       }
     } catch {
       setLoading(false)
