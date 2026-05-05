@@ -120,7 +120,16 @@ export default function CheckInScreen() {
       const without = prev.filter((r) => r.check_in_date !== todayISO)
       return [data, ...without]
     })
-    router.back()
+
+    // First-check-in celebration: §4.3. Trigger if the user hasn't seen it
+    // AND this submit produced their very first row (history was empty
+    // before the optimistic prepend, so length was 0).
+    const wasFirstEver = history.length === 0
+    if (wasFirstEver && user && !user.firstCheckinCelebrationSeen) {
+      router.replace('/(recovery)/first-checkin-celebration')
+    } else {
+      router.back()
+    }
   }
 
   if (loading) {
