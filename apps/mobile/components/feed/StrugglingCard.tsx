@@ -13,10 +13,10 @@ export function StrugglingCard({ onGetSupport }: StrugglingCardProps) {
     <View style={[styles.card, { backgroundColor: colors.dangerSoft, borderColor: colors.danger }]}>
       <View style={styles.labelRow}>
         <Icon name="alert-triangle" size={11} color={colors.danger} />
-        <Text style={[styles.label, { color: colors.danger }]}>you said you're struggling</Text>
+        <Text style={[styles.label, { color: colors.danger }]}>{`you said you're struggling`}</Text>
       </View>
       <Text style={[type.body, { color: colors.textPrimary }]}>
-        You don't have to face this alone. Reach out — someone is there for you.
+        {`You don't have to face this alone. Reach out, someone is there for you.`}
       </Text>
       <Pressable
         onPress={onGetSupport}

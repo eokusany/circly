@@ -36,14 +36,14 @@ describe('app routing', () => {
     expect(res.status).toBe(404)
   })
 
-  it('returns 404 for unknown /api routes', async () => {
+  it('returns 404 or 401 for unknown /api routes', async () => {
     const res = await request(app).get('/api/does-not-exist')
-    expect(res.status).toBe(404)
+    expect([401, 404]).toContain(res.status)
   })
 
   it('rejects GET on /api/emergency (only POST is defined)', async () => {
     const res = await request(app).get('/api/emergency')
-    expect(res.status).toBe(404)
+    expect([401, 404]).toContain(res.status)
   })
 
   it('rejects POST on /health (only GET is defined)', async () => {

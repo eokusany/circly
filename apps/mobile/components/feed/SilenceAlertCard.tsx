@@ -18,7 +18,7 @@ export function SilenceAlertCard({ userName, daysQuiet, onMessage }: SilenceAler
         <Text style={[styles.label, { color: colors.danger }]}>heads up</Text>
       </View>
       <Text style={[type.body, { color: colors.textPrimary }]}>
-        {userName} hasn't checked in for {daysQuiet} {daysQuiet === 1 ? 'day' : 'days'}.
+        {`${userName} hasn't checked in for ${daysQuiet} ${daysQuiet === 1 ? 'day' : 'days'}.`}
       </Text>
       <Pressable
         onPress={onMessage}

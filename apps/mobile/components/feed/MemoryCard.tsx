@@ -18,7 +18,7 @@ export function MemoryCard({ entryText, daysAgo, dayNumber }: MemoryCardProps) {
         <Icon name="calendar" size={11} color={colors.textMuted} />
         <Text style={[styles.label, { color: colors.textMuted }]}>{label} · day {dayNumber}</Text>
       </View>
-      <Text style={[styles.entry, { color: colors.textSecondary }]}>"{entryText}"</Text>
+      <Text style={[styles.entry, { color: colors.textSecondary }]}>{`"${entryText}"`}</Text>
     </View>
   )
 }

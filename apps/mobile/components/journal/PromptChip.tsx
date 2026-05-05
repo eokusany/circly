@@ -19,7 +19,7 @@ export function PromptChip({ prompt }: PromptChipProps) {
         <Icon name="sun" size={11} color={colors.accent} />
         <Text style={[styles.label, { color: colors.accent }]}>reflection prompt</Text>
       </View>
-      <Text style={[styles.text, { color: colors.textSecondary }]}>"{prompt}"</Text>
+      <Text style={[styles.text, { color: colors.textSecondary }]}>{`"${prompt}"`}</Text>
     </View>
   )
 }

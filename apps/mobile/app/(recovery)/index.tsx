@@ -1,11 +1,10 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, RefreshControl, KeyboardAvoidingView, Platform } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
-import { api, ApiError } from '../../lib/api'
-import { Icon } from '../../components/Icon'
+import { api, ApiError, getTodayIntention, setIntention as setIntentionApi } from '../../lib/api'
 import { SkeletonCard } from '../../components/SkeletonCard'
 import { ErrorState } from '../../components/ErrorState'
 import { notifyWarning } from '../../lib/haptics'
@@ -19,7 +18,6 @@ import {
   type Milestone,
 } from '../../lib/streak'
 import { useCopy } from '../../lib/copy'
-import { OkayTapCard } from '../../components/OkayTapCard'
 import { AppHeader } from '../../components/AppHeader'
 import {
   shouldCelebrateSubstance,
@@ -29,6 +27,11 @@ import {
 } from '../../lib/milestones'
 import { MilestoneTakeover } from '../../components/MilestoneTakeover'
 import { MilestoneFeedCard } from '../../components/MilestoneFeedCard'
+import { DailyPulseCard } from '../../components/feed/DailyPulseCard'
+import { MemoryCard } from '../../components/feed/MemoryCard'
+import { IntentionCard } from '../../components/feed/IntentionCard'
+import { StrugglingCard } from '../../components/feed/StrugglingCard'
+import { getPromptForDay } from '../../lib/reflectionPrompts'
 
 const MILESTONES_SUBSTANCE_LABEL: Record<number, string> = {
   1: '1 day',
@@ -47,9 +50,9 @@ const MILESTONES_SUBSTANCE_LABEL: Record<number, string> = {
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
-interface WeeklyStats {
-  checkIns: number
-  journalEntries: number
+interface OldJournalEntry {
+  body: string
+  created_at: string
 }
 
 export default function RecoveryHome() {
@@ -65,13 +68,12 @@ export default function RecoveryHome() {
   const lastFetchedAt = useRef(0)
   const [sendingEmergency, setSendingEmergency] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [checkInStreak, setCheckInStreak] = useState(0)
-  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({ checkIns: 0, journalEntries: 0 })
-  const [okayTapped, setOkayTapped] = useState(false)
   const [hasAnyCheckIns, setHasAnyCheckIns] = useState<boolean | null>(null)
   const [connectionCount, setConnectionCount] = useState<number>(0)
   const [totalCheckIns, setTotalCheckIns] = useState<number>(0)
   const [milestoneTakeoverVisible, setMilestoneTakeoverVisible] = useState(false)
+  const [intention, setIntention] = useState<string | null>(null)
+  const [oldEntry, setOldEntry] = useState<OldJournalEntry | null>(null)
 
   async function handleGetSupport() {
     Alert.alert(
@@ -130,55 +132,44 @@ export default function RecoveryHome() {
     if (!hasLoaded.current) setLoading(true)
     const today = new Date()
     const todayISO = toISODate(today)
+    const sevenDaysAgoISO = new Date(today.getTime() - 7 * 86400000).toISOString()
 
-    // Load all dashboard data in parallel
-    let checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes
-    let totalCheckRes: { count: number | null }, relationshipsRes: { count: number | null }
+    let checkInRes
+    let totalCheckRes: { count: number | null }
+    let relationshipsRes: { count: number | null }
+    let oldJournalRes: { data: OldJournalEntry[] | null }
+    let intentionData: { intention: string | null }
     try {
       const results = await Promise.all([
-        // Today's check-in
         supabase
           .from('check_ins')
           .select('status')
           .eq('user_id', user.id)
           .eq('check_in_date', todayISO)
           .maybeSingle<{ status: CheckInStatus }>(),
-        // Recent check-ins for streak (last 30 days)
-        supabase
-          .from('check_ins')
-          .select('check_in_date')
-          .eq('user_id', user.id)
-          .order('check_in_date', { ascending: false })
-          .limit(30),
-        // This week's check-ins count
-        supabase
-          .from('check_ins')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .gte('check_in_date', toISODate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()))),
-        // This week's journal entries count
-        supabase
-          .from('journal_entries')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .gte('created_at', new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()).toISOString()),
-        // Today's okay tap
-        api<{ tapped: boolean }>('/api/okay-tap/today').catch(() => ({ tapped: false })),
-        // Total check-ins ever (to detect day-one state)
         supabase
           .from('check_ins')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id),
-        // Active supporter connections
         supabase
           .from('relationships')
           .select('id', { count: 'exact', head: true })
           .eq('recovery_user_id', user.id)
           .eq('status', 'active'),
+        supabase
+          .from('journal_entries')
+          .select('body, created_at')
+          .eq('user_id', user.id)
+          .lte('created_at', sevenDaysAgoISO)
+          .order('created_at', { ascending: false })
+          .limit(1),
+        getTodayIntention().catch(() => ({ intention: null })),
       ])
-      ;[checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes] = results
-      totalCheckRes = results[5] as { count: number | null }
-      relationshipsRes = results[6] as { count: number | null }
+      checkInRes = results[0]
+      totalCheckRes = results[1] as { count: number | null }
+      relationshipsRes = results[2] as { count: number | null }
+      oldJournalRes = results[3] as { data: OldJournalEntry[] | null }
+      intentionData = results[4]
     } catch {
       setError(true)
       setLoading(false)
@@ -186,36 +177,15 @@ export default function RecoveryHome() {
     }
 
     setTodayStatus(checkInRes.data?.status ?? null)
-
-    // Calculate consecutive check-in days
-    if (streakRes.data) {
-      const dates = (streakRes.data as Array<{ check_in_date: string }>).map(r => r.check_in_date)
-      let streak = 0
-      const d = new Date(today)
-      // If not checked in today, start from yesterday
-      if (!dates.includes(todayISO)) d.setDate(d.getDate() - 1)
-      while (dates.includes(toISODate(d))) {
-        streak++
-        d.setDate(d.getDate() - 1)
-      }
-      setCheckInStreak(streak)
-    }
-
-    setWeeklyStats({
-      checkIns: weekCheckRes.count ?? 0,
-      journalEntries: weekJournalRes.count ?? 0,
-    })
-
-    setOkayTapped(okayTapRes.tapped)
     setHasAnyCheckIns((totalCheckRes.count ?? 0) > 0)
     setConnectionCount(relationshipsRes.count ?? 0)
     setTotalCheckIns(totalCheckRes.count ?? 0)
+    setOldEntry(oldJournalRes.data?.[0] ?? null)
+    setIntention(intentionData.intention)
     setLoading(false)
     hasLoaded.current = true
     lastFetchedAt.current = Date.now()
 
-    // Decide milestone celebration. Substance: by streak days. Life: by
-    // total check-ins. Branches strictly on user.context.
     if (user.context === 'recovery') {
       const m = shouldCelebrateSubstance(
         user.sobrietyStartDate ? streakDays(user.sobrietyStartDate) : 0,
@@ -242,6 +212,15 @@ export default function RecoveryHome() {
     setRefreshing(true)
     await loadDashboard()
     setRefreshing(false)
+  }
+
+  async function handleSaveIntention(text: string) {
+    try {
+      const result = await setIntentionApi(text)
+      setIntention(result.intention)
+    } catch {
+      Alert.alert('could not save', 'check your connection and try again.')
+    }
   }
 
   if (loading && !refreshing) {
@@ -306,10 +285,25 @@ export default function RecoveryHome() {
     setMilestoneTakeoverVisible(false)
   }
 
+  // Daily Pulse card choice (spec §2.2): rotate reflection vs memory based on
+  // available history. Memory needs an entry from 7+ days ago; rotate every
+  // 3rd day once the user has enough history.
+  const showMemory = oldEntry !== null && days >= 7 && days % 3 === 0
+  const reflectionPrompt = getPromptForDay(days)
+  const oldEntryDaysAgo = oldEntry
+    ? Math.floor((Date.now() - new Date(oldEntry.created_at).getTime()) / 86400000)
+    : 0
+
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
     <ScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent} />
       }
@@ -331,7 +325,6 @@ export default function RecoveryHome() {
       />
 
       {hasAnyCheckIns === false ? (
-        // §3.1 — pre first check-in, big warm card
         <View
           style={[
             styles.dayOneCard,
@@ -345,6 +338,7 @@ export default function RecoveryHome() {
             accessibilityRole="button"
             accessibilityLabel="check in"
             onPress={() => router.push('/(recovery)/check-in')}
+            disabled={sendingEmergency}
             style={({ pressed }) => [
               styles.dayOneBtn,
               { backgroundColor: colors.accent, opacity: pressed ? 0.85 : 1 },
@@ -355,21 +349,60 @@ export default function RecoveryHome() {
         </View>
       ) : (
         <>
-          <OkayTapCard
-            tapped={okayTapped}
-            onTap={async () => {
-              try {
-                await api('/api/okay-tap', { method: 'POST' })
-                setOkayTapped(true)
-              } catch {
-                // silent — haptic already fired, will retry on next refresh
-              }
-            }}
-            prompt={copy.dashboard.okayTapPrompt}
-            doneMessage={copy.dashboard.okayTapDone}
+          {/* §2.4 — pinned streak snapshot */}
+          <StreakCard
+            days={days}
+            next={next}
+            streakLabel={copy.dashboard.streakLabel}
+            showResetChip={user?.context === 'recovery'}
           />
+
+          {/* §4.2 — struggling card sits above all other cards */}
+          {todayStatus === 'struggling' && (
+            <StrugglingCard onGetSupport={handleGetSupport} />
+          )}
+
+          {/* §2.2 — milestone celebration (persistent until next) */}
+          {user?.context === 'recovery' && substanceHighest > 0 && (
+            <MilestoneFeedCard
+              badge={
+                MILESTONES_SUBSTANCE_LABEL[substanceHighest] ??
+                `${substanceHighest} days`
+              }
+              body={`${MILESTONES_SUBSTANCE_LABEL[substanceHighest] ?? `${substanceHighest} days`} clean. quiet wins matter.`}
+            />
+          )}
+          {user?.context === 'life' && lifeHighest > 0 && (
+            <MilestoneFeedCard
+              badge={`${lifeHighest} check-ins`}
+              body={`${lifeHighest} check-ins. showing up matters.`}
+            />
+          )}
+
+          {/* §2.2 — daily pulse: reflection or memory */}
+          {showMemory && oldEntry ? (
+            <MemoryCard
+              entryText={oldEntry.body}
+              daysAgo={oldEntryDaysAgo}
+              dayNumber={Math.max(days - oldEntryDaysAgo, 1)}
+            />
+          ) : (
+            <DailyPulseCard
+              prompt={reflectionPrompt}
+              onWriteAnswer={() =>
+                router.push({
+                  pathname: '/(recovery)/journal-entry',
+                  params: { prompt: reflectionPrompt },
+                })
+              }
+            />
+          )}
+
+          {/* §2.2 — intention slot, daily */}
+          <IntentionCard intention={intention} onSave={handleSaveIntention} />
+
+          {/* invite supporter nudge while user has zero connections */}
           {connectionCount === 0 && (
-            // §3.2/§3.3 — quiet invite-a-supporter card while user has zero connections.
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="invite someone who is in your corner"
@@ -384,74 +417,20 @@ export default function RecoveryHome() {
               ]}
             >
               <Text style={[styles.inviteText, { color: colors.textPrimary }]}>
-                invite someone who&apos;s in your corner →
+                {`invite someone who's in your corner →`}
               </Text>
             </Pressable>
           )}
         </>
       )}
-
-      {/* Streak — extra top margin to create visual breathing room */}
-      <View style={{ marginTop: spacing.md }}>
-        <StreakCard days={days} next={next} streakLabel={copy.dashboard.streakLabel} showResetChip={user?.context === 'recovery'} />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
-          milestones
-        </Text>
-        <MilestonePath days={days} />
-      </View>
-
-      {/* Divider before activity section */}
-      <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-      {/* Weekly summary */}
-      <WeeklySummary stats={weeklyStats} checkInStreak={checkInStreak} />
-
-      {user?.context === 'recovery' && substanceHighest > 0 && (
-        <MilestoneFeedCard
-          badge={
-            MILESTONES_SUBSTANCE_LABEL[substanceHighest] ??
-            `${substanceHighest} days`
-          }
-          body={`🌱 ${MILESTONES_SUBSTANCE_LABEL[substanceHighest] ?? `${substanceHighest} days`} clean. quiet wins matter.`}
-        />
-      )}
-      {user?.context === 'life' && lifeHighest > 0 && (
-        <MilestoneFeedCard
-          badge={`${lifeHighest} check-ins`}
-          body={`🌱 ${lifeHighest} check-ins. showing up matters.`}
-        />
-      )}
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>today</Text>
-        <View style={styles.tiles}>
-          <CheckInTile status={todayStatus} />
-          <ActionTile
-            label={copy.dashboard.journalLabel}
-            description={copy.dashboard.journalDescription}
-            onPress={() => router.push('/(recovery)/journal')}
-          />
-          <ActionTile
-            label={copy.dashboard.getSupportLabel}
-            description={copy.dashboard.getSupportDescription}
-            danger
-            loading={sendingEmergency}
-            onPress={handleGetSupport}
-          />
-        </View>
-      </View>
-
     </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 
 // ─── streak card ────────────────────────────────────────────────────────
-// Surface-based card (no full-bleed accent slab). Inline progress bar
-// gives visual meaning to "X days until Y", and the accent is used
-// sparingly on the numeral and progress fill rather than the whole card.
+// Pinned streak snapshot per spec §2.4: large day count, "X days until Y"
+// caption, and inline milestone progress dots.
 
 function StreakCard({
   days,
@@ -466,7 +445,6 @@ function StreakCard({
 }) {
   const colors = useColors()
 
-  // progress within the *current* milestone segment
   const prevDays = prevMilestoneDays(days)
   const targetDays = next?.days ?? days
   const range = Math.max(targetDays - prevDays, 1)
@@ -540,6 +518,50 @@ function StreakCard({
           every milestone reached. incredible.
         </Text>
       )}
+
+      {/* §2.4 — milestone dots */}
+      <View style={styles.dotsRow}>
+        {MILESTONES.map((m) => {
+          const reached = days >= m.days
+          const isCurrent = !reached && next?.days === m.days
+          return (
+            <View key={m.type} style={styles.dotItem}>
+              <View
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor: reached
+                      ? colors.success
+                      : isCurrent
+                        ? colors.accentSoft
+                        : 'transparent',
+                    borderColor: reached
+                      ? colors.success
+                      : isCurrent
+                        ? colors.accent
+                        : colors.border,
+                    borderWidth: isCurrent ? 2 : 1,
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.dotLabel,
+                  {
+                    color: reached
+                      ? colors.textPrimary
+                      : isCurrent
+                        ? colors.accent
+                        : colors.textMuted,
+                  },
+                ]}
+              >
+                {m.label}
+              </Text>
+            </View>
+          )
+        })}
+      </View>
     </View>
   )
 }
@@ -553,288 +575,14 @@ function prevMilestoneDays(days: number): number {
   return prev
 }
 
-// ─── milestone path ─────────────────────────────────────────────────────
-// Horizontal "path" of connected circles. Each milestone shows one state:
-//   reached  → filled sage circle (milestone earned)
-//   current  → ringed amber circle with dot (you are here)
-//   future   → outlined muted circle
-// Labels live underneath as a single line — no more "1d / 1 day" redundancy.
-
-const MilestonePath = React.memo(function MilestonePath({ days }: { days: number }) {
-  const colors = useColors()
-  const currentIdx = firstUnreachedIndex(days)
-
-  return (
-    <View style={styles.path}>
-      {MILESTONES.map((m, i) => {
-        const reached = days >= m.days
-        const isCurrent = !reached && i === currentIdx
-        const prevConnectorReached = reached
-        const nextConnectorReached = days >= (MILESTONES[i + 1]?.days ?? Infinity)
-
-        return (
-          <View key={m.type} style={styles.pathItem}>
-            <View style={styles.pathRow}>
-              <View
-                style={[
-                  styles.connector,
-                  {
-                    backgroundColor:
-                      i === 0
-                        ? 'transparent'
-                        : prevConnectorReached
-                        ? colors.success
-                        : colors.border,
-                  },
-                ]}
-              />
-              <MilestoneNode reached={reached} isCurrent={isCurrent} />
-              <View
-                style={[
-                  styles.connector,
-                  {
-                    backgroundColor:
-                      i === MILESTONES.length - 1
-                        ? 'transparent'
-                        : nextConnectorReached
-                        ? colors.success
-                        : colors.border,
-                  },
-                ]}
-              />
-            </View>
-            <Text
-              style={[
-                styles.pathLabel,
-                {
-                  color: reached
-                    ? colors.textPrimary
-                    : isCurrent
-                    ? colors.accent
-                    : colors.textMuted,
-                  fontWeight: reached || isCurrent ? '600' : '500',
-                },
-              ]}
-            >
-              {m.label}
-            </Text>
-          </View>
-        )
-      })}
-    </View>
-  )
-})
-
-function firstUnreachedIndex(days: number): number {
-  const i = MILESTONES.findIndex((m) => days < m.days)
-  return i === -1 ? MILESTONES.length : i
-}
-
-function MilestoneNode({ reached, isCurrent }: { reached: boolean; isCurrent: boolean }) {
-  const colors = useColors()
-
-  if (reached) {
-    return (
-      <View style={[styles.node, { backgroundColor: colors.success }]}>
-        <Icon name="check" size={16} color="#fff" />
-      </View>
-    )
-  }
-
-  if (isCurrent) {
-    return (
-      <View
-        style={[
-          styles.node,
-          {
-            backgroundColor: colors.accentSoft,
-            borderWidth: 2,
-            borderColor: colors.accent,
-          },
-        ]}
-      >
-        <View style={[styles.nodeDot, { backgroundColor: colors.accent }]} />
-      </View>
-    )
-  }
-
-  return (
-    <View
-      style={[
-        styles.node,
-        {
-          backgroundColor: 'transparent',
-          borderWidth: 1.5,
-          borderColor: colors.border,
-        },
-      ]}
-    />
-  )
-}
-
-// ─── tiles ──────────────────────────────────────────────────────────────
-
-function CheckInTile({ status }: { status: CheckInStatus | null }) {
-  const colors = useColors()
-  const copy = useCopy()
-  const checkedIn = status !== null
-  const meta = status ? copy.dashboard.checkInStatuses[status] : null
-
-  return (
-    <Pressable
-      onPress={() => router.push('/(recovery)/check-in')}
-      accessibilityRole="button"
-      accessibilityLabel={checkedIn ? `Checked in today: ${meta?.label ?? ''}. Tap to edit` : 'Check in for today'}
-      style={({ pressed }) => [
-        styles.tile,
-        {
-          backgroundColor: checkedIn ? colors.accentSoft : colors.surface,
-          borderColor: checkedIn ? colors.accent : colors.border,
-          opacity: pressed ? 0.85 : 1,
-        },
-      ]}
-    >
-      <View style={styles.tileHeader}>
-        <Text style={[styles.tileLabel, { color: colors.textPrimary }]}>
-          {checkedIn ? 'checked in' : 'check in'}
-        </Text>
-        {checkedIn && meta && <Icon name={meta.icon} size={18} color={colors.accent} />}
-      </View>
-      <Text style={[styles.tileDescription, { color: colors.textSecondary }]}>
-        {checkedIn && meta
-          ? `today: ${meta.label} · tap to edit`
-          : copy.dashboard.checkInPrompt}
-      </Text>
-    </Pressable>
-  )
-}
-
-function ActionTile({
-  label,
-  description,
-  disabled,
-  danger,
-  loading,
-  onPress,
-}: {
-  label: string
-  description: string
-  disabled?: boolean
-  danger?: boolean
-  loading?: boolean
-  onPress?: () => void
-}) {
-  const colors = useColors()
-  const inactive = disabled || loading
-  return (
-    <Pressable
-      onPress={inactive ? undefined : onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${label}: ${description}`}
-      accessibilityState={{ disabled: inactive }}
-      style={({ pressed }) => [
-        styles.tile,
-        {
-          backgroundColor: colors.surface,
-          borderColor: danger ? colors.danger : colors.border,
-          opacity: inactive ? 0.55 : pressed ? 0.85 : 1,
-        },
-      ]}
-    >
-      <Text
-        style={[
-          styles.tileLabel,
-          { color: danger ? colors.danger : colors.textPrimary },
-        ]}
-      >
-        {label}
-      </Text>
-      <Text style={[styles.tileDescription, { color: colors.textSecondary }]}>
-        {loading ? 'sending...' : description}
-      </Text>
-      {disabled && !loading && (
-        <Text style={[styles.tileSoon, { color: colors.textMuted }]}>coming soon</Text>
-      )}
-    </Pressable>
-  )
-}
-
-// ─── weekly summary ────────────────────────────────────────────────────
-
-const WeeklySummary = React.memo(function WeeklySummary({ stats, checkInStreak }: { stats: WeeklyStats; checkInStreak: number }) {
-  const colors = useColors()
-  if (stats.checkIns === 0 && stats.journalEntries === 0 && checkInStreak === 0) return null
-
-  return (
-    <View style={[styles.weeklyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>this week</Text>
-      <View style={styles.weeklyRow}>
-        {checkInStreak > 0 && (
-          <View style={styles.weeklyItem}>
-            <Icon name="zap" size={16} color={colors.accent} />
-            <Text style={[type.bodyStrong, { color: colors.textPrimary }]}>
-              {checkInStreak}
-            </Text>
-            <Text style={[type.small, { color: colors.textSecondary }]}>
-              day streak
-            </Text>
-          </View>
-        )}
-        <View style={styles.weeklyItem}>
-          <Icon name="check-circle" size={16} color={colors.success} />
-          <Text style={[type.bodyStrong, { color: colors.textPrimary }]}>
-            {stats.checkIns}
-          </Text>
-          <Text style={[type.small, { color: colors.textSecondary }]}>
-            check-ins
-          </Text>
-        </View>
-        <View style={styles.weeklyItem}>
-          <Icon name="book-open" size={16} color={colors.accent} />
-          <Text style={[type.bodyStrong, { color: colors.textPrimary }]}>
-            {stats.journalEntries}
-          </Text>
-          <Text style={[type.small, { color: colors.textSecondary }]}>
-            entries
-          </Text>
-        </View>
-      </View>
-    </View>
-  )
-})
-
-// ─── helpers ────────────────────────────────────────────────────────────
-
-const NODE = 36
-
 const styles = StyleSheet.create({
   container: {
     padding: layout.screenPadding,
     paddingTop: layout.screenTopPadding,
-    paddingBottom: spacing.xxxl,
-    gap: spacing.xl,
+    paddingBottom: spacing.xxxl * 3,
+    gap: spacing.lg,
   },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  headerText: { flex: 1, gap: spacing.xs },
-  headerActions: { flexDirection: 'row', gap: spacing.sm },
-  greeting: { ...type.body },
-  name: { ...type.h1 },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // streak card
   streakCard: {
     borderRadius: radii.xl,
     borderWidth: 1,
@@ -867,68 +615,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // sections
-  section: { gap: spacing.lg },
-  sectionTitle: { ...type.label },
-
-  // milestone path
-  path: { flexDirection: 'row', alignItems: 'flex-start' },
-  pathItem: { flex: 1, alignItems: 'center', gap: spacing.sm },
-  pathRow: { flexDirection: 'row', alignItems: 'center', width: '100%' },
-  connector: { flex: 1, height: 2 },
-  node: {
-    width: NODE,
-    height: NODE,
-    borderRadius: NODE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nodeDot: { width: 8, height: 8, borderRadius: 4 },
-  pathLabel: {
-    fontSize: 11,
-    letterSpacing: 0.1,
-  },
-
-  // weekly summary
-  weeklyCard: {
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  weeklyRow: {
-    flexDirection: 'row',
-  },
-  weeklyItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-
-  divider: {
-    height: 1,
-    marginVertical: spacing.sm,
-  },
-
-  // tiles
-  tiles: { gap: spacing.md },
-  tile: {
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
-  tileHeader: {
+  dotsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    marginTop: spacing.sm,
   },
-  tileLabel: { ...type.h3 },
-  tileDescription: { ...type.small },
-  tileSoon: {
-    fontSize: 11,
-    fontStyle: 'italic',
-    marginTop: spacing.xs,
+  dotItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  dotLabel: {
+    fontSize: 10,
+    fontWeight: '500',
   },
 
   // day-one empty state
@@ -947,12 +650,10 @@ const styles = StyleSheet.create({
   },
   dayOneBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' as const },
 
-  // invite-supporter nudge card
   inviteCard: {
     borderRadius: radii.lg,
     borderWidth: 1,
     padding: spacing.lg,
   },
   inviteText: { ...type.body, fontWeight: '500' as const },
-
 })
