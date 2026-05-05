@@ -12,6 +12,11 @@ export interface AppUser {
   role: UserRole
   context: AppContext | null
   sobrietyStartDate: string | null
+  firstCheckinIntroSeen?: boolean
+  firstCheckinCelebrationSeen?: boolean
+  supporterFirstRunSeen?: boolean
+  lastMilestoneCelebratedDays?: number
+  lastMilestoneCelebratedCheckins?: number
 }
 
 interface AuthState {

@@ -43,7 +43,7 @@ export default function RootLayout() {
     try {
       const { data } = await supabase
         .from('users')
-        .select('id, email, display_name, avatar_url, role, context, profiles(sobriety_start_date)')
+        .select('id, email, display_name, avatar_url, role, context, profiles(sobriety_start_date, first_checkin_intro_seen, first_checkin_celebration_seen, supporter_first_run_seen, last_milestone_celebrated_days, last_milestone_celebrated_checkins)')
         .eq('id', userId)
         .single<{
           id: string
@@ -52,7 +52,14 @@ export default function RootLayout() {
           avatar_url: string | null
           role: UserRole
           context: AppContext | null
-          profiles: { sobriety_start_date: string | null } | null
+          profiles: {
+            sobriety_start_date: string | null
+            first_checkin_intro_seen: boolean | null
+            first_checkin_celebration_seen: boolean | null
+            supporter_first_run_seen: boolean | null
+            last_milestone_celebrated_days: number | null
+            last_milestone_celebrated_checkins: number | null
+          } | null
         }>()
 
       if (data) {
@@ -65,6 +72,11 @@ export default function RootLayout() {
           role: data.role,
           context: data.context,
           sobrietyStartDate,
+          firstCheckinIntroSeen: data.profiles?.first_checkin_intro_seen ?? false,
+          firstCheckinCelebrationSeen: data.profiles?.first_checkin_celebration_seen ?? false,
+          supporterFirstRunSeen: data.profiles?.supporter_first_run_seen ?? false,
+          lastMilestoneCelebratedDays: data.profiles?.last_milestone_celebrated_days ?? 0,
+          lastMilestoneCelebratedCheckins: data.profiles?.last_milestone_celebrated_checkins ?? 0,
         })
         setLoading(false)
         if (data.role === 'recovery' && data.context === 'recovery' && !sobrietyStartDate) {
