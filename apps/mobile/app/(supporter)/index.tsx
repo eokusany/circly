@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -91,6 +91,24 @@ export default function SupporterHome() {
   const [sendingFor, setSendingFor] = useState<LinkedPerson | null>(null)
   const [nudges, setNudges] = useState<SilenceNudge[]>([])
   const [emergencies, setEmergencies] = useState<EmergencyAlert[]>([])
+
+  useEffect(() => {
+    if (!user) return
+    if (user.supporterFirstRunSeen) return
+    ;(async () => {
+      const { count } = await supabase
+        .from('relationships')
+        .select('id', { count: 'exact', head: true })
+        .eq('supporter_id', user.id)
+        .eq('status', 'active')
+      if ((count ?? 0) > 0) {
+        router.replace('/(supporter)/first-run-connected')
+      } else {
+        router.replace('/(supporter)/first-run-cold')
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   interface SilenceNudge {
     id: string
