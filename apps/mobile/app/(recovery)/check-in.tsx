@@ -165,6 +165,29 @@ export default function CheckInScreen() {
         })}
       </View>
 
+      {status === 'struggling' && user?.context === 'recovery' && (
+        <View
+          style={[
+            styles.startFreshCard,
+            { backgroundColor: colors.warningSoft, borderColor: colors.warning },
+          ]}
+        >
+          <Text style={[styles.startFreshTitle, { color: colors.textPrimary }]}>
+            need a fresh start?
+          </Text>
+          <Text style={[styles.startFreshBody, { color: colors.textSecondary }]}>
+            if today wasn&apos;t a clean day, you can reset your start date. it&apos;s not a failure, it&apos;s honesty.
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => router.push('/(recovery)/start-fresh')}
+            style={[styles.startFreshBtn, { backgroundColor: colors.warning }]}
+          >
+            <Text style={styles.startFreshBtnText}>&#x21bb; start fresh</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.noteWrap}>
         <Text style={[styles.noteLabel, { color: colors.textMuted }]}>
           note (optional)
@@ -321,4 +344,21 @@ const styles = StyleSheet.create({
   historyBody: { flex: 1, gap: 2 },
   historyDate: { ...t.smallStrong },
   historyNote: { ...t.small },
+
+  startFreshCard: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  startFreshTitle: { ...t.h3 },
+  startFreshBody: { ...t.small },
+  startFreshBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.pill,
+    marginTop: spacing.xs,
+  },
+  startFreshBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 })
