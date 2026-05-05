@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, RefreshControl, Animated } from 'react-native'
+import React, { useState, useCallback, useRef, useMemo } from 'react'
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, RefreshControl } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
@@ -8,7 +8,7 @@ import { api, ApiError } from '../../lib/api'
 import { Icon } from '../../components/Icon'
 import { SkeletonCard } from '../../components/SkeletonCard'
 import { ErrorState } from '../../components/ErrorState'
-import { notifyWarning, notifySuccess } from '../../lib/haptics'
+import { notifyWarning } from '../../lib/haptics'
 import { spacing, radii, type, layout } from '../../constants/theme'
 import { useLayout } from '../../hooks/useLayout'
 import {
@@ -21,6 +21,29 @@ import {
 import { useCopy } from '../../lib/copy'
 import { OkayTapCard } from '../../components/OkayTapCard'
 import { AppHeader } from '../../components/AppHeader'
+import {
+  shouldCelebrateSubstance,
+  shouldCelebrateLife,
+  highestReachedSubstanceDays,
+  highestReachedLifeCheckins,
+} from '../../lib/milestones'
+import { MilestoneTakeover } from '../../components/MilestoneTakeover'
+import { MilestoneFeedCard } from '../../components/MilestoneFeedCard'
+
+const MILESTONES_SUBSTANCE_LABEL: Record<number, string> = {
+  1: '1 day',
+  3: '3 days',
+  7: '1 week',
+  14: '2 weeks',
+  30: '1 month',
+  90: '3 months',
+  180: '6 months',
+  365: '1 year',
+  730: '2 years',
+  1095: '3 years',
+  1460: '4 years',
+  1825: '5 years',
+}
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
@@ -34,6 +57,7 @@ export default function RecoveryHome() {
   const { screenTopPadding } = useLayout()
   const copy = useCopy()
   const user = useAuthStore((s) => s.user)
+  const setUser = useAuthStore((s) => s.setUser)
   const [todayStatus, setTodayStatus] = useState<CheckInStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -43,10 +67,11 @@ export default function RecoveryHome() {
   const [refreshing, setRefreshing] = useState(false)
   const [checkInStreak, setCheckInStreak] = useState(0)
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({ checkIns: 0, journalEntries: 0 })
-  const [showCelebration, setShowCelebration] = useState(false)
   const [okayTapped, setOkayTapped] = useState(false)
   const [hasAnyCheckIns, setHasAnyCheckIns] = useState<boolean | null>(null)
   const [connectionCount, setConnectionCount] = useState<number>(0)
+  const [totalCheckIns, setTotalCheckIns] = useState<number>(0)
+  const [milestoneTakeoverVisible, setMilestoneTakeoverVisible] = useState(false)
 
   async function handleGetSupport() {
     Alert.alert(
@@ -184,9 +209,26 @@ export default function RecoveryHome() {
     setOkayTapped(okayTapRes.tapped)
     setHasAnyCheckIns((totalCheckRes.count ?? 0) > 0)
     setConnectionCount(relationshipsRes.count ?? 0)
+    setTotalCheckIns(totalCheckRes.count ?? 0)
     setLoading(false)
     hasLoaded.current = true
     lastFetchedAt.current = Date.now()
+
+    // Decide milestone celebration. Substance: by streak days. Life: by
+    // total check-ins. Branches strictly on user.context.
+    if (user.context === 'recovery') {
+      const m = shouldCelebrateSubstance(
+        user.sobrietyStartDate ? streakDays(user.sobrietyStartDate) : 0,
+        user.lastMilestoneCelebratedDays ?? 0,
+      )
+      if (m) setMilestoneTakeoverVisible(true)
+    } else if (user.context === 'life') {
+      const m = shouldCelebrateLife(
+        totalCheckRes.count ?? 0,
+        user.lastMilestoneCelebratedCheckins ?? 0,
+      )
+      if (m) setMilestoneTakeoverVisible(true)
+    }
   }, [user])
 
   useFocusEffect(
@@ -195,20 +237,6 @@ export default function RecoveryHome() {
       if (!hasLoaded.current || stale) loadDashboard()
     }, [loadDashboard])
   )
-
-  // Milestone celebration — show when user just crossed a milestone boundary
-  const prevDaysRef = useRef(days)
-  useEffect(() => {
-    if (days > 0 && prevDaysRef.current !== days) {
-      const justReached = MILESTONES.find(m => m.days === days)
-      if (justReached) {
-        setShowCelebration(true)
-        notifySuccess()
-        setTimeout(() => setShowCelebration(false), 3000)
-      }
-    }
-    prevDaysRef.current = days
-  }, [days])
 
   async function handleRefresh() {
     setRefreshing(true)
@@ -232,6 +260,52 @@ export default function RecoveryHome() {
     )
   }
 
+  const substanceCelebrating =
+    user?.context === 'recovery'
+      ? shouldCelebrateSubstance(
+          days,
+          user.lastMilestoneCelebratedDays ?? 0,
+        )
+      : null
+  const lifeCelebrating =
+    user?.context === 'life'
+      ? shouldCelebrateLife(
+          totalCheckIns,
+          user.lastMilestoneCelebratedCheckins ?? 0,
+        )
+      : null
+
+  const substanceHighest = highestReachedSubstanceDays(days)
+  const lifeHighest = highestReachedLifeCheckins(totalCheckIns)
+
+  const takeoverLabel =
+    substanceCelebrating
+      ? `${substanceCelebrating.label}.`
+      : lifeCelebrating
+        ? `${lifeCelebrating.label}.`
+        : ''
+
+  async function handleTakeoverContinue() {
+    if (!user) {
+      setMilestoneTakeoverVisible(false)
+      return
+    }
+    if (user.context === 'recovery' && substanceCelebrating) {
+      await supabase
+        .from('profiles')
+        .update({ last_milestone_celebrated_days: substanceCelebrating.days })
+        .eq('user_id', user.id)
+      setUser({ ...user, lastMilestoneCelebratedDays: substanceCelebrating.days })
+    } else if (user.context === 'life' && lifeCelebrating) {
+      await supabase
+        .from('profiles')
+        .update({ last_milestone_celebrated_checkins: lifeCelebrating.checkins })
+        .eq('user_id', user.id)
+      setUser({ ...user, lastMilestoneCelebratedCheckins: lifeCelebrating.checkins })
+    }
+    setMilestoneTakeoverVisible(false)
+  }
+
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
@@ -240,6 +314,11 @@ export default function RecoveryHome() {
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent} />
       }
     >
+      <MilestoneTakeover
+        visible={milestoneTakeoverVisible}
+        label={takeoverLabel}
+        onContinue={handleTakeoverContinue}
+      />
       <AppHeader
         user={{
           id: user?.id ?? '',
@@ -250,8 +329,6 @@ export default function RecoveryHome() {
         onMessagesPress={() => router.push('/(recovery)/chat')}
         onSosPress={handleGetSupport}
       />
-
-      {showCelebration && <CelebrationBanner />}
 
       {hasAnyCheckIns === false ? (
         // §3.1 — pre first check-in, big warm card
@@ -331,6 +408,22 @@ export default function RecoveryHome() {
 
       {/* Weekly summary */}
       <WeeklySummary stats={weeklyStats} checkInStreak={checkInStreak} />
+
+      {user?.context === 'recovery' && substanceHighest > 0 && (
+        <MilestoneFeedCard
+          badge={
+            MILESTONES_SUBSTANCE_LABEL[substanceHighest] ??
+            `${substanceHighest} days`
+          }
+          body={`🌱 ${MILESTONES_SUBSTANCE_LABEL[substanceHighest] ?? `${substanceHighest} days`} clean. quiet wins matter.`}
+        />
+      )}
+      {user?.context === 'life' && lifeHighest > 0 && (
+        <MilestoneFeedCard
+          badge={`${lifeHighest} check-ins`}
+          body={`🌱 ${lifeHighest} check-ins. showing up matters.`}
+        />
+      )}
 
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>today</Text>
@@ -666,44 +759,6 @@ function ActionTile({
   )
 }
 
-// ─── celebration banner ─────────────────────────────────────────────────
-// Shown briefly when a milestone is reached. Uses Animated for a scale-in effect.
-
-function CelebrationBanner() {
-  const colors = useColors()
-  const scale = useMemo(() => new Animated.Value(0.8), [])
-  const opacity = useMemo(() => new Animated.Value(0), [])
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-    ]).start()
-  }, [scale, opacity])
-
-  return (
-    <Animated.View
-      style={[
-        styles.celebration,
-        {
-          backgroundColor: colors.successSoft,
-          borderColor: colors.success,
-          transform: [{ scale }],
-          opacity,
-        },
-      ]}
-    >
-      <Icon name="award" size={24} color={colors.success} />
-      <View style={styles.celebrationText}>
-        <Text style={[type.h3, { color: colors.textPrimary }]}>milestone reached</Text>
-        <Text style={[type.small, { color: colors.textSecondary }]}>
-          you did it. take a moment to feel this.
-        </Text>
-      </View>
-    </Animated.View>
-  )
-}
-
 // ─── weekly summary ────────────────────────────────────────────────────
 
 const WeeklySummary = React.memo(function WeeklySummary({ stats, checkInStreak }: { stats: WeeklyStats; checkInStreak: number }) {
@@ -833,17 +888,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 0.1,
   },
-
-  // celebration
-  celebration: {
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    padding: spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  celebrationText: { flex: 1, gap: 2 },
 
   // weekly summary
   weeklyCard: {
