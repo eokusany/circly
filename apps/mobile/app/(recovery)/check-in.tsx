@@ -38,6 +38,24 @@ export default function CheckInScreen() {
   const scheme = useColorScheme() ?? 'light'
   const user = useAuthStore((s) => s.user)
   const copy = useCopy()
+
+  // First-check-in intro: §4.1. Redirect once if the flag is unset and we
+  // have no historical check-ins. Done before loading anything to avoid
+  // flashing the standard screen.
+  useEffect(() => {
+    if (!user) return
+    if (user.firstCheckinIntroSeen) return
+    ;(async () => {
+      const { count } = await supabase
+        .from('check_ins')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+      if ((count ?? 0) === 0) {
+        router.replace('/(recovery)/first-checkin-intro')
+      }
+    })()
+  }, [user])
+
   const options = STATUS_ORDER.map((value) => ({
     value,
     ...copy.dashboard.checkInStatuses[value],
