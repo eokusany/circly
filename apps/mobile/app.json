@@ -24,6 +24,7 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSFaceIDUsageDescription": "Use Face ID to lock your private journal.",
+        "NSPhotoLibraryUsageDescription": "Choose a photo for your profile picture.",
         "NSUserTrackingUsageDescription": "This identifier helps us improve the app experience.",
         "ITSAppUsesNonExemptEncryption": false
       },
