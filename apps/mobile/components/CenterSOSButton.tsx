@@ -21,9 +21,11 @@ export function CenterSOSButton({ onArmed }: Props) {
   const [pressed, setPressed] = useState(false)
   const armedRef = useRef(false)
   const armTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const ringProgress = useRef(new Animated.Value(0)).current
 
   const cancelHold = useCallback(() => {
+    if (armedRef.current) return
     if (armTimer.current) {
       clearTimeout(armTimer.current)
       armTimer.current = null
@@ -47,17 +49,17 @@ export function CenterSOSButton({ onArmed }: Props) {
       armedRef.current = true
       armTimer.current = null
       onArmed()
-      // Reset so a subsequent press can arm again next time the user enters
-      // the screen / lifts and re-presses.
-      setTimeout(() => {
+      resetTimer.current = setTimeout(() => {
         armedRef.current = false
         ringProgress.setValue(0)
+        resetTimer.current = null
       }, 250)
     }, HOLD_MS)
   }, [onArmed, ringProgress])
 
   useEffect(() => () => {
     if (armTimer.current) clearTimeout(armTimer.current)
+    if (resetTimer.current) clearTimeout(resetTimer.current)
   }, [])
 
   const strokeDashoffset = ringProgress.interpolate({
