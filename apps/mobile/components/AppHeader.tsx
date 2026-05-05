@@ -1,123 +1,134 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useColors } from '../hooks/useColors'
+import { Avatar } from './Avatar'
 import { Icon } from './Icon'
-import { Badge } from './Badge'
-import { spacing } from '../constants/theme'
+import { spacing, type as t } from '../constants/theme'
 
-interface AppHeaderProps {
-  displayName: string
-  unreadMessages: number
-  onSOS: () => void
-  onAddSupporter: () => void
-  onMessages: () => void
-  onProfile: () => void
+interface Props {
+  user: { id: string; displayName: string; avatarUrl: string | null | undefined }
+  onAvatarPress: () => void
+  onMessagesPress?: () => void
+  onSosPress?: () => void
+  unreadMessages?: number
 }
 
 export function AppHeader({
-  displayName,
+  user,
+  onAvatarPress,
+  onMessagesPress,
+  onSosPress,
   unreadMessages,
-  onSOS,
-  onAddSupporter,
-  onMessages,
-  onProfile,
-}: AppHeaderProps) {
+}: Props) {
   const colors = useColors()
-  const initial = (displayName?.[0] ?? '?').toUpperCase()
-
   return (
-    <View style={[styles.container, { borderBottomColor: colors.border }]}>
-      {/* Avatar */}
+    <View style={styles.row}>
       <Pressable
-        onPress={onProfile}
-        accessibilityLabel="Open profile"
-        style={[styles.avatar, { backgroundColor: colors.accent }]}
+        onPress={onAvatarPress}
+        accessibilityRole="button"
+        accessibilityLabel="open profile"
+        hitSlop={8}
+        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
       >
-        <Text style={[styles.avatarText, { color: colors.background }]}>{initial}</Text>
+        <Avatar
+          userId={user.id}
+          displayName={user.displayName}
+          avatarUrl={user.avatarUrl}
+          size={36}
+        />
       </Pressable>
 
-      {/* Wordmark */}
-      <Text style={[styles.wordmark, { color: colors.textPrimary }]}>circly</Text>
+      <Text style={[styles.wordmark, { color: colors.accent }]}>circly</Text>
 
-      {/* Right icons */}
-      <View style={styles.icons}>
-        {/* SOS */}
-        <Pressable
-          onPress={onSOS}
-          accessibilityLabel="Get support"
-          style={[styles.iconBtn, { backgroundColor: colors.dangerSoft, borderColor: colors.danger, borderWidth: 1 }]}
-        >
-          <Icon name="alert-triangle" size={16} color={colors.danger} />
-        </Pressable>
-
-        {/* Add supporter */}
-        <Pressable
-          onPress={onAddSupporter}
-          accessibilityLabel="Add supporter"
-          style={[styles.iconBtn, { backgroundColor: colors.surface }]}
-        >
-          <Icon name="user-plus" size={16} color={colors.textSecondary} />
-        </Pressable>
-
-        {/* Messages */}
-        <Pressable
-          onPress={onMessages}
-          accessibilityLabel={`Messages${unreadMessages > 0 ? `, ${unreadMessages} unread` : ''}`}
-          style={[styles.iconBtn, { backgroundColor: colors.surface }]}
-        >
-          <Icon name="message-circle" size={16} color={colors.textSecondary} />
-          {unreadMessages > 0 && (
-            <View style={styles.badgeWrapper}>
-              <Badge count={unreadMessages} />
-            </View>
-          )}
-        </Pressable>
+      <View style={styles.actions}>
+        {onSosPress && (
+          <Pressable
+            onPress={onSosPress}
+            accessibilityRole="button"
+            accessibilityLabel="alert your supporters"
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.iconBtn,
+              {
+                backgroundColor: colors.dangerSoft,
+                borderColor: colors.danger,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Icon name="alert-triangle" size={16} color={colors.danger} />
+          </Pressable>
+        )}
+        {onMessagesPress && (
+          <Pressable
+            onPress={onMessagesPress}
+            accessibilityRole="button"
+            accessibilityLabel="open messages"
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.iconBtn,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Icon name="message-circle" size={16} color={colors.textPrimary} />
+            {unreadMessages !== undefined && unreadMessages > 0 && (
+              <View style={[styles.badge, { backgroundColor: colors.accent }]}>
+                <Text style={styles.badgeText}>
+                  {unreadMessages > 9 ? '9+' : String(unreadMessages)}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        )}
       </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: spacing.sm,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 15,
-    fontWeight: '700',
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   wordmark: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 18,
+    ...t.h3,
     fontWeight: '800',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
-  icons: {
+  actions: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   iconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
-  badgeWrapper: {
+  badge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -2,
+    right: -2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
 })

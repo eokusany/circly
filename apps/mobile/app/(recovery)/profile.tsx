@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native'
 import { router } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { spacing, type as t, layout } from '../../constants/theme'
 import { SettingRow, SettingSection } from '../../components/SettingRow'
 import { COPY, DEFAULT_CONTEXT } from '../../lib/copy'
+
+const SUPPORT_EMAIL = 'support@circly.app'
 
 export default function ProfileTab() {
   const colors = useColors()
@@ -13,7 +15,7 @@ export default function ProfileTab() {
 
   if (!user) return null
 
-  const contextLabel = COPY[user.context ?? DEFAULT_CONTEXT].contextCard.label
+  const contextLabel = COPY[user.context ?? DEFAULT_CONTEXT].roleCopy[user.role].label
   const isRecoveryCenter = user.role === 'recovery' && user.context === 'recovery'
 
   return (
@@ -35,9 +37,9 @@ export default function ProfileTab() {
           onPress={() => router.push('/(profile)/edit-name')}
         />
         <SettingRow
-          label="context"
-          value={contextLabel}
-          onPress={() => router.push('/(profile)/switch-context')}
+          label="wrong account type?"
+          value="contact us"
+          onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
         />
       </SettingSection>
 

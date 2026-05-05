@@ -42,7 +42,7 @@ export default function SignUpScreen() {
     }
 
     if (data.user) {
-      // Store name in session metadata for role-select to use
+      // Store name in session metadata for account-select to use
       await supabase.auth.updateUser({ data: { display_name: name.trim() } })
       router.replace('/(auth)/role-select')
     }
