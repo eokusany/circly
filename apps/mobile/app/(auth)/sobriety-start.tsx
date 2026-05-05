@@ -146,7 +146,7 @@ export default function SobrietyStartScreen() {
         </Text>
       </TouchableOpacity>
 
-      <Button label="continue" onPress={handleContinue} loading={loading} />
+      <Button label="Start my journey" onPress={handleContinue} loading={loading} />
     </KeyboardAwareScrollView>
   )
 }
