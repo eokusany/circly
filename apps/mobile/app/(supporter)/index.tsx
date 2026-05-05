@@ -497,10 +497,10 @@ function EmptyState() {
         <Icon name="users" size={28} color={colors.accent} />
       </View>
       <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-        no one linked yet
+        your circle is waiting.
       </Text>
       <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-        your circle is where you show up for the people{'\n'}who matter most. invite someone to get started.
+        add someone when you&apos;re ready.
       </Text>
       <Button
         label="get started"
