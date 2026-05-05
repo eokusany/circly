@@ -250,7 +250,7 @@ export default function RecoveryHome() {
 
       {/* Streak — extra top margin to create visual breathing room */}
       <View style={{ marginTop: spacing.md }}>
-        <StreakCard days={days} next={next} streakLabel={copy.dashboard.streakLabel} />
+        <StreakCard days={days} next={next} streakLabel={copy.dashboard.streakLabel} showResetChip={user?.context === 'recovery'} />
       </View>
 
       <View style={styles.section}>
@@ -298,10 +298,12 @@ function StreakCard({
   days,
   next,
   streakLabel,
+  showResetChip,
 }: {
   days: number
   next: Milestone | null
   streakLabel: string
+  showResetChip: boolean
 }) {
   const colors = useColors()
 
@@ -330,6 +332,26 @@ function StreakCard({
         <Text style={[styles.streakUnit, { color: colors.textSecondary }]}>
           {days === 1 ? 'day' : 'days'}
         </Text>
+        {showResetChip && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="reset streak"
+            onPress={() => router.push('/(recovery)/start-fresh')}
+            style={({ pressed }) => [
+              styles.resetChip,
+              {
+                backgroundColor: colors.surfaceRaised,
+                borderColor: colors.border,
+                opacity: pressed ? 0.7 : 1,
+                marginLeft: 'auto',
+              },
+            ]}
+          >
+            <Text style={[styles.resetChipText, { color: colors.textSecondary }]}>
+              {'\u21bb'} reset
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       {next ? (
@@ -713,6 +735,16 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
   },
   progressCaption: { ...type.small },
+  resetChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+  },
+  resetChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
 
   // sections
   section: { gap: spacing.lg },
