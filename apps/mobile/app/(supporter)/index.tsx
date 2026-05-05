@@ -17,6 +17,8 @@ import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
 import { api, ApiError } from '../../lib/api'
+import { AppHeader } from '../../components/AppHeader'
+import { Avatar } from '../../components/Avatar'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
 import { SkeletonCard } from '../../components/SkeletonCard'
@@ -26,19 +28,13 @@ import { tapMedium, notifySuccess } from '../../lib/haptics'
 import { streakDays, toISODate, type MilestoneType } from '../../lib/streak'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
 
-function getGreeting(): string {
-  const h = new Date().getHours()
-  if (h < 12) return 'good morning'
-  if (h < 17) return 'good afternoon'
-  return 'good evening'
-}
-
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
 interface LinkedPerson {
   relationship_id: string
   recovery_user_id: string
   display_name: string
+  avatar_url: string | null
   sobriety_start_date: string | null
   today_check_in: CheckInStatus | null
   latest_milestone: MilestoneType | null
@@ -110,7 +106,7 @@ export default function SupporterHome() {
     const { data: rels, error: relErr } = await supabase
       .from('relationships')
       .select(
-        'id, recovery_user_id, users:recovery_user_id(display_name, profiles(sobriety_start_date))',
+        'id, recovery_user_id, users:recovery_user_id(display_name, avatar_url, profiles(sobriety_start_date))',
       )
       .eq('supporter_id', user.id)
       .eq('status', 'active')
@@ -132,12 +128,14 @@ export default function SupporterHome() {
       recovery_user_id: string
       users: {
         display_name: string
+        avatar_url: string | null
         profiles: { sobriety_start_date: string | null } | null
       } | null
     }>).map((r) => ({
       relationship_id: r.id,
       recovery_user_id: r.recovery_user_id,
       display_name: r.users?.display_name ?? 'friend',
+      avatar_url: r.users?.avatar_url ?? null,
       sobriety_start_date: r.users?.profiles?.sobriety_start_date ?? null,
       today_check_in: null as CheckInStatus | null,
       latest_milestone: null as MilestoneType | null,
@@ -289,38 +287,22 @@ export default function SupporterHome() {
           />
         }
       >
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text style={[styles.greeting, { color: colors.textSecondary }]}>
-              {getGreeting()}
-            </Text>
-            <Text style={[styles.name, { color: colors.textPrimary }]}>
-              {user?.displayName ?? 'friend'}
-            </Text>
-            {people.length > 0 && (
-              <Text style={[styles.summary, { color: colors.textMuted }]}>
-                {people.length} {people.length === 1 ? 'person' : 'people'} in your circle
-                {checkedInCount > 0
-                  ? ` · ${checkedInCount} checked in today`
-                  : ''}
-              </Text>
-            )}
-          </View>
-          <Pressable
-            onPress={() => router.push('/(supporter)/invite')}
-            style={({ pressed }) => [
-              styles.headerButton,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-            accessibilityLabel="invite someone"
-          >
-            <Icon name="user-plus" size={18} color={colors.textPrimary} />
-          </Pressable>
-        </View>
+        <AppHeader
+          user={{
+            id: user?.id ?? '',
+            displayName: user?.displayName ?? 'friend',
+            avatarUrl: user?.avatarUrl ?? null,
+          }}
+          onAvatarPress={() => router.push('/(profile)')}
+          onMessagesPress={() => router.push('/(supporter)/chat')}
+        />
+
+        {people.length > 0 && (
+          <Text style={[styles.summary, { color: colors.textMuted }]}>
+            {people.length} {people.length === 1 ? 'person' : 'people'} in your circle
+            {checkedInCount > 0 ? ` · ${checkedInCount} checked in today` : ''}
+          </Text>
+        )}
 
         {emergencies.length > 0 && (
           <View style={styles.list}>
@@ -443,28 +425,12 @@ const PersonCard = React.memo(function PersonCard({
     ? MILESTONE_LABEL[person.latest_milestone]
     : 'none yet'
 
-  const initial = person.display_name.trim().charAt(0).toUpperCase()
-
   const statusBorder =
     person.today_check_in === 'struggling'
       ? colors.warning
       : person.today_check_in === 'good_day'
         ? colors.success
         : colors.border
-
-  const statusAvatarBg =
-    person.today_check_in === 'struggling'
-      ? colors.warningSoft
-      : person.today_check_in === 'good_day'
-        ? colors.successSoft
-        : colors.accentSoft
-
-  const statusAvatarColor =
-    person.today_check_in === 'struggling'
-      ? colors.warning
-      : person.today_check_in === 'good_day'
-        ? colors.success
-        : colors.accent
 
   return (
     <View
@@ -474,9 +440,12 @@ const PersonCard = React.memo(function PersonCard({
       ]}
     >
       <View style={styles.cardHeaderRow}>
-        <View style={[styles.avatar, { backgroundColor: statusAvatarBg }]}>
-          <Text style={[styles.avatarText, { color: statusAvatarColor }]}>{initial}</Text>
-        </View>
+        <Avatar
+          userId={person.recovery_user_id}
+          displayName={person.display_name}
+          avatarUrl={person.avatar_url ?? null}
+          size={44}
+        />
         <View style={styles.cardHeaderText}>
           <Text style={[styles.cardName, { color: colors.textPrimary }]}>
             {person.display_name}
