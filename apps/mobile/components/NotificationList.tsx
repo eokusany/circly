@@ -14,59 +14,56 @@ import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../hooks/useColors'
 import { useAuthStore } from '../store/auth'
 import { supabase } from '../lib/supabase'
-import { Icon, type IconName } from './Icon'
+import { Icon } from './Icon'
+import { Avatar } from './Avatar'
 import { SkeletonCard } from './SkeletonCard'
 import { useNotificationStore } from '../store/notifications'
 import { api } from '../lib/api'
 import { notifySuccess } from '../lib/haptics'
 import { spacing, radii, type as t, layout } from '../constants/theme'
-
-/* ------------------------------------------------------------------ */
-/*  Types                                                             */
-/* ------------------------------------------------------------------ */
-
-export interface NotificationItem {
-  id: string
-  type: string
-  payload: Record<string, unknown>
-  read_at: string | null
-  created_at: string
-}
+import {
+  partitionByRead,
+  groupRepeats,
+  formatTimeAgo,
+  type AlertItem,
+  type GroupedAlert,
+} from '../lib/alerts'
 
 interface Section {
-  title: string
-  data: NotificationItem[]
+  title: 'NEW' | 'EARLIER'
+  data: GroupedAlert[]
 }
 
-/* ------------------------------------------------------------------ */
-/*  Metadata by notification type                                     */
-/* ------------------------------------------------------------------ */
-
-const TYPE_META: Record<string, { icon: IconName; label: string; color: 'accent' | 'danger' | 'success' | 'warning' }> = {
-  warm_ping: { icon: 'heart', label: 'warm ping', color: 'accent' },
-  encouragement: { icon: 'message-circle', label: 'encouragement', color: 'accent' },
-  emergency: { icon: 'alert-triangle', label: 'emergency', color: 'danger' },
-  silence_nudge: { icon: 'alert-circle', label: 'silence nudge', color: 'warning' },
-  milestone: { icon: 'award', label: 'milestone', color: 'success' },
-  message: { icon: 'message-circle', label: 'message', color: 'accent' },
+const TYPE_LABEL: Record<string, string> = {
+  warm_ping: 'warm ping',
+  encouragement: 'encouragement',
+  emergency: 'emergency',
+  silence_nudge: 'silence nudge',
+  milestone: 'milestone',
+  message: 'message',
 }
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                           */
-/* ------------------------------------------------------------------ */
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
+function typeColor(
+  type: string,
+  colors: ReturnType<typeof useColors>,
+): string {
+  switch (type) {
+    case 'encouragement':
+      return colors.accent
+    case 'warm_ping':
+      return '#4ca8a8'
+    case 'message':
+      return '#8b5cf6'
+    case 'emergency':
+      return colors.danger
+    case 'milestone':
+      return colors.success
+    default:
+      return colors.accent
+  }
 }
 
-function notificationBody(n: NotificationItem): string {
+function notificationBody(n: AlertItem): string {
   const p = n.payload
   const name = (p.from_display_name as string) ?? 'someone'
 
@@ -90,48 +87,17 @@ function notificationBody(n: NotificationItem): string {
   }
 }
 
-function dateSection(iso: string): string {
-  const d = new Date(iso)
-  const now = new Date()
-
-  const isToday =
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  if (isToday) return 'today'
-
-  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
-  const isYesterday =
-    d.getFullYear() === yesterday.getFullYear() &&
-    d.getMonth() === yesterday.getMonth() &&
-    d.getDate() === yesterday.getDate()
-  if (isYesterday) return 'yesterday'
-
-  return 'earlier'
-}
-
-function groupIntoSections(items: NotificationItem[]): Section[] {
-  const map = new Map<string, NotificationItem[]>()
-  const order = ['today', 'yesterday', 'earlier']
-
-  for (const item of items) {
-    const key = dateSection(item.created_at)
-    const list = map.get(key) ?? []
-    list.push(item)
-    map.set(key, list)
+function senderInfo(n: AlertItem): { id: string; name: string; avatarUrl: string | null } {
+  const p = n.payload as Record<string, unknown>
+  return {
+    id: (p.from_user_id as string) ?? n.id,
+    name: (p.from_display_name as string) ?? 'someone',
+    avatarUrl: (p.from_avatar_url as string | null) ?? null,
   }
-
-  return order
-    .filter((key) => map.has(key))
-    .map((key) => ({ title: key, data: map.get(key)! }))
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3
-
-/* ------------------------------------------------------------------ */
-/*  Swipeable card wrapper                                            */
-/* ------------------------------------------------------------------ */
 
 function SwipeableCard({
   children,
@@ -154,32 +120,21 @@ function SwipeableCard({
     ]).start()
   }, [entryOpacity, entryY, index])
 
-  // eslint-disable-next-line react-hooks/refs -- PanResponder must be accessed during render
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) =>
         Math.abs(gesture.dx) > 10 && Math.abs(gesture.dy) < 20,
       onPanResponderMove: (_, gesture) => {
-        // Only allow left swipe
-        if (gesture.dx < 0) {
-          translateX.setValue(gesture.dx)
-        }
+        if (gesture.dx < 0) translateX.setValue(gesture.dx)
       },
       onPanResponderRelease: (_, gesture) => {
         if (gesture.dx < -SWIPE_THRESHOLD) {
-          // Swipe out + collapse
-          Animated.sequence([
-            Animated.timing(translateX, {
-              toValue: -SCREEN_WIDTH,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-            // Can't animate height with native driver, so we use a scale trick
-          ]).start(() => {
-            onDismiss()
-          })
+          Animated.timing(translateX, {
+            toValue: -SCREEN_WIDTH,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(onDismiss)
         } else {
-          // Snap back
           Animated.spring(translateX, {
             toValue: 0,
             useNativeDriver: true,
@@ -190,7 +145,6 @@ function SwipeableCard({
     }),
   ).current
 
-  // Background that shows behind the card as you swipe
   const swipeOpacity = translateX.interpolate({
     inputRange: [-SWIPE_THRESHOLD, 0],
     outputRange: [1, 0],
@@ -198,30 +152,17 @@ function SwipeableCard({
   })
 
   return (
-    <Animated.View
-      style={{
-        opacity: entryOpacity,
-        transform: [{ translateY: entryY }],
-      }}
-    >
-      {/* Dismiss label behind the card */}
+    <Animated.View style={{ opacity: entryOpacity, transform: [{ translateY: entryY }] }}>
       <Animated.View style={[styles.swipeBehind, { opacity: swipeOpacity }]}>
         <Icon name="check" size={16} color={colors.textMuted} />
         <Text style={[t.small, { color: colors.textMuted }]}>dismiss</Text>
       </Animated.View>
-      <Animated.View
-        {...panResponder.panHandlers} // eslint-disable-line react-hooks/refs
-        style={{ transform: [{ translateX }] }}
-      >
+      <Animated.View {...panResponder.panHandlers} style={{ transform: [{ translateX }] }}> {/* eslint-disable-line react-hooks/refs */}
         {children}
       </Animated.View>
     </Animated.View>
   )
 }
-
-/* ------------------------------------------------------------------ */
-/*  Animated empty state                                              */
-/* ------------------------------------------------------------------ */
 
 function AnimatedEmptyState({ emptyBody }: { emptyBody: string }) {
   const colors = useColors()
@@ -234,9 +175,7 @@ function AnimatedEmptyState({ emptyBody }: { emptyBody: string }) {
     const swing = () => Animated.sequence([
       Animated.timing(bellRotation, { toValue: 1, duration: 300, useNativeDriver: true }),
       Animated.timing(bellRotation, { toValue: -1, duration: 300, useNativeDriver: true }),
-      Animated.timing(bellRotation, { toValue: 0.5, duration: 200, useNativeDriver: true }),
-      Animated.timing(bellRotation, { toValue: -0.5, duration: 200, useNativeDriver: true }),
-      Animated.timing(bellRotation, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(bellRotation, { toValue: 0, duration: 200, useNativeDriver: true }),
     ])
 
     const loop = () => {
@@ -270,19 +209,13 @@ function AnimatedEmptyState({ emptyBody }: { emptyBody: string }) {
       >
         <Icon name="bell" size={28} color={colors.textMuted} />
       </Animated.View>
-      <Text style={[t.h3, { color: colors.textPrimary, textAlign: 'center' }]}>
-        all quiet
-      </Text>
+      <Text style={[t.h3, { color: colors.textPrimary, textAlign: 'center' }]}>all quiet</Text>
       <Text style={[t.small, { color: colors.textSecondary, textAlign: 'center', lineHeight: 20 }]}>
         {emptyBody}
       </Text>
     </View>
   )
 }
-
-/* ------------------------------------------------------------------ */
-/*  Main component                                                    */
-/* ------------------------------------------------------------------ */
 
 interface Props {
   emptyBody: string
@@ -294,7 +227,8 @@ export function NotificationList({ emptyBody }: Props) {
   const decrementBadge = useNotificationStore((s) => s.decrement)
   const resetBadge = useNotificationStore((s) => s.reset)
   const setBadge = useNotificationStore((s) => s.setUnreadCount)
-  const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const [notifications, setNotifications] = useState<AlertItem[]>([])
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -308,9 +242,8 @@ export function NotificationList({ emptyBody }: Props) {
       .limit(50)
 
     if (data) {
-      const items = data as NotificationItem[]
+      const items = data as AlertItem[]
       setNotifications(items)
-      // Sync badge count with actual unread
       setBadge(items.filter((n) => !n.read_at).length)
     }
     setLoading(false)
@@ -320,11 +253,17 @@ export function NotificationList({ emptyBody }: Props) {
     useCallback(() => { load() }, [load]),
   )
 
-  const sections = useMemo(() => groupIntoSections(notifications), [notifications])
+  const sections = useMemo<Section[]>(() => {
+    const { new: newer, earlier } = partitionByRead(notifications)
+    const result: Section[] = []
+    if (newer.length > 0) result.push({ title: 'NEW', data: groupRepeats(newer) })
+    if (earlier.length > 0) result.push({ title: 'EARLIER', data: groupRepeats(earlier) })
+    return result
+  }, [notifications])
+
   const hasUnread = useMemo(() => notifications.some((n) => !n.read_at), [notifications])
 
   const markAsRead = useCallback(async (id: string) => {
-    // Only decrement if this notification was actually unread
     const wasUnread = notifications.find((n) => n.id === id && !n.read_at)
     await supabase
       .from('notifications')
@@ -351,8 +290,7 @@ export function NotificationList({ emptyBody }: Props) {
     resetBadge()
   }
 
-  const handleAction = useCallback(async (n: NotificationItem) => {
-    // Silence nudge → send warm ping back
+  const handleAction = useCallback(async (n: AlertItem) => {
     if (n.type === 'silence_nudge') {
       const forUserId = n.payload.for_user_id as string | undefined
       if (forUserId) {
@@ -370,124 +308,118 @@ export function NotificationList({ emptyBody }: Props) {
       return
     }
 
-    // Mark as read on tap
     if (!n.read_at) markAsRead(n.id)
 
-    // Navigate for messages
     if (n.type === 'message' && n.payload.conversation_id) {
       router.push(`/(chat)/${n.payload.conversation_id as string}`)
     }
   }, [markAsRead])
 
-  const renderItem = useCallback(({ item, index }: { item: NotificationItem; index: number }) => {
-    const meta = TYPE_META[item.type] ?? { icon: 'bell' as IconName, label: 'notification', color: 'accent' as const }
-    const colorKey = meta.color
-    const iconColor = colors[colorKey]
+  const renderItem = useCallback(({ item: g, index }: { item: GroupedAlert; index: number }) => {
+    const item = g.item
+    const sender = senderInfo(item)
+    const color = typeColor(item.type, colors)
     const isUnread = !item.read_at
-    const isEmergency = item.type === 'emergency'
-    const isMilestone = item.type === 'milestone'
-
-    // Type-specific background tints
-    const cardBg = isEmergency && isUnread
-      ? colors.dangerSoft
-      : isMilestone && isUnread
-        ? colors.successSoft
-        : isUnread
-          ? colors.accentSoft
-          : colors.surface
-
-    const cardBorder = isEmergency && isUnread
-      ? colors.danger
-      : isMilestone && isUnread
-        ? colors.success
-        : colors.border
+    const dimmed = !isUnread
 
     return (
       <SwipeableCard index={index} onDismiss={() => markAsRead(item.id)}>
         <Pressable
           onPress={() => handleAction(item)}
           accessibilityRole="button"
-          accessibilityLabel={`${meta.label}: ${notificationBody(item)}`}
+          accessibilityLabel={`${TYPE_LABEL[item.type] ?? 'notification'}: ${notificationBody(item)}`}
           style={({ pressed }) => [
             styles.card,
             {
-              backgroundColor: cardBg,
-              borderColor: cardBorder,
-              borderLeftColor: iconColor,
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderLeftColor: dimmed ? colors.border : color,
               borderLeftWidth: 3,
               opacity: pressed ? 0.85 : 1,
             },
           ]}
         >
-          <View style={[
-            styles.iconCircle,
-            {
-              backgroundColor: isEmergency && isUnread
-                ? colors.danger
-                : isMilestone && isUnread
-                  ? colors.success
-                  : isUnread ? colors.surface : colors.surfaceRaised,
-            },
-          ]}>
-            <Icon
-              name={meta.icon}
-              size={18}
-              color={isEmergency && isUnread ? '#fff' : isMilestone && isUnread ? '#fff' : iconColor}
+          <View style={{ opacity: dimmed ? 0.55 : 1 }}>
+            <Avatar
+              userId={sender.id}
+              displayName={sender.name}
+              avatarUrl={sender.avatarUrl}
+              size={36}
             />
           </View>
           <View style={styles.cardBody}>
             <View style={styles.cardTopRow}>
-              <Text style={[
-                styles.typeLabel,
-                { color: iconColor },
-              ]}>
-                {meta.label}
+              <Text
+                style={[
+                  styles.senderName,
+                  { color: colors.textPrimary, opacity: dimmed ? 0.55 : 1 },
+                ]}
+                numberOfLines={1}
+              >
+                {sender.name}
               </Text>
+              <View style={[styles.pill, { backgroundColor: dimmed ? colors.surfaceRaised : color + '22' }]}>
+                <Text style={[styles.pillText, { color: dimmed ? colors.textMuted : color }]}>
+                  {TYPE_LABEL[item.type] ?? 'notification'}
+                </Text>
+              </View>
               <Text style={[t.small, { color: colors.textMuted }]}>
-                {timeAgo(item.created_at)}
+                {formatTimeAgo(item.created_at)}
               </Text>
             </View>
             <Text
               style={[
                 t.body,
-                { color: colors.textPrimary },
+                { color: colors.textPrimary, opacity: dimmed ? 0.55 : 1 },
                 isUnread && { fontWeight: '500' },
               ]}
             >
               {notificationBody(item)}
             </Text>
-            {item.type === 'silence_nudge' && isUnread && (
-              <View style={styles.cardFooter}>
-                <Pressable
-                  onPress={() => handleAction(item)}
-                  style={[styles.actionBtn, { backgroundColor: colors.accent }]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Send warm ping"
-                >
-                  <Icon name="heart" size={12} color="#fff" />
-                  <Text style={[t.small, { color: '#fff', fontWeight: '600' }]}>send warm ping</Text>
-                </Pressable>
+            {g.extras.length > 0 && (
+              <Pressable
+                onPress={() => setExpanded((e) => ({ ...e, [item.id]: !e[item.id] }))}
+                hitSlop={6}
+                style={{ paddingTop: spacing.xs }}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  expanded[item.id]
+                    ? 'collapse repeated alerts'
+                    : `show ${g.extras.length} more from ${sender.name}`
+                }
+              >
+                <Text style={[t.small, { color: colors.accent }]}>
+                  {expanded[item.id]
+                    ? 'show less'
+                    : `+ ${g.extras.length} more from ${sender.name} \u203a`}
+                </Text>
+              </Pressable>
+            )}
+            {expanded[item.id] && g.extras.length > 0 && (
+              <View style={styles.extras}>
+                {g.extras.map((ex) => (
+                  <Text
+                    key={ex.id}
+                    style={[t.small, { color: colors.textSecondary }]}
+                    numberOfLines={2}
+                  >
+                    · {notificationBody(ex)} · {formatTimeAgo(ex.created_at)}
+                  </Text>
+                ))}
               </View>
             )}
           </View>
-          {isUnread && <View style={[styles.unreadDot, { backgroundColor: iconColor }]} />}
+          {isUnread && <View style={[styles.unreadDot, { backgroundColor: color }]} />}
         </Pressable>
       </SwipeableCard>
     )
-  }, [colors, handleAction, markAsRead])
+  }, [colors, handleAction, markAsRead, expanded])
 
   const renderSectionHeader = useCallback(({ section }: { section: Section }) => (
     <View style={styles.sectionHeader}>
       <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
         {section.title}
       </Text>
-      {section.title === 'today' && (
-        <View style={[styles.sectionBadge, { backgroundColor: colors.accentSoft }]}>
-          <Text style={[styles.sectionBadgeText, { color: colors.accent }]}>
-            {section.data.filter((n) => !n.read_at).length} new
-          </Text>
-        </View>
-      )}
     </View>
   ), [colors])
 
@@ -522,7 +454,7 @@ export function NotificationList({ emptyBody }: Props) {
       </View>
       <SectionList
         sections={sections}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(g) => g.item.id}
         renderItem={renderItem}
         renderSectionHeader={renderSectionHeader}
         contentContainerStyle={styles.list}
@@ -539,10 +471,6 @@ export function NotificationList({ emptyBody }: Props) {
     </View>
   )
 }
-
-/* ------------------------------------------------------------------ */
-/*  Styles                                                            */
-/* ------------------------------------------------------------------ */
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -572,16 +500,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   sectionTitle: { ...t.label },
-  sectionBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radii.pill,
-  },
-  sectionBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
   swipeBehind: {
     position: 'absolute',
     right: spacing.xl,
@@ -601,39 +519,30 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginBottom: spacing.sm,
   },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   cardBody: { flex: 1, gap: spacing.xs },
   cardTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: spacing.sm,
   },
-  typeLabel: {
-    fontSize: 11,
+  senderName: {
+    ...t.bodyStrong,
+    flexShrink: 1,
+  },
+  pill: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+  },
+  pillText: {
+    fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    textTransform: 'lowercase',
   },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
+  extras: {
     marginTop: spacing.xs,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: radii.md,
+    gap: 2,
   },
   unreadDot: {
     width: 8,
