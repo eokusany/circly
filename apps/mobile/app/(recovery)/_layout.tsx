@@ -117,6 +117,9 @@ export default function RecoveryLayout() {
       <Tabs.Screen name="journal-entry" options={{ href: null }} />
       <Tabs.Screen name="supporter-settings" options={{ href: null }} />
       <Tabs.Screen name="silence-settings" options={{ href: null }} />
+      <Tabs.Screen name="start-fresh" options={{ href: null }} />
+      <Tabs.Screen name="first-checkin-intro" options={{ href: null }} />
+      <Tabs.Screen name="first-checkin-celebration" options={{ href: null }} />
     </Tabs>
   )
 }

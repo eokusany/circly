@@ -60,6 +60,8 @@ export default function SupporterLayout() {
       {/* Hidden routes */}
       <Tabs.Screen name="chat" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="first-run-connected" options={{ href: null }} />
+      <Tabs.Screen name="first-run-cold" options={{ href: null }} />
     </Tabs>
   )
 }
