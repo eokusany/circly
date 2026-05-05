@@ -45,6 +45,8 @@ export default function RecoveryHome() {
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({ checkIns: 0, journalEntries: 0 })
   const [showCelebration, setShowCelebration] = useState(false)
   const [okayTapped, setOkayTapped] = useState(false)
+  const [hasAnyCheckIns, setHasAnyCheckIns] = useState<boolean | null>(null)
+  const [connectionCount, setConnectionCount] = useState<number>(0)
 
   async function handleGetSupport() {
     Alert.alert(
@@ -106,37 +108,52 @@ export default function RecoveryHome() {
 
     // Load all dashboard data in parallel
     let checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes
+    let totalCheckRes: { count: number | null }, relationshipsRes: { count: number | null }
     try {
-    ;[checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes] = await Promise.all([
-      // Today's check-in
-      supabase
-        .from('check_ins')
-        .select('status')
-        .eq('user_id', user.id)
-        .eq('check_in_date', todayISO)
-        .maybeSingle<{ status: CheckInStatus }>(),
-      // Recent check-ins for streak (last 30 days)
-      supabase
-        .from('check_ins')
-        .select('check_in_date')
-        .eq('user_id', user.id)
-        .order('check_in_date', { ascending: false })
-        .limit(30),
-      // This week's check-ins count
-      supabase
-        .from('check_ins')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('check_in_date', toISODate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()))),
-      // This week's journal entries count
-      supabase
-        .from('journal_entries')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()).toISOString()),
-      // Today's okay tap
-      api<{ tapped: boolean }>('/api/okay-tap/today').catch(() => ({ tapped: false })),
-    ])
+      const results = await Promise.all([
+        // Today's check-in
+        supabase
+          .from('check_ins')
+          .select('status')
+          .eq('user_id', user.id)
+          .eq('check_in_date', todayISO)
+          .maybeSingle<{ status: CheckInStatus }>(),
+        // Recent check-ins for streak (last 30 days)
+        supabase
+          .from('check_ins')
+          .select('check_in_date')
+          .eq('user_id', user.id)
+          .order('check_in_date', { ascending: false })
+          .limit(30),
+        // This week's check-ins count
+        supabase
+          .from('check_ins')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('check_in_date', toISODate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()))),
+        // This week's journal entries count
+        supabase
+          .from('journal_entries')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('created_at', new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()).toISOString()),
+        // Today's okay tap
+        api<{ tapped: boolean }>('/api/okay-tap/today').catch(() => ({ tapped: false })),
+        // Total check-ins ever (to detect day-one state)
+        supabase
+          .from('check_ins')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id),
+        // Active supporter connections
+        supabase
+          .from('relationships')
+          .select('id', { count: 'exact', head: true })
+          .eq('recovery_user_id', user.id)
+          .eq('status', 'active'),
+      ])
+      ;[checkInRes, streakRes, weekCheckRes, weekJournalRes, okayTapRes] = results
+      totalCheckRes = results[5] as { count: number | null }
+      relationshipsRes = results[6] as { count: number | null }
     } catch {
       setError(true)
       setLoading(false)
@@ -165,6 +182,8 @@ export default function RecoveryHome() {
     })
 
     setOkayTapped(okayTapRes.tapped)
+    setHasAnyCheckIns((totalCheckRes.count ?? 0) > 0)
+    setConnectionCount(relationshipsRes.count ?? 0)
     setLoading(false)
     hasLoaded.current = true
     lastFetchedAt.current = Date.now()
@@ -234,19 +253,66 @@ export default function RecoveryHome() {
 
       {showCelebration && <CelebrationBanner />}
 
-      <OkayTapCard
-        tapped={okayTapped}
-        onTap={async () => {
-          try {
-            await api('/api/okay-tap', { method: 'POST' })
-            setOkayTapped(true)
-          } catch {
-            // silent — haptic already fired, will retry on next refresh
-          }
-        }}
-        prompt={copy.dashboard.okayTapPrompt}
-        doneMessage={copy.dashboard.okayTapDone}
-      />
+      {hasAnyCheckIns === false ? (
+        // §3.1 — pre first check-in, big warm card
+        <View
+          style={[
+            styles.dayOneCard,
+            { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+          ]}
+        >
+          <Text style={[styles.dayOneTitle, { color: colors.textPrimary }]}>
+            welcome. start with your first check-in.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="check in"
+            onPress={() => router.push('/(recovery)/check-in')}
+            style={({ pressed }) => [
+              styles.dayOneBtn,
+              { backgroundColor: colors.accent, opacity: pressed ? 0.85 : 1 },
+            ]}
+          >
+            <Text style={styles.dayOneBtnText}>check in →</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          <OkayTapCard
+            tapped={okayTapped}
+            onTap={async () => {
+              try {
+                await api('/api/okay-tap', { method: 'POST' })
+                setOkayTapped(true)
+              } catch {
+                // silent — haptic already fired, will retry on next refresh
+              }
+            }}
+            prompt={copy.dashboard.okayTapPrompt}
+            doneMessage={copy.dashboard.okayTapDone}
+          />
+          {connectionCount === 0 && (
+            // §3.2/§3.3 — quiet invite-a-supporter card while user has zero connections.
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="invite someone who is in your corner"
+              onPress={() => router.push('/(recovery)/settings')}
+              style={({ pressed }) => [
+                styles.inviteCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  opacity: pressed ? 0.85 : 1,
+                },
+              ]}
+            >
+              <Text style={[styles.inviteText, { color: colors.textPrimary }]}>
+                invite someone who&apos;s in your corner →
+              </Text>
+            </Pressable>
+          )}
+        </>
+      )}
 
       {/* Streak — extra top margin to create visual breathing room */}
       <View style={{ marginTop: spacing.md }}>
@@ -820,5 +886,29 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: spacing.xs,
   },
+
+  // day-one empty state
+  dayOneCard: {
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  dayOneTitle: { ...type.h2 },
+  dayOneBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderRadius: radii.pill,
+  },
+  dayOneBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' as const },
+
+  // invite-supporter nudge card
+  inviteCard: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+  },
+  inviteText: { ...type.body, fontWeight: '500' as const },
 
 })
