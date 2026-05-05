@@ -27,6 +27,27 @@ import { Icon, type IconName } from '../../components/Icon'
 import { tapMedium, notifySuccess } from '../../lib/haptics'
 import { streakDays, toISODate, type MilestoneType } from '../../lib/streak'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
+import { MilestoneFeedCard } from '../../components/MilestoneFeedCard'
+import { StartedFreshFeedCard } from '../../components/StartedFreshFeedCard'
+import {
+  highestReachedSubstanceDays,
+  highestReachedLifeCheckins,
+} from '../../lib/milestones'
+
+const SUBSTANCE_LABEL: Record<number, string> = {
+  1: '1 day',
+  3: '3 days',
+  7: '1 week',
+  14: '2 weeks',
+  30: '1 month',
+  90: '3 months',
+  180: '6 months',
+  365: '1 year',
+  730: '2 years',
+  1095: '3 years',
+  1460: '4 years',
+  1825: '5 years',
+}
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
@@ -38,6 +59,9 @@ interface LinkedPerson {
   sobriety_start_date: string | null
   today_check_in: CheckInStatus | null
   latest_milestone: MilestoneType | null
+  context: 'recovery' | 'life' | null
+  total_check_ins: number
+  recent_reset_at: string | null
 }
 
 const CHECKIN_META: Record<CheckInStatus, { icon: IconName; label: string }> = {
@@ -106,7 +130,7 @@ export default function SupporterHome() {
     const { data: rels, error: relErr } = await supabase
       .from('relationships')
       .select(
-        'id, recovery_user_id, users:recovery_user_id(display_name, avatar_url, profiles(sobriety_start_date))',
+        'id, recovery_user_id, users:recovery_user_id(display_name, avatar_url, context, profiles(sobriety_start_date))',
       )
       .eq('supporter_id', user.id)
       .eq('status', 'active')
@@ -129,6 +153,7 @@ export default function SupporterHome() {
       users: {
         display_name: string
         avatar_url: string | null
+        context: 'recovery' | 'life' | null
         profiles: { sobriety_start_date: string | null } | null
       } | null
     }>).map((r) => ({
@@ -139,6 +164,9 @@ export default function SupporterHome() {
       sobriety_start_date: r.users?.profiles?.sobriety_start_date ?? null,
       today_check_in: null as CheckInStatus | null,
       latest_milestone: null as MilestoneType | null,
+      context: r.users?.context ?? null,
+      total_check_ins: 0,
+      recent_reset_at: null as string | null,
     }))
 
     if (base.length === 0) {
@@ -154,7 +182,7 @@ export default function SupporterHome() {
     const ids = base.map((p) => p.recovery_user_id)
     const today = toISODate(new Date())
 
-    const [checkInsRes, milestonesRes, nudgesRes, emergencyRes] = await Promise.all([
+    const [checkInsRes, milestonesRes, nudgesRes, emergencyRes, totalCheckInsRes, resetsRes] = await Promise.all([
       supabase
         .from('check_ins')
         .select('user_id, status')
@@ -182,6 +210,16 @@ export default function SupporterHome() {
         .is('read_at', null)
         .order('created_at', { ascending: false })
         .limit(5),
+      supabase
+        .from('check_ins')
+        .select('user_id', { count: 'exact', head: false })
+        .in('user_id', ids),
+      supabase
+        .from('sobriety_resets')
+        .select('user_id, reset_at')
+        .in('user_id', ids)
+        .gte('reset_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .order('reset_at', { ascending: false }),
     ])
 
     const checkInByUser = new Map<string, CheckInStatus>()
@@ -201,6 +239,23 @@ export default function SupporterHome() {
     }>) {
       if (!latestMilestoneByUser.has(row.user_id)) {
         latestMilestoneByUser.set(row.user_id, row.type)
+      }
+    }
+
+    // Total check-ins per user
+    const totalCheckInsByUser = new Map<string, number>()
+    for (const row of (totalCheckInsRes.data ?? []) as Array<{ user_id: string }>) {
+      totalCheckInsByUser.set(
+        row.user_id,
+        (totalCheckInsByUser.get(row.user_id) ?? 0) + 1,
+      )
+    }
+
+    // Most recent reset per user within the last 7 days
+    const recentResetByUser = new Map<string, string>()
+    for (const row of (resetsRes.data ?? []) as Array<{ user_id: string; reset_at: string }>) {
+      if (!recentResetByUser.has(row.user_id)) {
+        recentResetByUser.set(row.user_id, row.reset_at)
       }
     }
 
@@ -240,6 +295,8 @@ export default function SupporterHome() {
       ...p,
       today_check_in: checkInByUser.get(p.recovery_user_id) ?? null,
       latest_milestone: latestMilestoneByUser.get(p.recovery_user_id) ?? null,
+      total_check_ins: totalCheckInsByUser.get(p.recovery_user_id) ?? 0,
+      recent_reset_at: recentResetByUser.get(p.recovery_user_id) ?? null,
     }))
 
     setPeople(enriched)
@@ -356,6 +413,55 @@ export default function SupporterHome() {
               your circle
             </Text>
             <View style={styles.list}>
+              {people.flatMap((p) => {
+                const cards: React.ReactNode[] = []
+
+                // §2.3 — started fresh card (only for substance-context connections
+                // with a reset in the last 7 days).
+                if (p.context === 'recovery' && p.recent_reset_at) {
+                  cards.push(
+                    <StartedFreshFeedCard
+                      key={`reset-${p.relationship_id}`}
+                      name={p.display_name}
+                      onPress={() => setSendingFor(p)}
+                    />,
+                  )
+                }
+
+                // §6.4 — milestone card. Substance variant uses day-count, life
+                // variant uses cumulative check-ins.
+                if (p.context === 'recovery' && p.sobriety_start_date) {
+                  const days = streakDays(p.sobriety_start_date)
+                  const highest = highestReachedSubstanceDays(days)
+                  if (highest > 0) {
+                    const label = SUBSTANCE_LABEL[highest] ?? `${highest} days`
+                    cards.push(
+                      <MilestoneFeedCard
+                        key={`ms-${p.relationship_id}`}
+                        badge={label}
+                        body={`${p.display_name} hit ${label}.`}
+                        cta="send encouragement →"
+                        onPress={() => setSendingFor(p)}
+                      />,
+                    )
+                  }
+                } else if (p.context === 'life') {
+                  const highest = highestReachedLifeCheckins(p.total_check_ins)
+                  if (highest > 0) {
+                    cards.push(
+                      <MilestoneFeedCard
+                        key={`ms-${p.relationship_id}`}
+                        badge={`${highest} check-ins`}
+                        body={`${p.display_name} hit ${highest} check-ins.`}
+                        cta="send encouragement →"
+                        onPress={() => setSendingFor(p)}
+                      />,
+                    )
+                  }
+                }
+
+                return cards
+              })}
               {people.map((p) => (
                 <PersonCard
                   key={p.relationship_id}
