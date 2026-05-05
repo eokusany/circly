@@ -43,12 +43,13 @@ export default function RootLayout() {
     try {
       const { data } = await supabase
         .from('users')
-        .select('id, email, display_name, role, context, profiles(sobriety_start_date)')
+        .select('id, email, display_name, avatar_url, role, context, profiles(sobriety_start_date)')
         .eq('id', userId)
         .single<{
           id: string
           email: string
           display_name: string
+          avatar_url: string | null
           role: UserRole
           context: AppContext | null
           profiles: { sobriety_start_date: string | null } | null
@@ -60,7 +61,7 @@ export default function RootLayout() {
           id: data.id,
           email: data.email,
           displayName: data.display_name,
-          avatarUrl: null,
+          avatarUrl: data.avatar_url ?? null,
           role: data.role,
           context: data.context,
           sobrietyStartDate,
