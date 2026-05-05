@@ -102,6 +102,7 @@ export default function RecoveryLayout() {
       />
       {/* Hidden routes — still navigable but not in the tab bar. */}
       <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="check-in" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="journal-entry" options={{ href: null }} />
       <Tabs.Screen name="supporter-settings" options={{ href: null }} />
