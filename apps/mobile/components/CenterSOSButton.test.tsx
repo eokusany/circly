@@ -3,7 +3,7 @@ import { CenterSOSButton } from './CenterSOSButton'
 
 describe('<CenterSOSButton />', () => {
   beforeEach(() => jest.useFakeTimers())
-  afterEach(() => { jest.runOnlyPendingTimers(); jest.useRealTimers() })
+  afterEach(() => { act(() => { jest.runOnlyPendingTimers() }); jest.useRealTimers() })
 
   it('renders an accessible SOS label', () => {
     const { getByLabelText } = render(<CenterSOSButton onArmed={jest.fn()} />)
