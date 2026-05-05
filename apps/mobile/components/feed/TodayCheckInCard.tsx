@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { View, Text, Pressable, TextInput, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, Text, Pressable, TextInput, StyleSheet, ActivityIndicator, Alert } from 'react-native'
 import { router } from 'expo-router'
+import { Sentry } from '../../lib/sentry'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { useCopy } from '../../lib/copy'
@@ -66,6 +67,9 @@ export function TodayCheckInCard({ onSaved }: Props) {
       } else {
         setCollapsed(true)
       }
+    } catch (err) {
+      Sentry.captureException(err)
+      Alert.alert('couldn\u2019t save check-in', 'please try again in a moment.')
     } finally {
       setSaving(false)
     }
@@ -79,6 +83,9 @@ export function TodayCheckInCard({ onSaved }: Props) {
       const next = await saveTodayCheckIn({ userId: user.id, status: row.status, note })
       setRow(next)
       onSaved?.(next)
+    } catch (err) {
+      Sentry.captureException(err)
+      Alert.alert('couldn\u2019t save check-in', 'please try again in a moment.')
     } finally {
       setSaving(false)
     }

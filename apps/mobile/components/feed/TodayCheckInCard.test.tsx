@@ -1,4 +1,5 @@
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native'
+import { Alert } from 'react-native'
 import { TodayCheckInCard } from './TodayCheckInCard'
 import * as checkInsLib from '../../lib/checkIns'
 import { router } from 'expo-router'
@@ -9,16 +10,19 @@ jest.mock('../../lib/checkIns', () => ({
   saveTodayCheckIn: jest.fn(),
 }))
 jest.mock('../../lib/haptics', () => ({ tapLight: jest.fn(), tapMedium: jest.fn() }))
+jest.mock('../../lib/sentry', () => ({
+  Sentry: { captureException: jest.fn() },
+}))
+
+const mockUser: any = {
+  id: 'u1',
+  context: 'recovery',
+  firstCheckinIntroSeen: true,
+  firstCheckinCelebrationSeen: true,
+}
+
 jest.mock('../../store/auth', () => ({
-  useAuthStore: (sel: any) =>
-    sel({
-      user: {
-        id: 'u1',
-        context: 'recovery',
-        firstCheckinIntroSeen: true,
-        firstCheckinCelebrationSeen: true,
-      },
-    }),
+  useAuthStore: (sel: any) => sel({ user: mockUser }),
 }))
 
 const loadMock = checkInsLib.loadTodayCheckIn as jest.MockedFunction<typeof checkInsLib.loadTodayCheckIn>
@@ -29,6 +33,8 @@ describe('<TodayCheckInCard />', () => {
     loadMock.mockReset()
     saveMock.mockReset()
     ;(router.replace as jest.Mock).mockReset()
+    mockUser.firstCheckinIntroSeen = true
+    mockUser.firstCheckinCelebrationSeen = true
   })
 
   it('renders all three status chips when no row exists', async () => {
@@ -69,5 +75,60 @@ describe('<TodayCheckInCard />', () => {
     const { findByLabelText, findByText } = render(<TodayCheckInCard onSaved={jest.fn()} />)
     fireEvent.press(await findByText(/edit/i))
     expect(await findByLabelText('chip-sober')).toBeTruthy()
+  })
+
+  it('saves note on blur with existing row', async () => {
+    loadMock.mockResolvedValueOnce({
+      id: 'r1', status: 'sober', note: 'old note', check_in_date: '2026-05-05',
+    })
+    saveMock.mockResolvedValueOnce({
+      id: 'r1', status: 'sober', note: 'new note', check_in_date: '2026-05-05',
+    })
+    const { findByText, findByPlaceholderText } = render(<TodayCheckInCard onSaved={jest.fn()} />)
+    // expand from collapsed state
+    const editBtn = await findByText(/edit/i)
+    await act(async () => { fireEvent.press(editBtn) })
+    const textInput = await findByPlaceholderText('anything on your mind? (optional)')
+    await act(async () => { fireEvent.changeText(textInput, 'new note') })
+    await act(async () => { fireEvent(textInput, 'blur') })
+    await waitFor(() => expect(saveMock).toHaveBeenCalledWith({
+      userId: 'u1', status: 'sober', note: 'new note',
+    }))
+  })
+
+  it('redirects to first-checkin-intro when firstCheckinIntroSeen is false and no row', async () => {
+    mockUser.firstCheckinIntroSeen = false
+    loadMock.mockResolvedValueOnce(null)
+    const { findByLabelText } = render(<TodayCheckInCard onSaved={jest.fn()} />)
+    const chip = await findByLabelText('chip-sober')
+    await act(async () => { fireEvent.press(chip) })
+    expect(router.replace).toHaveBeenCalledWith('/(recovery)/first-checkin-intro')
+    expect(saveMock).not.toHaveBeenCalled()
+  })
+
+  it('redirects to first-checkin-celebration on first ever save when celebration not seen', async () => {
+    mockUser.firstCheckinCelebrationSeen = false
+    loadMock.mockResolvedValueOnce(null)
+    saveMock.mockResolvedValueOnce({
+      id: 'r1', status: 'good_day', note: null, check_in_date: '2026-05-05',
+    })
+    const { findByLabelText } = render(<TodayCheckInCard onSaved={jest.fn()} />)
+    const chip = await findByLabelText('chip-good_day')
+    await act(async () => { fireEvent.press(chip) })
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/(recovery)/first-checkin-celebration'))
+    expect(saveMock).toHaveBeenCalled()
+  })
+
+  it('shows an alert and keeps editor open when saveTodayCheckIn rejects', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {})
+    loadMock.mockResolvedValueOnce(null)
+    saveMock.mockRejectedValueOnce(new Error('network error'))
+    const { findByLabelText } = render(<TodayCheckInCard onSaved={jest.fn()} />)
+    const chip = await findByLabelText('chip-sober')
+    await act(async () => { fireEvent.press(chip) })
+    await waitFor(() => expect(alertSpy).toHaveBeenCalled())
+    // chip is still rendered — editor did not collapse
+    expect(await findByLabelText('chip-sober')).toBeTruthy()
+    alertSpy.mockRestore()
   })
 })
