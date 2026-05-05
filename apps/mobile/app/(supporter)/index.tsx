@@ -18,6 +18,7 @@ import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
 import { api, ApiError } from '../../lib/api'
 import { AppHeader } from '../../components/AppHeader'
+import { useNotificationStore } from '../../store/notifications'
 import { Avatar } from '../../components/Avatar'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
@@ -83,6 +84,7 @@ const PRESETS = ['thinking of you', 'proud of you', "you've got this"]
 export default function SupporterHome() {
   const colors = useColors()
   const user = useAuthStore((s) => s.user)
+  const unreadNotifications = useNotificationStore((s) => s.unreadCount)
   const [people, setPeople] = useState<LinkedPerson[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -369,7 +371,8 @@ export default function SupporterHome() {
             avatarUrl: user?.avatarUrl ?? null,
           }}
           onAvatarPress={() => router.push('/(profile)')}
-          onMessagesPress={() => router.push('/(supporter)/chat')}
+          onNotificationsPress={() => router.push('/(supporter)/notifications')}
+          unreadNotifications={unreadNotifications}
         />
 
         {people.length > 0 && (

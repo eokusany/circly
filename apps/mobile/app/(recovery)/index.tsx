@@ -19,6 +19,7 @@ import {
 } from '../../lib/streak'
 import { useCopy } from '../../lib/copy'
 import { AppHeader } from '../../components/AppHeader'
+import { useNotificationStore } from '../../store/notifications'
 import {
   shouldCelebrateSubstance,
   shouldCelebrateLife,
@@ -61,6 +62,7 @@ export default function RecoveryHome() {
   const copy = useCopy()
   const user = useAuthStore((s) => s.user)
   const setUser = useAuthStore((s) => s.setUser)
+  const unreadNotifications = useNotificationStore((s) => s.unreadCount)
   const [todayStatus, setTodayStatus] = useState<CheckInStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -320,8 +322,8 @@ export default function RecoveryHome() {
           avatarUrl: user?.avatarUrl ?? null,
         }}
         onAvatarPress={() => router.push('/(profile)')}
-        onMessagesPress={() => router.push('/(recovery)/chat')}
-        onSosPress={handleGetSupport}
+        onNotificationsPress={() => router.push('/(recovery)/notifications')}
+        unreadNotifications={unreadNotifications}
       />
 
       {hasAnyCheckIns === false ? (
