@@ -2,7 +2,6 @@ import { Tabs } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { Icon } from '../../components/Icon'
 import { useAuthStore } from '../../store/auth'
-import { useNotificationStore } from '../../store/notifications'
 import { usePushToken } from '../../hooks/usePushToken'
 import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications'
 
@@ -11,7 +10,6 @@ export default function SupporterLayout() {
   const user = useAuthStore((s) => s.user)
   usePushToken(user?.id)
   useRealtimeNotifications(user?.id)
-  const unreadCount = useNotificationStore((s) => s.unreadCount)
 
   return (
     <Tabs
@@ -42,12 +40,10 @@ export default function SupporterLayout() {
         }}
       />
       <Tabs.Screen
-        name="notifications"
+        name="chat"
         options={{
-          title: 'alerts',
-          tabBarIcon: ({ color, size }) => <Icon name="bell" size={size} color={color} />,
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: colors.danger, fontSize: 10 },
+          title: 'messages',
+          tabBarIcon: ({ color, size }) => <Icon name="message-circle" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -58,7 +54,7 @@ export default function SupporterLayout() {
         }}
       />
       {/* Hidden routes */}
-      <Tabs.Screen name="chat" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="first-run-connected" options={{ href: null }} />
       <Tabs.Screen name="first-run-cold" options={{ href: null }} />
