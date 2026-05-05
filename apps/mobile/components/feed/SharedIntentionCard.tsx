@@ -14,9 +14,9 @@ export function SharedIntentionCard({ userName, intention }: SharedIntentionCard
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={styles.labelRow}>
         <Icon name="target" size={11} color={colors.textMuted} />
-        <Text style={[styles.label, { color: colors.textMuted }]}>{userName}'s intention today</Text>
+        <Text style={[styles.label, { color: colors.textMuted }]}>{`${userName}'s intention today`}</Text>
       </View>
-      <Text style={[type.body, { color: colors.textSecondary, fontStyle: 'italic' }]}>"{intention}"</Text>
+      <Text style={[type.body, { color: colors.textSecondary, fontStyle: 'italic' }]}>{`"${intention}"`}</Text>
     </View>
   )
 }

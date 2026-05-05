@@ -14,9 +14,9 @@ export function DailyPulseCard({ prompt, onWriteAnswer }: DailyPulseCardProps) {
     <View style={[styles.card, { backgroundColor: colors.accentSoft, borderColor: colors.accent }]}>
       <View style={styles.labelRow}>
         <Icon name="sun" size={11} color={colors.accent} />
-        <Text style={[styles.label, { color: colors.accent }]}>today's reflection</Text>
+        <Text style={[styles.label, { color: colors.accent }]}>{`today's reflection`}</Text>
       </View>
-      <Text style={[styles.prompt, { color: colors.textPrimary }]}>"{prompt}"</Text>
+      <Text style={[styles.prompt, { color: colors.textPrimary }]}>{`"${prompt}"`}</Text>
       <Pressable
         onPress={onWriteAnswer}
         style={[styles.cta, { backgroundColor: colors.surface }]}

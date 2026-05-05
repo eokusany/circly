@@ -24,11 +24,6 @@ describe('getPromptForDay', () => {
   })
 
   it('uses early stage for days 1-7 and building for days 8-30', () => {
-    const day7 = getPromptForDay(7)
-    const day8 = getPromptForDay(8)
-    // day 7 is 'early', day 8 is 'building' — they draw from different pools
-    // Just verify they come from different pools by checking at least one differs
-    // across all 5 prompts in each pool (days 0-4 for early, days 8-12 for building)
     const earlyPrompts = [0,1,2,3,4,5,6].map(d => getPromptForDay(d))
     const buildingPrompts = [8,9,10,11,12,13,14].map(d => getPromptForDay(d))
     expect(earlyPrompts.every(p => !buildingPrompts.includes(p))).toBe(true)

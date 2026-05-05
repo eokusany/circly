@@ -29,7 +29,7 @@ export function IntentionCard({ intention, onSave }: IntentionCardProps) {
         <>
           <View style={styles.labelRow}>
             <Icon name="target" size={11} color={colors.textMuted} />
-            <Text style={[styles.label, { color: colors.textMuted }]}>today's intention</Text>
+            <Text style={[styles.label, { color: colors.textMuted }]}>{`today's intention`}</Text>
           </View>
           <Text style={[styles.intentionText, { color: colors.textPrimary }]}>{intention}</Text>
           <Pressable onPress={() => setEditing(true)}>

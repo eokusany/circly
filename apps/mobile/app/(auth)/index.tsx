@@ -15,7 +15,7 @@ export default function WelcomeScreen() {
         <CirclyLogo size={72} showText={false} />
         <Text style={[styles.wordmark, { color: colors.textPrimary }]}>circly</Text>
         <Text style={[styles.tagline, { color: colors.textSecondary }]}>
-          Recovery is easier when you're not alone.
+          {`Recovery is easier when you're not alone.`}
         </Text>
       </View>
 

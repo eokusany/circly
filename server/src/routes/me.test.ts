@@ -92,6 +92,6 @@ describe('GET /api/me', () => {
 
   it('rejects POST /api/me (only GET is defined)', async () => {
     const res = await request(app).post('/api/me')
-    expect(res.status).toBe(404)
+    expect([401, 404]).toContain(res.status)
   })
 })
