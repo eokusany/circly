@@ -21,3 +21,4 @@ docs/SCALING_ROADMAP.md
 *.log
 npm-debug.log*
 .worktrees/
+.superpowers/
