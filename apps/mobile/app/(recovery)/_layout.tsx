@@ -1,52 +1,45 @@
 import { useEffect } from 'react'
-import { Tabs, router } from 'expo-router'
+import { Tabs } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { Icon } from '../../components/Icon'
-import { CenterCheckInButton } from '../../components/CenterCheckInButton'
+import { CenterSOSButton } from '../../components/CenterSOSButton'
 import { useAuthStore } from '../../store/auth'
-import { useNotificationStore } from '../../store/notifications'
 import { supabase } from '../../lib/supabase'
 import { scheduleOkayReminder, cancelOkayReminder, parseTime } from '../../lib/notifications'
 import { usePushToken } from '../../hooks/usePushToken'
 import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications'
+import { useEmergencyAlert } from '../../hooks/useEmergencyAlert'
 
 export default function RecoveryLayout() {
   const colors = useColors()
   const user = useAuthStore((s) => s.user)
   usePushToken(user?.id)
   useRealtimeNotifications(user?.id)
-  const unreadCount = useNotificationStore((s) => s.unreadCount)
+  const { trigger: triggerEmergency } = useEmergencyAlert()
 
   useEffect(() => {
     if (!user) return
-
     let cancelled = false
-
     async function setupReminder() {
       const { data } = await supabase
         .from('silence_settings')
         .select('okay_tap_enabled, okay_tap_time, snooze_until')
         .eq('user_id', user!.id)
         .maybeSingle()
-
       if (cancelled) return
-
       const settings = data as {
         okay_tap_enabled: boolean
         okay_tap_time: string
         snooze_until: string | null
       } | null
-
       const snoozed = settings?.snooze_until && settings.snooze_until >= new Date().toISOString().split('T')[0]
       if (!settings?.okay_tap_enabled || snoozed) {
         await cancelOkayReminder()
         return
       }
-
       const { hour, minute } = parseTime(settings?.okay_tap_time ?? '09:00')
       await scheduleOkayReminder(hour, minute)
     }
-
     setupReminder()
     return () => { cancelled = true }
   }, [user])
@@ -87,21 +80,17 @@ export default function RecoveryLayout() {
         }}
       />
       <Tabs.Screen
-        name="check-in"
+        name="sos"
         options={{
           title: '',
-          tabBarButton: () => (
-            <CenterCheckInButton onPress={() => router.push('/(recovery)/check-in')} />
-          ),
+          tabBarButton: () => <CenterSOSButton onArmed={triggerEmergency} />,
         }}
       />
       <Tabs.Screen
-        name="notifications"
+        name="chat"
         options={{
-          title: 'alerts',
-          tabBarIcon: ({ color, size }) => <Icon name="bell" size={size} color={color} />,
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: colors.danger, fontSize: 10 },
+          title: 'messages',
+          tabBarIcon: ({ color, size }) => <Icon name="message-circle" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -112,7 +101,7 @@ export default function RecoveryLayout() {
         }}
       />
       {/* Hidden routes — still navigable but not in the tab bar. */}
-      <Tabs.Screen name="chat" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="journal-entry" options={{ href: null }} />
       <Tabs.Screen name="supporter-settings" options={{ href: null }} />
