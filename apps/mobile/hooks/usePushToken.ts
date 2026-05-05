@@ -16,30 +16,30 @@ export function usePushToken(userId: string | undefined) {
     if (Platform.OS === 'web') return
 
     ;(async () => {
-      const { status: existing } = await Notifications.getPermissionsAsync()
-      let finalStatus = existing
-
-      if (existing !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync()
-        finalStatus = status
-      }
-
-      if (finalStatus !== 'granted') return
-
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId
-      const tokenData = await Notifications.getExpoPushTokenAsync({
-        ...(projectId ? { projectId } : {}),
-      })
-      const token = tokenData.data
-
       try {
+        const { status: existing } = await Notifications.getPermissionsAsync()
+        let finalStatus = existing
+
+        if (existing !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync()
+          finalStatus = status
+        }
+
+        if (finalStatus !== 'granted') return
+
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId
+        const tokenData = await Notifications.getExpoPushTokenAsync({
+          ...(projectId ? { projectId } : {}),
+        })
+        const token = tokenData.data
+
         await api('/api/push-token', {
           method: 'POST',
           body: JSON.stringify({ token }),
         })
         registered.current = true
       } catch {
-        // Best-effort; will retry next app launch
+        // Best-effort; transient Expo/network failures retry next app launch
       }
     })()
   }, [userId])
