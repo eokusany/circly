@@ -34,6 +34,10 @@ export default function ProfileScreen() {
 
       <SettingSection title="profile">
         <SettingRow
+          label="profile photo"
+          onPress={() => router.push('/(profile)/edit-photo')}
+        />
+        <SettingRow
           label="name"
           value={user.displayName}
           onPress={() => router.push('/(profile)/edit-name')}
