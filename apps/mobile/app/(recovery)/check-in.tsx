@@ -38,6 +38,24 @@ export default function CheckInScreen() {
   const scheme = useColorScheme() ?? 'light'
   const user = useAuthStore((s) => s.user)
   const copy = useCopy()
+
+  // First-check-in intro: §4.1. Redirect once if the flag is unset and we
+  // have no historical check-ins. Done before loading anything to avoid
+  // flashing the standard screen.
+  useEffect(() => {
+    if (!user) return
+    if (user.firstCheckinIntroSeen) return
+    ;(async () => {
+      const { count } = await supabase
+        .from('check_ins')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+      if ((count ?? 0) === 0) {
+        router.replace('/(recovery)/first-checkin-intro')
+      }
+    })()
+  }, [user])
+
   const options = STATUS_ORDER.map((value) => ({
     value,
     ...copy.dashboard.checkInStatuses[value],
@@ -83,6 +101,7 @@ export default function CheckInScreen() {
           status,
           note: note.trim() || null,
           check_in_date: todayISO,
+          source: 'in_app',
         },
         { onConflict: 'user_id,check_in_date' }
       )
@@ -101,7 +120,16 @@ export default function CheckInScreen() {
       const without = prev.filter((r) => r.check_in_date !== todayISO)
       return [data, ...without]
     })
-    router.back()
+
+    // First-check-in celebration: §4.3. Trigger if the user hasn't seen it
+    // AND this submit produced their very first row (history was empty
+    // before the optimistic prepend, so length was 0).
+    const wasFirstEver = history.length === 0
+    if (wasFirstEver && user && !user.firstCheckinCelebrationSeen) {
+      router.replace('/(recovery)/first-checkin-celebration')
+    } else {
+      router.back()
+    }
   }
 
   if (loading) {
@@ -163,6 +191,29 @@ export default function CheckInScreen() {
           )
         })}
       </View>
+
+      {status === 'struggling' && user?.context === 'recovery' && (
+        <View
+          style={[
+            styles.startFreshCard,
+            { backgroundColor: colors.warningSoft, borderColor: colors.warning },
+          ]}
+        >
+          <Text style={[styles.startFreshTitle, { color: colors.textPrimary }]}>
+            need a fresh start?
+          </Text>
+          <Text style={[styles.startFreshBody, { color: colors.textSecondary }]}>
+            if today wasn&apos;t a clean day, you can reset your start date. it&apos;s not a failure, it&apos;s honesty.
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => router.push('/(recovery)/start-fresh')}
+            style={[styles.startFreshBtn, { backgroundColor: colors.warning }]}
+          >
+            <Text style={styles.startFreshBtnText}>&#x21bb; start fresh</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.noteWrap}>
         <Text style={[styles.noteLabel, { color: colors.textMuted }]}>
@@ -320,4 +371,21 @@ const styles = StyleSheet.create({
   historyBody: { flex: 1, gap: 2 },
   historyDate: { ...t.smallStrong },
   historyNote: { ...t.small },
+
+  startFreshCard: {
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  startFreshTitle: { ...t.h3 },
+  startFreshBody: { ...t.small },
+  startFreshBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.pill,
+    marginTop: spacing.xs,
+  },
+  startFreshBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 })

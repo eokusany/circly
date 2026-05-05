@@ -1,11 +1,16 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { Stack, router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { useColorScheme } from 'react-native'
+import { useColorScheme, AppState, type AppStateStatus } from 'react-native'
 import * as SplashScreen from 'expo-splash-screen'
 import * as SystemUI from 'expo-system-ui'
 import * as Notifications from 'expo-notifications'
 import { initSentry } from '../lib/sentry'
+import {
+  registerDailyCheckinCategory,
+  setupNotificationResponseListener,
+  flushPendingNotificationCheckins,
+} from '../lib/notifications'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { supabase } from '../lib/supabase'
 import { Colors } from '../constants/colors'
@@ -38,15 +43,23 @@ export default function RootLayout() {
     try {
       const { data } = await supabase
         .from('users')
-        .select('id, email, display_name, role, context, profiles(sobriety_start_date)')
+        .select('id, email, display_name, avatar_url, role, context, profiles(sobriety_start_date, first_checkin_intro_seen, first_checkin_celebration_seen, supporter_first_run_seen, last_milestone_celebrated_days, last_milestone_celebrated_checkins)')
         .eq('id', userId)
         .single<{
           id: string
           email: string
           display_name: string
+          avatar_url: string | null
           role: UserRole
           context: AppContext | null
-          profiles: { sobriety_start_date: string | null } | null
+          profiles: {
+            sobriety_start_date: string | null
+            first_checkin_intro_seen: boolean | null
+            first_checkin_celebration_seen: boolean | null
+            supporter_first_run_seen: boolean | null
+            last_milestone_celebrated_days: number | null
+            last_milestone_celebrated_checkins: number | null
+          } | null
         }>()
 
       if (data) {
@@ -55,9 +68,15 @@ export default function RootLayout() {
           id: data.id,
           email: data.email,
           displayName: data.display_name,
+          avatarUrl: data.avatar_url ?? null,
           role: data.role,
           context: data.context,
           sobrietyStartDate,
+          firstCheckinIntroSeen: data.profiles?.first_checkin_intro_seen ?? false,
+          firstCheckinCelebrationSeen: data.profiles?.first_checkin_celebration_seen ?? false,
+          supporterFirstRunSeen: data.profiles?.supporter_first_run_seen ?? false,
+          lastMilestoneCelebratedDays: data.profiles?.last_milestone_celebrated_days ?? 0,
+          lastMilestoneCelebratedCheckins: data.profiles?.last_milestone_celebrated_checkins ?? 0,
         })
         setLoading(false)
         if (data.role === 'recovery' && data.context === 'recovery' && !sobrietyStartDate) {
@@ -67,7 +86,7 @@ export default function RootLayout() {
         }
       } else {
         setLoading(false)
-        router.replace('/(auth)/role-select')
+        router.replace('/(auth)/account-select')
       }
     } catch {
       setLoading(false)
@@ -93,12 +112,12 @@ export default function RootLayout() {
         await loadUser(session.user.id)
       } else {
         setLoading(false)
-        router.replace('/(auth)/')
+        router.replace('/(auth)/sign-in')
       }
     }).catch(() => {
       SplashScreen.hideAsync()
       setLoading(false)
-      router.replace('/(auth)/')
+      router.replace('/(auth)/sign-in')
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -108,7 +127,7 @@ export default function RootLayout() {
         if (!initialRouteComplete.current) return
         if (event === 'SIGNED_OUT' || !session) {
           setUser(null)
-          router.replace('/(auth)/')
+          router.replace('/(auth)/sign-in')
         } else if (event === 'TOKEN_REFRESHED' && session.user) {
           // Token was refreshed — no navigation needed, just keep going
         } else if (event === 'SIGNED_IN' && session.user) {
@@ -125,6 +144,24 @@ export default function RootLayout() {
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(themeBg)
   }, [themeBg])
+
+  useEffect(() => {
+    void registerDailyCheckinCategory()
+    const listener = setupNotificationResponseListener()
+    void flushPendingNotificationCheckins()
+
+    const onChange = (state: AppStateStatus) => {
+      if (state === 'active') {
+        void flushPendingNotificationCheckins()
+      }
+    }
+    const sub = AppState.addEventListener('change', onChange)
+
+    return () => {
+      listener.remove()
+      sub.remove()
+    }
+  }, [])
 
   return (
     <ErrorBoundary>

@@ -7,7 +7,7 @@ import { COPY, DEFAULT_CONTEXT, useCopy } from './copy'
 
 describe('COPY map', () => {
   it('has exactly the expected contexts', () => {
-    expect(Object.keys(COPY).sort()).toEqual(['family', 'recovery'])
+    expect(Object.keys(COPY).sort()).toEqual(['life', 'recovery'])
   })
 
   it('default context is recovery', () => {
@@ -21,7 +21,7 @@ describe('COPY map', () => {
       expect(rc.roles).toEqual(['recovery', 'supporter'])
     })
 
-    it('has a label, description, and emoji for every role', () => {
+    it('has a label, description, and icon for every role', () => {
       for (const role of rc.roles) {
         expect(rc.roleCopy[role].label).toBeTruthy()
         expect(rc.roleCopy[role].description).toBeTruthy()
@@ -41,51 +41,40 @@ describe('COPY map', () => {
     it('journalLabel is "journal"', () => {
       expect(rc.dashboard.journalLabel).toBe('journal')
     })
-
-    it('contextCard has label/description/emoji', () => {
-      expect(rc.contextCard.label).toBeTruthy()
-      expect(rc.contextCard.description).toBeTruthy()
-      expect(rc.contextCard.icon).toBeTruthy()
-    })
   })
 
-  describe('family context', () => {
-    const fc = COPY.family
+  describe('life context', () => {
+    const lc = COPY.life
 
     it('exposes user and supporter roles', () => {
-      expect(fc.roles).toEqual(['recovery', 'supporter'])
+      expect(lc.roles).toEqual(['recovery', 'supporter'])
     })
 
     it('uses "connected for" as the streak label', () => {
-      expect(fc.dashboard.streakLabel).toBe('connected for')
+      expect(lc.dashboard.streakLabel).toBe('connected for')
     })
 
     it('uses "reflections" as the journal label', () => {
-      expect(fc.dashboard.journalLabel).toBe('reflections')
+      expect(lc.dashboard.journalLabel).toBe('reflections')
     })
 
     it('relabels recovery role as "the person at the center"', () => {
-      expect(fc.roleCopy.recovery.label).toBe('the person at the center')
+      expect(lc.roleCopy.recovery.label).toBe('the person at the center')
     })
 
     it('relabels supporter role as "family member"', () => {
-      expect(fc.roleCopy.supporter.label).toBe('family member')
+      expect(lc.roleCopy.supporter.label).toBe('family member')
     })
 
     it('has distinct check-in labels from recovery', () => {
-      expect(fc.dashboard.checkInStatuses.good_day.label).not.toBe(
+      expect(lc.dashboard.checkInStatuses.good_day.label).not.toBe(
         COPY.recovery.dashboard.checkInStatuses.good_day.label,
       )
     })
   })
 
   describe('shape invariants across contexts', () => {
-    for (const ctx of ['recovery', 'family'] as const) {
-      it(`${ctx} has a non-empty roleSelect title and subtitle`, () => {
-        expect(COPY[ctx].roleSelect.title).toBeTruthy()
-        expect(COPY[ctx].roleSelect.subtitle).toBeTruthy()
-      })
-
+    for (const ctx of ['recovery', 'life'] as const) {
       it(`${ctx} has a non-empty signUpSubtitle`, () => {
         expect(COPY[ctx].signUpSubtitle).toBeTruthy()
       })

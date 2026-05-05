@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
 import { api, ApiError } from '../../lib/api'
+import { AppHeader } from '../../components/AppHeader'
+import { Avatar } from '../../components/Avatar'
 import { Button } from '../../components/Button'
 import { TextInput } from '../../components/TextInput'
 import { SkeletonCard } from '../../components/SkeletonCard'
@@ -25,10 +27,27 @@ import { Icon, type IconName } from '../../components/Icon'
 import { tapMedium, notifySuccess } from '../../lib/haptics'
 import { streakDays, toISODate, type MilestoneType } from '../../lib/streak'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
-import { AppHeader } from '../../components/AppHeader'
-import { CheckInActivityCard } from '../../components/feed/CheckInActivityCard'
-import { SilenceAlertCard } from '../../components/feed/SilenceAlertCard'
-import { SharedIntentionCard } from '../../components/feed/SharedIntentionCard'
+import { MilestoneFeedCard } from '../../components/MilestoneFeedCard'
+import { StartedFreshFeedCard } from '../../components/StartedFreshFeedCard'
+import {
+  highestReachedSubstanceDays,
+  highestReachedLifeCheckins,
+} from '../../lib/milestones'
+
+const SUBSTANCE_LABEL: Record<number, string> = {
+  1: '1 day',
+  3: '3 days',
+  7: '1 week',
+  14: '2 weeks',
+  30: '1 month',
+  90: '3 months',
+  180: '6 months',
+  365: '1 year',
+  730: '2 years',
+  1095: '3 years',
+  1460: '4 years',
+  1825: '5 years',
+}
 
 type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
@@ -36,9 +55,13 @@ interface LinkedPerson {
   relationship_id: string
   recovery_user_id: string
   display_name: string
+  avatar_url: string | null
   sobriety_start_date: string | null
   today_check_in: CheckInStatus | null
   latest_milestone: MilestoneType | null
+  context: 'recovery' | 'life' | null
+  total_check_ins: number
+  recent_reset_at: string | null
 }
 
 const CHECKIN_META: Record<CheckInStatus, { icon: IconName; label: string }> = {
@@ -57,19 +80,6 @@ const MILESTONE_LABEL: Record<MilestoneType, string> = {
 
 const PRESETS = ['thinking of you', 'proud of you', "you've got this"]
 
-interface SilenceNudge {
-  id: string
-  for_user_id: string
-  from_display_name: string
-  days_since: number
-}
-
-interface EmergencyAlert {
-  id: string
-  from_display_name: string
-  created_at: string
-}
-
 export default function SupporterHome() {
   const colors = useColors()
   const user = useAuthStore((s) => s.user)
@@ -81,7 +91,37 @@ export default function SupporterHome() {
   const [sendingFor, setSendingFor] = useState<LinkedPerson | null>(null)
   const [nudges, setNudges] = useState<SilenceNudge[]>([])
   const [emergencies, setEmergencies] = useState<EmergencyAlert[]>([])
-  const [linkedIntentions, setLinkedIntentions] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (!user) return
+    if (user.supporterFirstRunSeen) return
+    ;(async () => {
+      const { count } = await supabase
+        .from('relationships')
+        .select('id', { count: 'exact', head: true })
+        .eq('supporter_id', user.id)
+        .eq('status', 'active')
+      if ((count ?? 0) > 0) {
+        router.replace('/(supporter)/first-run-connected')
+      } else {
+        router.replace('/(supporter)/first-run-cold')
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
+
+  interface SilenceNudge {
+    id: string
+    for_user_id: string
+    from_display_name: string
+    days_since: number
+  }
+
+  interface EmergencyAlert {
+    id: string
+    from_display_name: string
+    created_at: string
+  }
 
   async function sendWarmPing(person: LinkedPerson) {
     try {
@@ -108,7 +148,7 @@ export default function SupporterHome() {
     const { data: rels, error: relErr } = await supabase
       .from('relationships')
       .select(
-        'id, recovery_user_id, users:recovery_user_id(display_name, profiles(sobriety_start_date))',
+        'id, recovery_user_id, users:recovery_user_id(display_name, avatar_url, context, profiles(sobriety_start_date))',
       )
       .eq('supporter_id', user.id)
       .eq('status', 'active')
@@ -130,15 +170,21 @@ export default function SupporterHome() {
       recovery_user_id: string
       users: {
         display_name: string
+        avatar_url: string | null
+        context: 'recovery' | 'life' | null
         profiles: { sobriety_start_date: string | null } | null
       } | null
     }>).map((r) => ({
       relationship_id: r.id,
       recovery_user_id: r.recovery_user_id,
       display_name: r.users?.display_name ?? 'friend',
+      avatar_url: r.users?.avatar_url ?? null,
       sobriety_start_date: r.users?.profiles?.sobriety_start_date ?? null,
       today_check_in: null as CheckInStatus | null,
       latest_milestone: null as MilestoneType | null,
+      context: r.users?.context ?? null,
+      total_check_ins: 0,
+      recent_reset_at: null as string | null,
     }))
 
     if (base.length === 0) {
@@ -154,7 +200,7 @@ export default function SupporterHome() {
     const ids = base.map((p) => p.recovery_user_id)
     const today = toISODate(new Date())
 
-    const [checkInsRes, milestonesRes, nudgesRes, emergencyRes] = await Promise.all([
+    const [checkInsRes, milestonesRes, nudgesRes, emergencyRes, totalCheckInsRes, resetsRes] = await Promise.all([
       supabase
         .from('check_ins')
         .select('user_id, status')
@@ -182,6 +228,16 @@ export default function SupporterHome() {
         .is('read_at', null)
         .order('created_at', { ascending: false })
         .limit(5),
+      supabase
+        .from('check_ins')
+        .select('user_id', { count: 'exact', head: false })
+        .in('user_id', ids),
+      supabase
+        .from('sobriety_resets')
+        .select('user_id, reset_at')
+        .in('user_id', ids)
+        .gte('reset_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .order('reset_at', { ascending: false }),
     ])
 
     const checkInByUser = new Map<string, CheckInStatus>()
@@ -201,6 +257,23 @@ export default function SupporterHome() {
     }>) {
       if (!latestMilestoneByUser.has(row.user_id)) {
         latestMilestoneByUser.set(row.user_id, row.type)
+      }
+    }
+
+    // Total check-ins per user
+    const totalCheckInsByUser = new Map<string, number>()
+    for (const row of (totalCheckInsRes.data ?? []) as Array<{ user_id: string }>) {
+      totalCheckInsByUser.set(
+        row.user_id,
+        (totalCheckInsByUser.get(row.user_id) ?? 0) + 1,
+      )
+    }
+
+    // Most recent reset per user within the last 7 days
+    const recentResetByUser = new Map<string, string>()
+    for (const row of (resetsRes.data ?? []) as Array<{ user_id: string; reset_at: string }>) {
+      if (!recentResetByUser.has(row.user_id)) {
+        recentResetByUser.set(row.user_id, row.reset_at)
       }
     }
 
@@ -236,23 +309,12 @@ export default function SupporterHome() {
     }
     setEmergencies(parsedEmergencies)
 
-    // Fetch today's intentions for linked users
-    const { data: intentionsData } = await supabase
-      .from('daily_intentions')
-      .select('user_id, intention')
-      .in('user_id', ids)
-      .eq('date', today)
-
-    const intentionsByUser: Record<string, string> = {}
-    for (const row of (intentionsData ?? []) as Array<{ user_id: string; intention: string }>) {
-      intentionsByUser[row.user_id] = row.intention
-    }
-    setLinkedIntentions(intentionsByUser)
-
     const enriched = base.map((p) => ({
       ...p,
       today_check_in: checkInByUser.get(p.recovery_user_id) ?? null,
       latest_milestone: latestMilestoneByUser.get(p.recovery_user_id) ?? null,
+      total_check_ins: totalCheckInsByUser.get(p.recovery_user_id) ?? 0,
+      recent_reset_at: recentResetByUser.get(p.recovery_user_id) ?? null,
     }))
 
     setPeople(enriched)
@@ -301,13 +363,21 @@ export default function SupporterHome() {
         }
       >
         <AppHeader
-          displayName={user?.displayName ?? ''}
-          unreadMessages={0}
-          onSOS={() => {}}
-          onAddSupporter={() => router.push('/(supporter)/invite')}
-          onMessages={() => router.push('/(supporter)/chat')}
-          onProfile={() => router.push('/(supporter)/profile')}
+          user={{
+            id: user?.id ?? '',
+            displayName: user?.displayName ?? 'friend',
+            avatarUrl: user?.avatarUrl ?? null,
+          }}
+          onAvatarPress={() => router.push('/(profile)')}
+          onMessagesPress={() => router.push('/(supporter)/chat')}
         />
+
+        {people.length > 0 && (
+          <Text style={[styles.summary, { color: colors.textMuted }]}>
+            {people.length} {people.length === 1 ? 'person' : 'people'} in your circle
+            {checkedInCount > 0 ? ` · ${checkedInCount} checked in today` : ''}
+          </Text>
+        )}
 
         {emergencies.length > 0 && (
           <View style={styles.list}>
@@ -361,6 +431,55 @@ export default function SupporterHome() {
               your circle
             </Text>
             <View style={styles.list}>
+              {people.flatMap((p) => {
+                const cards: React.ReactNode[] = []
+
+                // §2.3 — started fresh card (only for substance-context connections
+                // with a reset in the last 7 days).
+                if (p.context === 'recovery' && p.recent_reset_at) {
+                  cards.push(
+                    <StartedFreshFeedCard
+                      key={`reset-${p.relationship_id}`}
+                      name={p.display_name}
+                      onPress={() => setSendingFor(p)}
+                    />,
+                  )
+                }
+
+                // §6.4 — milestone card. Substance variant uses day-count, life
+                // variant uses cumulative check-ins.
+                if (p.context === 'recovery' && p.sobriety_start_date) {
+                  const days = streakDays(p.sobriety_start_date)
+                  const highest = highestReachedSubstanceDays(days)
+                  if (highest > 0) {
+                    const label = SUBSTANCE_LABEL[highest] ?? `${highest} days`
+                    cards.push(
+                      <MilestoneFeedCard
+                        key={`ms-${p.relationship_id}`}
+                        badge={label}
+                        body={`${p.display_name} hit ${label}.`}
+                        cta="send encouragement →"
+                        onPress={() => setSendingFor(p)}
+                      />,
+                    )
+                  }
+                } else if (p.context === 'life') {
+                  const highest = highestReachedLifeCheckins(p.total_check_ins)
+                  if (highest > 0) {
+                    cards.push(
+                      <MilestoneFeedCard
+                        key={`ms-${p.relationship_id}`}
+                        badge={`${highest} check-ins`}
+                        body={`${p.display_name} hit ${highest} check-ins.`}
+                        cta="send encouragement →"
+                        onPress={() => setSendingFor(p)}
+                      />,
+                    )
+                  }
+                }
+
+                return cards
+              })}
               {people.map((p) => (
                 <PersonCard
                   key={p.relationship_id}
@@ -370,44 +489,6 @@ export default function SupporterHome() {
                 />
               ))}
             </View>
-          </View>
-        )}
-
-        {people.length > 0 && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>your feed</Text>
-
-            {people.map((person) => {
-              const nudge = nudges.find((n) => n.for_user_id === person.recovery_user_id)
-              const intention = linkedIntentions[person.recovery_user_id]
-              const initial = (person.display_name[0] ?? '?').toUpperCase()
-
-              return (
-                <View key={person.recovery_user_id} style={{ gap: spacing.md }}>
-                  {person.today_check_in ? (
-                    <CheckInActivityCard
-                      userName={person.display_name}
-                      userInitial={initial}
-                      status={person.today_check_in}
-                      onEncourage={() => router.push('/(supporter)/chat')}
-                    />
-                  ) : nudge && nudge.days_since >= 3 ? (
-                    <SilenceAlertCard
-                      userName={person.display_name}
-                      daysQuiet={nudge.days_since}
-                      onMessage={() => router.push('/(supporter)/chat')}
-                    />
-                  ) : null}
-
-                  {intention && (
-                    <SharedIntentionCard
-                      userName={person.display_name}
-                      intention={intention}
-                    />
-                  )}
-                </View>
-              )
-            })}
           </View>
         )}
 
@@ -434,10 +515,10 @@ function EmptyState() {
         <Icon name="users" size={28} color={colors.accent} />
       </View>
       <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-        no one linked yet
+        your circle is waiting.
       </Text>
       <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-        your circle is where you show up for the people{'\n'}who matter most. invite someone to get started.
+        add someone when you&apos;re ready.
       </Text>
       <Button
         label="get started"
@@ -468,28 +549,12 @@ const PersonCard = React.memo(function PersonCard({
     ? MILESTONE_LABEL[person.latest_milestone]
     : 'none yet'
 
-  const initial = person.display_name.trim().charAt(0).toUpperCase()
-
   const statusBorder =
     person.today_check_in === 'struggling'
       ? colors.warning
       : person.today_check_in === 'good_day'
         ? colors.success
         : colors.border
-
-  const statusAvatarBg =
-    person.today_check_in === 'struggling'
-      ? colors.warningSoft
-      : person.today_check_in === 'good_day'
-        ? colors.successSoft
-        : colors.accentSoft
-
-  const statusAvatarColor =
-    person.today_check_in === 'struggling'
-      ? colors.warning
-      : person.today_check_in === 'good_day'
-        ? colors.success
-        : colors.accent
 
   return (
     <View
@@ -499,9 +564,12 @@ const PersonCard = React.memo(function PersonCard({
       ]}
     >
       <View style={styles.cardHeaderRow}>
-        <View style={[styles.avatar, { backgroundColor: statusAvatarBg }]}>
-          <Text style={[styles.avatarText, { color: statusAvatarColor }]}>{initial}</Text>
-        </View>
+        <Avatar
+          userId={person.recovery_user_id}
+          displayName={person.display_name}
+          avatarUrl={person.avatar_url ?? null}
+          size={44}
+        />
         <View style={styles.cardHeaderText}>
           <Text style={[styles.cardName, { color: colors.textPrimary }]}>
             {person.display_name}
@@ -771,10 +839,26 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
     gap: layout.sectionGap,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  headerText: { flex: 1, gap: spacing.xs },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  greeting: { ...t.body },
+  name: { ...t.h1 },
+  summary: { ...t.small, marginTop: spacing.xs },
   peopleSection: { gap: spacing.md },
   sectionLabel: { ...t.label },
-  section: { gap: spacing.lg },
-  sectionTitle: { ...t.label },
   list: { gap: spacing.md },
   card: {
     borderRadius: radii.lg,

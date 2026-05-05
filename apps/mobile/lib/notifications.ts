@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications'
 import { Platform } from 'react-native'
+import { NOTIFICATION_CATEGORY_ID } from './notificationActions'
 
 const OKAY_REMINDER_ID = 'okay-tap-daily'
 
@@ -28,7 +29,8 @@ export async function scheduleOkayReminder(hour: number, minute: number): Promis
     identifier: OKAY_REMINDER_ID,
     content: {
       title: 'circly',
-      body: "tap to say you're okay — your circle is thinking of you.",
+      body: "how's today going? tap below to check in.",
+      categoryIdentifier: NOTIFICATION_CATEGORY_ID,
       ...(Platform.OS === 'android' && { channelId: 'default' }),
     },
     trigger: {
@@ -52,4 +54,102 @@ export async function cancelOkayReminder(): Promise<void> {
 export function parseTime(time: string): { hour: number; minute: number } {
   const [h, m] = time.split(':').map(Number)
   return { hour: h ?? 9, minute: m ?? 0 }
+}
+
+export async function registerDailyCheckinCategory(): Promise<void> {
+  await Notifications.setNotificationCategoryAsync(NOTIFICATION_CATEGORY_ID, [
+    {
+      identifier: 'mood-good',
+      buttonTitle: 'good',
+      options: { opensAppToForeground: false },
+    },
+    {
+      identifier: 'mood-okay',
+      buttonTitle: 'okay',
+      options: { opensAppToForeground: false },
+    },
+    {
+      identifier: 'mood-struggling',
+      buttonTitle: 'struggling',
+      options: { opensAppToForeground: false, isDestructive: true },
+    },
+  ])
+}
+
+import { confirmationFor, type CheckInStatus } from './notificationActions'
+
+const CONFIRM_ID = 'okay-tap-confirm'
+
+export async function fireCheckinConfirmation(status: CheckInStatus): Promise<void> {
+  const copy = confirmationFor(status)
+  await Notifications.scheduleNotificationAsync({
+    identifier: CONFIRM_ID,
+    content: {
+      title: 'circly',
+      body: copy.body,
+      data: copy.tapRoute ? { tapRoute: copy.tapRoute } : {},
+      ...(Platform.OS === 'android' && { channelId: 'default' }),
+    },
+    trigger: null,
+  })
+}
+
+import { router } from 'expo-router'
+import { supabase } from './supabase'
+import { toISODate } from './streak'
+import {
+  flushPending,
+  handleNotificationResponse,
+  type NotificationResponseLike,
+} from './notificationActions'
+
+const SIGNED_OUT_ID = 'okay-tap-signed-out'
+
+async function fireSignedOutPrompt(): Promise<void> {
+  await Notifications.scheduleNotificationAsync({
+    identifier: SIGNED_OUT_ID,
+    content: {
+      title: 'circly',
+      body: 'open the app to check in',
+      ...(Platform.OS === 'android' && { channelId: 'default' }),
+    },
+    trigger: null,
+  })
+}
+
+async function getCachedUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.user?.id ?? null
+}
+
+const DEFAULT_ACTION = 'expo.modules.notifications.actions.DEFAULT'
+
+export function setupNotificationResponseListener(): { remove: () => void } {
+  const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+    // Plain notification tap on a confirmation that carries a deep-link payload
+    // (currently only the struggling confirmation): route the user there.
+    if (response.actionIdentifier === DEFAULT_ACTION) {
+      const data = response.notification.request.content.data as
+        | { tapRoute?: string }
+        | undefined
+      if (data?.tapRoute) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.push(data.tapRoute as any)
+      }
+      return
+    }
+
+    void handleNotificationResponse(response as NotificationResponseLike, {
+      supabase,
+      getUserId: getCachedUserId,
+      todayISO: toISODate(new Date()),
+      fireConfirmation: fireCheckinConfirmation,
+      fireSignedOutPrompt,
+    })
+  })
+  return { remove: () => sub.remove() }
+}
+
+export async function flushPendingNotificationCheckins(): Promise<void> {
+  await flushPending({ supabase })
 }

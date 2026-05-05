@@ -13,6 +13,7 @@ const mockUser: AppUser = {
   id: 'user-1',
   email: 'test@circly.app',
   displayName: 'Test User',
+  avatarUrl: null,
   role: 'recovery',
   context: 'recovery',
   sobrietyStartDate: '2026-01-01',
