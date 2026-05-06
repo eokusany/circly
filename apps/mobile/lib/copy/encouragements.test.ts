@@ -1,10 +1,10 @@
 import { pickEncouragement, lines } from './encouragements'
 
 describe('encouragements', () => {
-  it('same input always returns same string', () => {
-    const first = pickEncouragement(42)
-    const second = pickEncouragement(42)
-    expect(first).toBe(second)
+  it('wrapping returns the same value as index 0', () => {
+    const index0 = pickEncouragement(0)
+    const wrappedIndex = pickEncouragement(lines.length)
+    expect(index0).toBe(wrappedIndex)
   })
 
   it('cycles through all lines and wraps', () => {
@@ -17,7 +17,7 @@ describe('encouragements', () => {
   })
 
   it('never returns undefined', () => {
-    const testValues = [0, 364, 365, 999, 10000]
+    const testValues = [0, 364, 365, 999, 10000, -1, -365]
     for (const value of testValues) {
       const result = pickEncouragement(value)
       expect(result).toBeDefined()
