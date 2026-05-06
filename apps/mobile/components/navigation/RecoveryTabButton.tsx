@@ -6,6 +6,7 @@ import { Colors } from '../../constants/colors'
 import { spacing, radii } from '../../constants/theme'
 
 const PILL_GRADIENT = ['rgba(217,167,102,0.18)', 'rgba(217,167,102,0.08)'] as const
+const PILL_BORDER_COLOR = 'rgba(217,167,102,0.30)'
 
 type RecoveryTabButtonProps = {
   focused: boolean
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
   },
   pillActive: {
     borderWidth: 1,
-    borderColor: 'rgba(217,167,102,0.30)',
+    borderColor: PILL_BORDER_COLOR,
   },
   label: {
     fontSize: 11,
