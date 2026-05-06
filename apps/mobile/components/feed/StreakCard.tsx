@@ -17,10 +17,13 @@ interface StreakCardProps {
 }
 
 function todayDayOfYear(): number {
-  return Math.floor(
-    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
-  )
+  const now = new Date()
+  const jan1 = Date.UTC(now.getFullYear(), 0, 1)
+  return Math.floor((Date.now() - jan1) / 86_400_000) + 1
 }
+
+const HERO_GRADIENT = ['#2A2218', '#1B1A17'] as const
+const PROGRESS_GRADIENT = ['#C58A3F', '#D9A766'] as const
 
 export function StreakCard({
   days,
@@ -48,7 +51,7 @@ export function StreakCard({
 
   return (
     <LinearGradient
-      colors={['#2A2218', '#1B1A17']}
+      colors={HERO_GRADIENT}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={styles.container}
@@ -66,7 +69,7 @@ export function StreakCard({
             onPress={() => router.push('/(recovery)/start-fresh')}
             style={({ pressed }) => [
               styles.resetChip,
-              { opacity: pressed ? 0.7 : 1, marginLeft: 'auto' },
+              { opacity: pressed ? 0.7 : 1 },
             ]}
           >
             <Text style={styles.resetChipText}>{'\u21bb'} reset</Text>
@@ -74,8 +77,8 @@ export function StreakCard({
         )}
       </View>
 
-      {/* DAYS SOBER label */}
-      <Text style={styles.daysSoberLabel}>DAYS SOBER</Text>
+      {/* streak label */}
+      <Text style={styles.daysSoberLabel}>{streakLabel}</Text>
 
       {/* Progress bar + pill */}
       <View style={styles.progressSection}>
@@ -85,18 +88,13 @@ export function StreakCard({
         >
           {trackWidth > 0 && (
             <LinearGradient
-              colors={['#C58A3F', '#D9A766']}
+              colors={PROGRESS_GRADIENT}
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={[
                 styles.progressFill,
-                {
-                  width: fillWidth,
-                  shadowColor: 'rgba(217,167,102,0.4)',
-                  shadowRadius: 12,
-                  shadowOpacity: 1,
-                  shadowOffset: { width: 0, height: 0 },
-                },
+                styles.progressFillGlow,
+                { width: fillWidth },
               ]}
             />
           )}
@@ -207,6 +205,13 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: radii.pill,
   },
+  progressFillGlow: {
+    shadowColor: 'rgba(217,167,102,0.4)',
+    shadowRadius: 12,
+    shadowOpacity: 1,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 2,
+  },
   pill: {
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(217,167,102,0.12)',
@@ -219,6 +224,7 @@ const styles = StyleSheet.create({
     color: Colors.dark.accent,
   },
   resetChip: {
+    marginLeft: 'auto',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radii.pill,
