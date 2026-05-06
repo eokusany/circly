@@ -7,19 +7,19 @@ import { spacing, type as t } from '../constants/theme'
 interface Props {
   user: { id: string; displayName: string; avatarUrl: string | null | undefined }
   onAvatarPress: () => void
-  onMessagesPress?: () => void
-  onSosPress?: () => void
-  unreadMessages?: number
+  onNotificationsPress: () => void
+  unreadNotifications?: number
 }
 
 export function AppHeader({
   user,
   onAvatarPress,
-  onMessagesPress,
-  onSosPress,
-  unreadMessages,
+  onNotificationsPress,
+  unreadNotifications,
 }: Props) {
   const colors = useColors()
+  const showBadge = unreadNotifications !== undefined && unreadNotifications > 0
+  const badgeText = (unreadNotifications ?? 0) > 9 ? '9+' : String(unreadNotifications ?? 0)
   return (
     <View style={styles.row}>
       <Pressable
@@ -39,51 +39,30 @@ export function AppHeader({
 
       <Text style={[styles.wordmark, { color: colors.accent }]}>circly</Text>
 
-      <View style={styles.actions}>
-        {onSosPress && (
-          <Pressable
-            onPress={onSosPress}
-            accessibilityRole="button"
-            accessibilityLabel="alert your supporters"
-            hitSlop={8}
-            style={({ pressed }) => [
-              styles.iconBtn,
-              {
-                backgroundColor: colors.dangerSoft,
-                borderColor: colors.danger,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
+      <Pressable
+        onPress={onNotificationsPress}
+        accessibilityRole="button"
+        accessibilityLabel="open notifications"
+        hitSlop={8}
+        style={({ pressed }) => [
+          styles.iconBtn,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            opacity: pressed ? 0.7 : 1,
+          },
+        ]}
+      >
+        <Icon name="bell" size={16} color={colors.textPrimary} />
+        {showBadge && (
+          <View
+            accessibilityLabel="unread notifications badge"
+            style={[styles.badge, { backgroundColor: colors.danger }]}
           >
-            <Icon name="alert-triangle" size={16} color={colors.danger} />
-          </Pressable>
+            <Text style={styles.badgeText}>{badgeText}</Text>
+          </View>
         )}
-        {onMessagesPress && (
-          <Pressable
-            onPress={onMessagesPress}
-            accessibilityRole="button"
-            accessibilityLabel="open messages"
-            hitSlop={8}
-            style={({ pressed }) => [
-              styles.iconBtn,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-          >
-            <Icon name="message-circle" size={16} color={colors.textPrimary} />
-            {unreadMessages !== undefined && unreadMessages > 0 && (
-              <View style={[styles.badge, { backgroundColor: colors.accent }]}>
-                <Text style={styles.badgeText}>
-                  {unreadMessages > 9 ? '9+' : String(unreadMessages)}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-        )}
-      </View>
+      </Pressable>
     </View>
   )
 }
@@ -101,11 +80,6 @@ const styles = StyleSheet.create({
     ...t.h3,
     fontWeight: '800',
     letterSpacing: -0.4,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
   },
   iconBtn: {
     width: 36,

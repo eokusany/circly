@@ -5,9 +5,13 @@ describe('<AppHeader />', () => {
   const baseProps = {
     user: { id: 'u1', displayName: 'Sam', avatarUrl: null as string | null },
     onAvatarPress: jest.fn(),
+    onNotificationsPress: jest.fn(),
   }
 
-  beforeEach(() => baseProps.onAvatarPress.mockReset())
+  beforeEach(() => {
+    baseProps.onAvatarPress.mockReset()
+    baseProps.onNotificationsPress.mockReset()
+  })
 
   it('renders the wordmark text', () => {
     const { getByText } = render(<AppHeader {...baseProps} />)
@@ -25,26 +29,29 @@ describe('<AppHeader />', () => {
     expect(baseProps.onAvatarPress).toHaveBeenCalledTimes(1)
   })
 
-  it('renders the messages icon button when onMessagesPress is provided', () => {
-    const onMessagesPress = jest.fn()
-    const { getByLabelText } = render(
-      <AppHeader {...baseProps} onMessagesPress={onMessagesPress} />,
-    )
-    fireEvent.press(getByLabelText('open messages'))
-    expect(onMessagesPress).toHaveBeenCalledTimes(1)
+  it('fires onNotificationsPress when the bell is tapped', () => {
+    const { getByLabelText } = render(<AppHeader {...baseProps} />)
+    fireEvent.press(getByLabelText('open notifications'))
+    expect(baseProps.onNotificationsPress).toHaveBeenCalledTimes(1)
   })
 
-  it('renders the SOS button when onSosPress is provided', () => {
-    const onSosPress = jest.fn()
-    const { getByLabelText } = render(
-      <AppHeader {...baseProps} onSosPress={onSosPress} />,
+  it('renders the unread badge when unreadNotifications > 0', () => {
+    const { getByText } = render(
+      <AppHeader {...baseProps} unreadNotifications={4} />,
     )
-    fireEvent.press(getByLabelText('alert your supporters'))
-    expect(onSosPress).toHaveBeenCalledTimes(1)
+    expect(getByText('4')).toBeTruthy()
   })
 
-  it('omits the SOS button when onSosPress is undefined', () => {
+  it('caps the badge at 9+', () => {
+    const { getByText } = render(
+      <AppHeader {...baseProps} unreadNotifications={42} />,
+    )
+    expect(getByText('9+')).toBeTruthy()
+  })
+
+  it('omits the badge when unreadNotifications is 0 or undefined', () => {
     const { queryByLabelText } = render(<AppHeader {...baseProps} />)
-    expect(queryByLabelText('alert your supporters')).toBeNull()
+    // The badge has no accessibility role; assert there's no '0' text near the bell.
+    expect(queryByLabelText('unread notifications badge')).toBeNull()
   })
 })

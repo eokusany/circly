@@ -21,9 +21,9 @@ export function StrugglingCard({ onGetSupport }: StrugglingCardProps) {
       <Pressable
         onPress={onGetSupport}
         style={[styles.cta, { backgroundColor: colors.danger }]}
-        accessibilityLabel="Talk to someone now"
+        accessibilityLabel="how to alert supporters"
       >
-        <Text style={[type.small, { color: '#fff', fontWeight: '700' }]}>Talk to someone now</Text>
+        <Text style={[type.small, { color: '#fff', fontWeight: '700' }]}>hold the SOS button when you’re ready</Text>
         <Icon name="arrow-right" size={14} color="#fff" />
       </Pressable>
     </View>

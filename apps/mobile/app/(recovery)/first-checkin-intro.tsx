@@ -9,8 +9,7 @@ import { spacing, radii, type, layout } from '../../constants/theme'
 /**
  * Spec §4.1 — first-check-in intro. Shown exactly once, gated by
  * profiles.first_checkin_intro_seen. The flag is flipped on tap of "begin"
- * before routing to the standard check-in screen so the user never sees
- * this intro twice.
+ * before routing back to home, where the inline TodayCheckInCard takes over.
  */
 export default function FirstCheckinIntroScreen() {
   const colors = useColors()
@@ -26,7 +25,7 @@ export default function FirstCheckinIntroScreen() {
       .update({ first_checkin_intro_seen: true })
       .eq('user_id', user.id)
     setUser({ ...user, firstCheckinIntroSeen: true })
-    router.replace('/(recovery)/check-in')
+    router.replace('/(recovery)')
   }
 
   return (
