@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { View, Text, Pressable, Animated, StyleSheet } from 'react-native'
+import { View, Text, Pressable, Animated, StyleSheet, Platform } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useColors } from '../hooks/useColors'
 import { Icon } from './Icon'
+import { sos } from '../constants/theme'
 
 interface Props {
   onArmed: () => void
@@ -88,41 +90,69 @@ export function CenterSOSButton({ onArmed }: Props) {
             transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
           />
         </Svg>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="hold to alert your supporters"
-          onPressIn={() => { setPressed(true); startHold() }}
-          onPressOut={() => { setPressed(false); cancelHold() }}
-          style={[
-            styles.button,
-            {
-              backgroundColor: colors.danger,
-              transform: [{ scale: pressed ? 0.94 : 1 }],
-              opacity: pressed ? 0.85 : 1,
-            },
-          ]}
-        >
-          <Icon name="alert-triangle" size={22} color="#fff" />
-        </Pressable>
+        <View style={styles.halo}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="hold to alert your supporters"
+            onPressIn={() => { setPressed(true); startHold() }}
+            onPressOut={() => { setPressed(false); cancelHold() }}
+            style={[
+              styles.button,
+              {
+                transform: [{ scale: pressed ? 0.94 : 1 }],
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={[sos.gradientStart, sos.gradientEnd]}
+              start={{ x: 0.5, y: 0.2 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.gradient}
+            >
+              <Icon name="alert-triangle" size={22} color="#fff" />
+            </LinearGradient>
+          </Pressable>
+        </View>
       </View>
       <Text style={[styles.label, { color: colors.textMuted }]}>hold</Text>
     </View>
   )
 }
 
+const HALO_SIZE = SIZE + 8
+
 const styles = StyleSheet.create({
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: -20 },
+  halo: {
+    width: HALO_SIZE,
+    height: HALO_SIZE,
+    borderRadius: HALO_SIZE / 2,
+    backgroundColor: sos.haloRing,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // iOS shadow
+    shadowColor: sos.haloShadowColor,
+    shadowOffset: { width: 0, height: sos.haloShadowOffsetY },
+    shadowOpacity: 1,
+    shadowRadius: sos.haloShadowRadius,
+    // Android fallback (no color support — renders as gray drop shadow)
+    elevation: Platform.OS === 'android' ? 12 : 0,
+  },
   button: {
+    width: SIZE,
+    height: SIZE,
+    borderRadius: SIZE / 2,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gradient: {
     width: SIZE,
     height: SIZE,
     borderRadius: SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 8,
   },
   label: {
     fontSize: 10,

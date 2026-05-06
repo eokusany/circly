@@ -1,17 +1,38 @@
 import { useEffect } from 'react'
 import { Tabs } from 'expo-router'
-import { useColors } from '../../hooks/useColors'
+import { ForcedSchemeContext } from '../../hooks/useColors'
 import { Icon } from '../../components/Icon'
 import { CenterSOSButton } from '../../components/CenterSOSButton'
+import { RecoveryTabButton } from '../../components/navigation/RecoveryTabButton'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
 import { scheduleOkayReminder, cancelOkayReminder, parseTime } from '../../lib/notifications'
 import { usePushToken } from '../../hooks/usePushToken'
 import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications'
 import { useEmergencyAlert } from '../../hooks/useEmergencyAlert'
+import { Colors } from '../../constants/colors'
+import type { IconName } from '../../components/Icon'
+import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs'
+
+function makeTabButton(iconName: IconName, label: string) {
+  return function TabButton(props: BottomTabBarButtonProps) {
+    const focused = props.accessibilityState?.selected ?? false
+    const iconColor = focused ? Colors.dark.accent : Colors.dark.textSecondary
+    return (
+      <RecoveryTabButton
+        focused={focused}
+        icon={<Icon name={iconName} size={22} color={iconColor} />}
+        label={label}
+        onPress={props.onPress}
+        onLongPress={props.onLongPress}
+        accessibilityState={props.accessibilityState}
+      />
+    )
+  }
+}
 
 export default function RecoveryLayout() {
-  const colors = useColors()
+  const colors = Colors.dark
   const user = useAuthStore((s) => s.user)
   usePushToken(user?.id)
   useRealtimeNotifications(user?.id)
@@ -45,70 +66,72 @@ export default function RecoveryLayout() {
   }, [user])
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        sceneStyle: { backgroundColor: colors.background },
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-          paddingBottom: 8,
-          height: 64,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-          letterSpacing: 0.2,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'home',
-          tabBarIcon: ({ color, size }) => <Icon name="home" size={size} color={color} />,
+    <ForcedSchemeContext.Provider value="dark">
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          sceneStyle: { backgroundColor: colors.background },
+          tabBarActiveTintColor: colors.accent,
+          tabBarInactiveTintColor: colors.textMuted,
+          tabBarStyle: {
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+            borderTopWidth: 1,
+            paddingBottom: 8,
+            height: 64,
+          },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+            letterSpacing: 0.2,
+          },
         }}
-      />
-      <Tabs.Screen
-        name="journal"
-        options={{
-          title: 'journal',
-          tabBarIcon: ({ color, size }) => <Icon name="book-open" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="sos"
-        options={{
-          title: '',
-          tabBarButton: () => <CenterSOSButton onArmed={triggerEmergency} />,
-        }}
-      />
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'messages',
-          tabBarIcon: ({ color, size }) => <Icon name="message-circle" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'add',
-          tabBarIcon: ({ color, size }) => <Icon name="user-plus" size={size} color={color} />,
-        }}
-      />
-      {/* Hidden routes — still navigable but not in the tab bar. */}
-      <Tabs.Screen name="notifications" options={{ href: null }} />
-      <Tabs.Screen name="profile" options={{ href: null }} />
-      <Tabs.Screen name="journal-entry" options={{ href: null }} />
-      <Tabs.Screen name="supporter-settings" options={{ href: null }} />
-      <Tabs.Screen name="silence-settings" options={{ href: null }} />
-      <Tabs.Screen name="start-fresh" options={{ href: null }} />
-      <Tabs.Screen name="first-checkin-intro" options={{ href: null }} />
-      <Tabs.Screen name="first-checkin-celebration" options={{ href: null }} />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'home',
+            tabBarButton: makeTabButton('home', 'home'),
+          }}
+        />
+        <Tabs.Screen
+          name="journal"
+          options={{
+            title: 'journal',
+            tabBarButton: makeTabButton('book-open', 'journal'),
+          }}
+        />
+        <Tabs.Screen
+          name="sos"
+          options={{
+            title: '',
+            tabBarButton: () => <CenterSOSButton onArmed={triggerEmergency} />,
+          }}
+        />
+        <Tabs.Screen
+          name="chat"
+          options={{
+            title: 'messages',
+            tabBarButton: makeTabButton('message-circle', 'messages'),
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: 'add',
+            tabBarButton: makeTabButton('user-plus', 'add'),
+          }}
+        />
+        {/* Hidden routes — still navigable but not in the tab bar. */}
+        <Tabs.Screen name="notifications" options={{ href: null }} />
+        <Tabs.Screen name="profile" options={{ href: null }} />
+        <Tabs.Screen name="journal-entry" options={{ href: null }} />
+        <Tabs.Screen name="supporter-settings" options={{ href: null }} />
+        <Tabs.Screen name="silence-settings" options={{ href: null }} />
+        <Tabs.Screen name="start-fresh" options={{ href: null }} />
+        <Tabs.Screen name="first-checkin-intro" options={{ href: null }} />
+        <Tabs.Screen name="first-checkin-celebration" options={{ href: null }} />
+      </Tabs>
+    </ForcedSchemeContext.Provider>
   )
 }
