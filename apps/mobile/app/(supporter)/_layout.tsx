@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router'
-import { useColors } from '../../hooks/useColors'
+import { useColors, ForcedSchemeContext } from '../../hooks/useColors'
 import { Icon } from '../../components/Icon'
 import { useAuthStore } from '../../store/auth'
 import { usePushToken } from '../../hooks/usePushToken'
@@ -12,6 +12,7 @@ export default function SupporterLayout() {
   useRealtimeNotifications(user?.id)
 
   return (
+    <ForcedSchemeContext.Provider value="dark">
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -59,5 +60,6 @@ export default function SupporterLayout() {
       <Tabs.Screen name="first-run-connected" options={{ href: null }} />
       <Tabs.Screen name="first-run-cold" options={{ href: null }} />
     </Tabs>
+    </ForcedSchemeContext.Provider>
   )
 }
