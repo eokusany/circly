@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Tabs } from 'expo-router'
-import { useColors } from '../../hooks/useColors'
+import { useColors, ForcedSchemeContext } from '../../hooks/useColors'
 import { Icon } from '../../components/Icon'
 import { CenterSOSButton } from '../../components/CenterSOSButton'
 import { useAuthStore } from '../../store/auth'
@@ -45,6 +45,7 @@ export default function RecoveryLayout() {
   }, [user])
 
   return (
+    <ForcedSchemeContext.Provider value="dark">
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -110,5 +111,6 @@ export default function RecoveryLayout() {
       <Tabs.Screen name="first-checkin-intro" options={{ href: null }} />
       <Tabs.Screen name="first-checkin-celebration" options={{ href: null }} />
     </Tabs>
+    </ForcedSchemeContext.Provider>
   )
 }
