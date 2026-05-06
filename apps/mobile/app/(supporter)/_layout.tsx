@@ -13,53 +13,53 @@ export default function SupporterLayout() {
 
   return (
     <ForcedSchemeContext.Provider value="dark">
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        sceneStyle: { backgroundColor: colors.background },
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-          paddingBottom: 8,
-          height: 64,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-          letterSpacing: 0.2,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'home',
-          tabBarIcon: ({ color, size }) => <Icon name="home" size={size} color={color} />,
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          sceneStyle: { backgroundColor: colors.background },
+          tabBarActiveTintColor: colors.accent,
+          tabBarInactiveTintColor: colors.textMuted,
+          tabBarStyle: {
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+            borderTopWidth: 1,
+            paddingBottom: 8,
+            height: 64,
+          },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+            letterSpacing: 0.2,
+          },
         }}
-      />
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'messages',
-          tabBarIcon: ({ color, size }) => <Icon name="message-circle" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="invite"
-        options={{
-          title: 'add',
-          tabBarIcon: ({ color, size }) => <Icon name="user-plus" size={size} color={color} />,
-        }}
-      />
-      {/* Hidden routes */}
-      <Tabs.Screen name="notifications" options={{ href: null }} />
-      <Tabs.Screen name="profile" options={{ href: null }} />
-      <Tabs.Screen name="first-run-connected" options={{ href: null }} />
-      <Tabs.Screen name="first-run-cold" options={{ href: null }} />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'home',
+            tabBarIcon: ({ color, size }) => <Icon name="home" size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="chat"
+          options={{
+            title: 'messages',
+            tabBarIcon: ({ color, size }) => <Icon name="message-circle" size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="invite"
+          options={{
+            title: 'add',
+            tabBarIcon: ({ color, size }) => <Icon name="user-plus" size={size} color={color} />,
+          }}
+        />
+        {/* Hidden routes */}
+        <Tabs.Screen name="notifications" options={{ href: null }} />
+        <Tabs.Screen name="profile" options={{ href: null }} />
+        <Tabs.Screen name="first-run-connected" options={{ href: null }} />
+        <Tabs.Screen name="first-run-cold" options={{ href: null }} />
+      </Tabs>
     </ForcedSchemeContext.Provider>
   )
 }
