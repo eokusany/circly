@@ -3,12 +3,33 @@ import { Tabs } from 'expo-router'
 import { useColors, ForcedSchemeContext } from '../../hooks/useColors'
 import { Icon } from '../../components/Icon'
 import { CenterSOSButton } from '../../components/CenterSOSButton'
+import { RecoveryTabButton } from '../../components/navigation/RecoveryTabButton'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
 import { scheduleOkayReminder, cancelOkayReminder, parseTime } from '../../lib/notifications'
 import { usePushToken } from '../../hooks/usePushToken'
 import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications'
 import { useEmergencyAlert } from '../../hooks/useEmergencyAlert'
+import { Colors } from '../../constants/colors'
+import type { IconName } from '../../components/Icon'
+import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs'
+
+function makeTabButton(iconName: IconName, label: string) {
+  return function TabButton(props: BottomTabBarButtonProps) {
+    const focused = props.accessibilityState?.selected ?? false
+    const iconColor = focused ? Colors.dark.accent : Colors.dark.textSecondary
+    return (
+      <RecoveryTabButton
+        focused={focused}
+        icon={<Icon name={iconName} size={22} color={iconColor} />}
+        label={label}
+        onPress={props.onPress}
+        onLongPress={props.onLongPress}
+        accessibilityState={props.accessibilityState}
+      />
+    )
+  }
+}
 
 export default function RecoveryLayout() {
   const colors = useColors()
@@ -70,14 +91,14 @@ export default function RecoveryLayout() {
           name="index"
           options={{
             title: 'home',
-            tabBarIcon: ({ color, size }) => <Icon name="home" size={size} color={color} />,
+            tabBarButton: makeTabButton('home', 'home'),
           }}
         />
         <Tabs.Screen
           name="journal"
           options={{
             title: 'journal',
-            tabBarIcon: ({ color, size }) => <Icon name="book-open" size={size} color={color} />,
+            tabBarButton: makeTabButton('book-open', 'journal'),
           }}
         />
         <Tabs.Screen
@@ -91,14 +112,14 @@ export default function RecoveryLayout() {
           name="chat"
           options={{
             title: 'messages',
-            tabBarIcon: ({ color, size }) => <Icon name="message-circle" size={size} color={color} />,
+            tabBarButton: makeTabButton('message-circle', 'messages'),
           }}
         />
         <Tabs.Screen
           name="settings"
           options={{
             title: 'add',
-            tabBarIcon: ({ color, size }) => <Icon name="user-plus" size={size} color={color} />,
+            tabBarButton: makeTabButton('user-plus', 'add'),
           }}
         />
         {/* Hidden routes — still navigable but not in the tab bar. */}
