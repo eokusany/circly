@@ -66,6 +66,7 @@ export const displayHero = {
 // Elevation tiers.
 // Tier 1 (elevation.card): gradient surface + thin border. No shadow. Used on standard cards.
 // Tier 2 (elevation.hero): warm amber halo + warmer gradient surface. Hero card and SOS active state.
+// Tier 3 (elevation.pressed): reduced halo applied during touch feedback on hero-tier surfaces.
 export const elevation = {
   card: {
     borderWidth: 1,
@@ -92,7 +93,7 @@ export const elevation = {
 // SOS button visual tokens — single source of truth for CenterSOSButton.
 export const sos = {
   gradientStart: '#D9736A',
-  gradientEnd: '#A93A30',
+  gradientEnd: '#A93A30',           // danger darkened ~20% for gradient depth
   haloRing: 'rgba(217,115,106,0.12)',
   haloShadowColor: 'rgba(217,115,106,0.35)',
   haloShadowRadius: 24,
