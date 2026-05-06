@@ -169,6 +169,8 @@ const styles = StyleSheet.create({
     ...elevation.hero,
     padding: spacing.xl,
     gap: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(217,167,102,0.18)',
   },
   encouragement: {
     ...type.body,
