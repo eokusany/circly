@@ -3,7 +3,14 @@ import { Alert } from 'react-native'
 import { TodayCheckInCard } from './TodayCheckInCard'
 import * as checkInsLib from '../../lib/checkIns'
 import { router } from 'expo-router'
+import { Colors } from '../../constants/colors'
 
+jest.mock('expo-linear-gradient', () => ({
+  LinearGradient: ({ children, style }: { children: React.ReactNode; style?: any }) => {
+    const { View } = require('react-native')
+    return <View style={style}>{children}</View>
+  },
+}))
 jest.mock('expo-router', () => ({ router: { replace: jest.fn(), push: jest.fn() } }))
 jest.mock('../../lib/checkIns', () => ({
   loadTodayCheckIn: jest.fn(),
@@ -130,5 +137,25 @@ describe('<TodayCheckInCard />', () => {
     // chip is still rendered — editor did not collapse
     expect(await findByLabelText('chip-sober')).toBeTruthy()
     alertSpy.mockRestore()
+  })
+
+  it('good_day chip uses sage success colors when it is the current status', async () => {
+    // Load an existing good_day row — chip should render with sage colors immediately
+    loadMock.mockResolvedValueOnce({
+      id: 'r1', status: 'good_day', note: null, check_in_date: '2026-05-05',
+    })
+    const { findByText, findByLabelText } = render(<TodayCheckInCard onSaved={jest.fn()} />)
+    // wait for collapsed state, then expand to see chips
+    const editBtn = await findByText(/edit/i)
+    await act(async () => { fireEvent.press(editBtn) })
+    const goodChip = await findByLabelText('chip-good_day')
+    const chipStyle = goodChip.props.style
+    const flatStyle = Array.isArray(chipStyle) ? Object.assign({}, ...chipStyle) : chipStyle
+    // sage at low alpha background
+    expect(flatStyle.backgroundColor).toBe('rgba(125,184,150,0.10)')
+    // sage at medium alpha border
+    expect(flatStyle.borderColor).toBe('rgba(125,184,150,0.30)')
+    // confirm the token value itself
+    expect(Colors.dark.success).toBe('#7DB896')
   })
 })
