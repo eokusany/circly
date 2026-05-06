@@ -1,12 +1,14 @@
 import { Tabs } from 'expo-router'
-import { useColors, ForcedSchemeContext } from '../../hooks/useColors'
+import { ForcedSchemeContext } from '../../hooks/useColors'
 import { Icon } from '../../components/Icon'
+import { SupporterTabBar } from '../../components/SupporterTabBar'
 import { useAuthStore } from '../../store/auth'
 import { usePushToken } from '../../hooks/usePushToken'
 import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications'
+import { Colors } from '../../constants/colors'
 
 export default function SupporterLayout() {
-  const colors = useColors()
+  const colors = Colors.dark
   const user = useAuthStore((s) => s.user)
   usePushToken(user?.id)
   useRealtimeNotifications(user?.id)
@@ -14,6 +16,7 @@ export default function SupporterLayout() {
   return (
     <ForcedSchemeContext.Provider value="dark">
       <Tabs
+        tabBar={(props) => <SupporterTabBar {...props} />}
         screenOptions={{
           headerShown: false,
           sceneStyle: { backgroundColor: colors.background },

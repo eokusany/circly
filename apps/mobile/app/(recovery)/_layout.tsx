@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Tabs } from 'expo-router'
-import { useColors, ForcedSchemeContext } from '../../hooks/useColors'
+import { ForcedSchemeContext } from '../../hooks/useColors'
 import { Icon } from '../../components/Icon'
 import { CenterSOSButton } from '../../components/CenterSOSButton'
 import { RecoveryTabButton } from '../../components/navigation/RecoveryTabButton'
@@ -32,7 +32,7 @@ function makeTabButton(iconName: IconName, label: string) {
 }
 
 export default function RecoveryLayout() {
-  const colors = useColors()
+  const colors = Colors.dark
   const user = useAuthStore((s) => s.user)
   usePushToken(user?.id)
   useRealtimeNotifications(user?.id)
