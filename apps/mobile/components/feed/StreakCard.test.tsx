@@ -21,7 +21,7 @@ describe('<StreakCard />', () => {
       />
     )
     expect(getByText('5')).toBeTruthy()
-    expect(getByText('DAYS SOBER')).toBeTruthy()
+    expect(getByText('Days Sober')).toBeTruthy()
   })
 
   it('pill renders correct phrasing (days to, not days until)', () => {
@@ -55,7 +55,7 @@ describe('<StreakCard />', () => {
     expect(getByText('You showed up today.')).toBeTruthy()
   })
 
-  it('overflow fallback — renders 1000 without crashing', () => {
+  it('overflow fallback — renders 1000 without crashing and uses fallback (not hero) font size', () => {
     const { getByText } = render(
       <StreakCard
         days={1000}
@@ -65,6 +65,13 @@ describe('<StreakCard />', () => {
         dayOfYear={1}
       />
     )
-    expect(getByText('1000')).toBeTruthy()
+    const node = getByText('1000')
+    expect(node).toBeTruthy()
+    // The hero style has fontSize: 96. When days >= 1000 the component switches to
+    // streakNumberFallback (type.display), so fontSize should NOT be 96.
+    const flatStyle = Array.isArray(node.props.style)
+      ? Object.assign({}, ...node.props.style)
+      : node.props.style ?? {}
+    expect(flatStyle.fontSize).not.toBe(96)
   })
 })
