@@ -12,5 +12,5 @@ export const lines = [
 ] as const
 
 export function pickEncouragement(dayOfYear: number): string {
-  return lines[dayOfYear % lines.length]
+  return lines[((dayOfYear % lines.length) + lines.length) % lines.length]
 }
