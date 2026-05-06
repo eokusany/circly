@@ -1,43 +1,64 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { useState } from 'react'
+import { View, Text, Pressable, StyleSheet, type LayoutChangeEvent } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
-import { useColors } from '../../hooks/useColors'
-import { spacing, radii, type } from '../../constants/theme'
-import { MILESTONES, type Milestone } from '../../lib/streak'
+import { spacing, radii, type, displayHero, elevation } from '../../constants/theme'
+import { Colors } from '../../constants/colors'
+import { MILESTONES, prevMilestoneDays, type Milestone } from '../../lib/streak'
+import { pickEncouragement } from '../../lib/copy/encouragements'
 
 interface StreakCardProps {
   days: number
   next: Milestone | null
   streakLabel: string
   showResetChip: boolean
+  /** Optional override for testability. Defaults to today's day-of-year. */
+  dayOfYear?: number
 }
 
-export function StreakCard({ days, next, streakLabel, showResetChip }: StreakCardProps) {
-  const colors = useColors()
+function todayDayOfYear(): number {
+  return Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
+  )
+}
+
+export function StreakCard({
+  days,
+  next,
+  streakLabel,
+  showResetChip,
+  dayOfYear,
+}: StreakCardProps) {
+  const [trackWidth, setTrackWidth] = useState(0)
+
+  const doy = dayOfYear ?? todayDayOfYear()
+  const encouragement = pickEncouragement(doy)
 
   const prevDays = prevMilestoneDays(days)
   const targetDays = next?.days ?? days
   const range = Math.max(targetDays - prevDays, 1)
-  const progress = next ? Math.min((days - prevDays) / range, 1) : 1
+  const progress = next ? Math.min(Math.max((days - prevDays) / range, 0), 1) : 1
+  const fillWidth = trackWidth * progress
+
+  const numberStyle = days >= 1000 ? styles.streakNumberFallback : styles.streakNumberHero
+
+  const handleTrackLayout = (e: LayoutChangeEvent) => {
+    setTrackWidth(e.nativeEvent.layout.width)
+  }
 
   return (
-    <View
-      style={[
-        styles.streakCard,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-        },
-      ]}
+    <LinearGradient
+      colors={['#2A2218', '#1B1A17']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+      style={styles.container}
     >
-      <Text style={[styles.streakLabel, { color: colors.textMuted }]}>
-        {streakLabel}
-      </Text>
+      {/* Encouragement line */}
+      <Text style={styles.encouragement}>{encouragement}</Text>
 
-      <View style={styles.streakNumberRow}>
-        <Text style={[styles.streakNumber, { color: colors.accent }]}>{days}</Text>
-        <Text style={[styles.streakUnit, { color: colors.textSecondary }]}>
-          {days === 1 ? 'day' : 'days'}
-        </Text>
+      {/* Hero number */}
+      <View style={styles.numberRow}>
+        <Text style={numberStyle}>{days}</Text>
         {showResetChip && (
           <Pressable
             accessibilityRole="button"
@@ -45,50 +66,57 @@ export function StreakCard({ days, next, streakLabel, showResetChip }: StreakCar
             onPress={() => router.push('/(recovery)/start-fresh')}
             style={({ pressed }) => [
               styles.resetChip,
-              {
-                backgroundColor: colors.surfaceRaised,
-                borderColor: colors.border,
-                opacity: pressed ? 0.7 : 1,
-                marginLeft: 'auto',
-              },
+              { opacity: pressed ? 0.7 : 1, marginLeft: 'auto' },
             ]}
           >
-            <Text style={[styles.resetChipText, { color: colors.textSecondary }]}>
-              {'\u21bb'} reset
-            </Text>
+            <Text style={styles.resetChipText}>{'\u21bb'} reset</Text>
           </Pressable>
         )}
       </View>
 
-      {next ? (
-        <View style={styles.progressWrap}>
-          <View
-            style={[styles.progressTrack, { backgroundColor: colors.surfaceRaised }]}
-          >
-            <View
+      {/* DAYS SOBER label */}
+      <Text style={styles.daysSoberLabel}>DAYS SOBER</Text>
+
+      {/* Progress bar + pill */}
+      <View style={styles.progressSection}>
+        <View
+          style={styles.progressTrack}
+          onLayout={handleTrackLayout}
+        >
+          {trackWidth > 0 && (
+            <LinearGradient
+              colors={['#C58A3F', '#D9A766']}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
               style={[
                 styles.progressFill,
                 {
-                  backgroundColor: colors.accent,
-                  width: `${progress * 100}%`,
+                  width: fillWidth,
+                  shadowColor: 'rgba(217,167,102,0.4)',
+                  shadowRadius: 12,
+                  shadowOpacity: 1,
+                  shadowOffset: { width: 0, height: 0 },
                 },
               ]}
             />
-          </View>
-          <Text style={[styles.progressCaption, { color: colors.textSecondary }]}>
-            {next.days - days} {next.days - days === 1 ? 'day' : 'days'} until{' '}
-            <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>
+          )}
+        </View>
+
+        {next ? (
+          <View style={styles.pill}>
+            <Text style={styles.pillText}>
+              {next.days - days} {next.days - days === 1 ? 'day' : 'days'} to your{' '}
               {next.label}
             </Text>
-          </Text>
-        </View>
-      ) : (
-        <Text style={[styles.progressCaption, { color: colors.textSecondary }]}>
-          every milestone reached. incredible.
-        </Text>
-      )}
+          </View>
+        ) : (
+          <View style={styles.pill}>
+            <Text style={styles.pillText}>every milestone reached. incredible.</Text>
+          </View>
+        )}
+      </View>
 
-      {/* §2.4 — milestone dots */}
+      {/* Milestone dots */}
       <View style={styles.dotsRow}>
         {MILESTONES.map((m) => {
           const reached = days >= m.days
@@ -100,15 +128,15 @@ export function StreakCard({ days, next, streakLabel, showResetChip }: StreakCar
                   styles.dot,
                   {
                     backgroundColor: reached
-                      ? colors.success
+                      ? Colors.dark.success
                       : isCurrent
-                        ? colors.accentSoft
+                        ? Colors.dark.accentSoft
                         : 'transparent',
                     borderColor: reached
-                      ? colors.success
+                      ? Colors.dark.success
                       : isCurrent
-                        ? colors.accent
-                        : colors.border,
+                        ? Colors.dark.accent
+                        : Colors.dark.border,
                     borderWidth: isCurrent ? 2 : 1,
                   },
                 ]}
@@ -118,10 +146,10 @@ export function StreakCard({ days, next, streakLabel, showResetChip }: StreakCar
                   styles.dotLabel,
                   {
                     color: reached
-                      ? colors.textPrimary
+                      ? Colors.dark.textPrimary
                       : isCurrent
-                        ? colors.accent
-                        : colors.textMuted,
+                        ? Colors.dark.accent
+                        : Colors.dark.textMuted,
                   },
                 ]}
               >
@@ -131,33 +159,45 @@ export function StreakCard({ days, next, streakLabel, showResetChip }: StreakCar
           )
         })}
       </View>
-    </View>
+    </LinearGradient>
   )
 }
 
-function prevMilestoneDays(days: number): number {
-  let prev = 0
-  for (const m of MILESTONES) {
-    if (days < m.days) return prev
-    prev = m.days
-  }
-  return prev
-}
-
 const styles = StyleSheet.create({
-  streakCard: {
+  container: {
     borderRadius: radii.xl,
-    borderWidth: 1,
+    ...elevation.hero,
     padding: spacing.xl,
     gap: spacing.md,
   },
-  streakLabel: { ...type.label },
-  streakNumberRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
-  streakNumber: { ...type.display },
-  streakUnit: { fontSize: 18, fontWeight: '500' },
-  progressWrap: { gap: spacing.sm, marginTop: spacing.xs },
+  encouragement: {
+    ...type.body,
+    color: Colors.dark.textSecondary,
+  },
+  numberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  streakNumberHero: {
+    ...displayHero,
+    color: Colors.dark.textPrimary,
+  },
+  streakNumberFallback: {
+    ...type.display,
+    color: Colors.dark.textPrimary,
+  },
+  daysSoberLabel: {
+    ...type.label,
+    color: Colors.dark.accent,
+    marginTop: -spacing.sm,
+  },
+  progressSection: {
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
   progressTrack: {
     height: 6,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: radii.pill,
     overflow: 'hidden',
   },
@@ -165,16 +205,29 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: radii.pill,
   },
-  progressCaption: { ...type.small },
+  pill: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(217,167,102,0.12)',
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  pillText: {
+    ...type.small,
+    color: Colors.dark.accent,
+  },
   resetChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radii.pill,
     borderWidth: 1,
+    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.surfaceRaised,
   },
   resetChipText: {
     fontSize: 12,
     fontWeight: '600',
+    color: Colors.dark.textSecondary,
   },
   dotsRow: {
     flexDirection: 'row',
