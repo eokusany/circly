@@ -5,6 +5,7 @@ import {
   streakDays,
   isMilestoneReached,
   nextMilestone,
+  prevMilestoneDays,
   MILESTONES,
   type Milestone,
 } from './streak'
@@ -229,6 +230,52 @@ describe('nextMilestone', () => {
   it('returns null when every milestone has been reached', () => {
     expect(nextMilestone(365)).toBeNull()
     expect(nextMilestone(10_000)).toBeNull()
+  })
+})
+
+describe('prevMilestoneDays', () => {
+  it('returns 0 when days is 0 (before first milestone)', () => {
+    expect(prevMilestoneDays(0)).toBe(0)
+  })
+
+  it('returns 1 when days is 1 (at first milestone, prev is 0… actually prev becomes 1)', () => {
+    // days=1: 1 >= 1 so prev becomes 1; 1 < 7 so returns 1
+    expect(prevMilestoneDays(1)).toBe(1)
+  })
+
+  it('returns 1 at day 6 (just before 7d milestone)', () => {
+    expect(prevMilestoneDays(6)).toBe(1)
+  })
+
+  it('returns 7 at day 7 (at 7d milestone, prev becomes 7)', () => {
+    // days=7: passes 1d (prev=1) and 7d (prev=7), then 7 < 30 returns 7
+    expect(prevMilestoneDays(7)).toBe(7)
+  })
+
+  it('returns 7 at day 8 (just past 7d milestone)', () => {
+    expect(prevMilestoneDays(8)).toBe(7)
+  })
+
+  it('returns 30 at day 30 (at 30d milestone)', () => {
+    // days=30: passes 1d, 7d, 30d (prev=30), then 30 < 90 returns 30
+    expect(prevMilestoneDays(30)).toBe(30)
+  })
+
+  it('returns 30 at day 89 (just before 90d milestone)', () => {
+    expect(prevMilestoneDays(89)).toBe(30)
+  })
+
+  it('returns 90 at day 90 (at 90d milestone)', () => {
+    expect(prevMilestoneDays(90)).toBe(90)
+  })
+
+  it('returns 365 at day 365 (at final milestone)', () => {
+    // All milestones passed including 365d, loop ends, returns 365
+    expect(prevMilestoneDays(365)).toBe(365)
+  })
+
+  it('returns 365 (last milestone) when days is far beyond all milestones', () => {
+    expect(prevMilestoneDays(10000)).toBe(365)
   })
 })
 

@@ -47,3 +47,55 @@ export const layout = {
   sectionGap: spacing.xxl,
   contentGap: spacing.lg,
 } as const
+
+// Casing rules:
+// - type.label  → UPPERCASE for tier indicators ("DAYS SOBER", "TODAY'S CHECK-IN")
+// - type.body / type.bodyStrong → sentence case for sentences and content
+// - lowercase reserved for brand voice (wordmark "circly", supportive whispers)
+// Do not mix these arbitrarily within a single screen.
+
+// Hero-scale display number. Existing display (56pt) is not heroic enough.
+// Falls back to type.display when days >= 1000 (see StreakCard).
+export const displayHero = {
+  fontSize: 96,
+  fontWeight: '700' as const,
+  letterSpacing: -3,
+  lineHeight: 92,
+} as const
+
+// Elevation tiers.
+// Tier 1 (elevation.card): gradient surface + thin border. No shadow. Used on standard cards.
+// Tier 2 (elevation.hero): warm amber halo + warmer gradient surface. Hero card and SOS active state.
+// Tier 3 (elevation.pressed): reduced halo applied during touch feedback on hero-tier surfaces.
+export const elevation = {
+  card: {
+    borderWidth: 1,
+    borderColor: '#2A2825',       // Colors.dark.border — hardcoded to avoid circular import
+  },
+  hero: {
+    shadowColor: '#D9A766',       // Colors.dark.accent
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,                 // Android (no color on Android — renders as gray drop shadow)
+    borderWidth: 1,
+    borderColor: 'rgba(217,167,102,0.18)',
+  },
+  pressed: {
+    shadowColor: '#D9A766',
+    shadowOpacity: 0.10,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+} as const
+
+// SOS button visual tokens — single source of truth for CenterSOSButton.
+export const sos = {
+  gradientStart: '#D9736A',
+  gradientEnd: '#A93A30',           // danger darkened ~20% for gradient depth
+  haloRing: 'rgba(217,115,106,0.12)',
+  haloShadowColor: 'rgba(217,115,106,0.35)',
+  haloShadowRadius: 24,
+  haloShadowOffsetY: 8,
+} as const
