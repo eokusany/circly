@@ -1,6 +1,5 @@
 import { render } from '@testing-library/react-native'
 import { SupporterTabBar } from './SupporterTabBar'
-import { Colors } from '../constants/colors'
 
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children, style }: { children: React.ReactNode; style?: object }) => {
@@ -9,17 +8,12 @@ jest.mock('expo-linear-gradient', () => ({
   },
 }))
 
-jest.mock('../store/notifications', () => ({
-  useNotificationStore: () => 0,
-}))
-
-// Minimal BottomTabBarProps stub
+// Minimal BottomTabBarProps stub — routes must match the visible TABS in SupporterTabBar
 function makeProps(activeIndex: number) {
   const routes = [
-    { key: 'index-key',         name: 'index' },
-    { key: 'invite-key',        name: 'invite' },
-    { key: 'notifications-key', name: 'notifications' },
-    { key: 'profile-key',       name: 'profile' },
+    { key: 'index-key', name: 'index' },
+    { key: 'chat-key',  name: 'chat'  },
+    { key: 'invite-key', name: 'invite' },
   ]
   return {
     state: {
@@ -39,9 +33,8 @@ describe('<SupporterTabBar />', () => {
   it('renders without crashing', () => {
     const { getByLabelText } = render(<SupporterTabBar {...makeProps(0)} />)
     expect(getByLabelText('home')).toBeTruthy()
-    expect(getByLabelText('connections')).toBeTruthy()
-    expect(getByLabelText('alerts')).toBeTruthy()
-    expect(getByLabelText('profile')).toBeTruthy()
+    expect(getByLabelText('messages')).toBeTruthy()
+    expect(getByLabelText('add')).toBeTruthy()
   })
 
   it('wraps the active tab in a LinearGradient', () => {
@@ -60,7 +53,7 @@ describe('<SupporterTabBar />', () => {
 
   it('inactive tabs do not render a gradient', () => {
     const { getAllByTestId } = render(<SupporterTabBar {...makeProps(1)} />)
-    // Only invite (index 1) is active — exactly one gradient
+    // Only chat (index 1) is active — exactly one gradient
     expect(getAllByTestId('linear-gradient')).toHaveLength(1)
   })
 })

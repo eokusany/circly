@@ -15,7 +15,7 @@ interface DailyPulseCardProps {
 export function DailyPulseCard({ prompt, onWriteAnswer }: DailyPulseCardProps) {
   const colors = useColors()
   return (
-    <LinearGradient colors={CARD_GRADIENT} style={styles.card}>
+    <LinearGradient colors={CARD_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.card}>
       <View style={styles.labelRow}>
         <Icon name="sun" size={11} color={colors.accent} />
         <Text style={[styles.label, { color: colors.accent }]}>{`today's reflection`}</Text>

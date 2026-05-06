@@ -3,17 +3,14 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { useColors } from '../hooks/useColors'
 import { Icon } from './Icon'
-import { Badge } from './Badge'
 import { spacing, radii } from '../constants/theme'
 import { Colors } from '../constants/colors'
 import type { IconName } from './Icon'
-import { useNotificationStore } from '../store/notifications'
 
 const TABS: Array<{ name: string; label: string; icon: IconName }> = [
-  { name: 'index',         label: 'home',        icon: 'home'  },
-  { name: 'invite',        label: 'connections', icon: 'users' },
-  { name: 'notifications', label: 'alerts',      icon: 'bell'  },
-  { name: 'profile',       label: 'profile',     icon: 'user'  },
+  { name: 'index',  label: 'home',     icon: 'home'          },
+  { name: 'chat',   label: 'messages', icon: 'message-circle' },
+  { name: 'invite', label: 'add',      icon: 'user-plus'      },
 ]
 
 const PILL_GRADIENT = ['rgba(217,167,102,0.18)', 'rgba(217,167,102,0.08)'] as const
@@ -21,7 +18,6 @@ const PILL_BORDER_COLOR = 'rgba(217,167,102,0.30)'
 
 export function SupporterTabBar({ state, navigation, insets }: BottomTabBarProps) {
   const colors = useColors()
-  const unreadCount = useNotificationStore((s) => s.unreadCount)
 
   return (
     <View style={[styles.container, {
@@ -33,7 +29,6 @@ export function SupporterTabBar({ state, navigation, insets }: BottomTabBarProps
         const route = state.routes.find((r) => r.name === tabDef.name)
         if (!route) return null
         const isFocused = state.routes[state.index].key === route.key
-        const isAlerts = tabDef.name === 'notifications'
 
         return (
           <Pressable
@@ -60,11 +55,6 @@ export function SupporterTabBar({ state, navigation, insets }: BottomTabBarProps
               >
                 <View style={styles.iconWrap}>
                   <Icon name={tabDef.icon} size={22} color={Colors.dark.accent} />
-                  {isAlerts && unreadCount > 0 && (
-                    <View style={styles.badgeWrap}>
-                      <Badge count={unreadCount} />
-                    </View>
-                  )}
                 </View>
                 <Text style={[styles.label, styles.labelActive]}>{tabDef.label}</Text>
               </LinearGradient>
@@ -72,11 +62,6 @@ export function SupporterTabBar({ state, navigation, insets }: BottomTabBarProps
               <View style={styles.pill}>
                 <View style={styles.iconWrap}>
                   <Icon name={tabDef.icon} size={22} color={Colors.dark.textSecondary} />
-                  {isAlerts && unreadCount > 0 && (
-                    <View style={styles.badgeWrap}>
-                      <Badge count={unreadCount} />
-                    </View>
-                  )}
                 </View>
                 <Text style={[styles.label, styles.labelInactive]}>{tabDef.label}</Text>
               </View>
