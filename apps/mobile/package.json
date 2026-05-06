@@ -18,6 +18,13 @@
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg))"
     ],
+    "_moduleNameMapper_note": "DO NOT REMOVE: monorepo root and apps/mobile both install React. @testing-library/react-native is hoisted, so without these mappings renderHook fails with React's duplicate-instance check. Long-term fix is workspace hoisting config; until then Jest must pin react/react-test-renderer to the local app copy.",
+    "moduleNameMapper": {
+      "^react$": "<rootDir>/node_modules/react",
+      "^react/(.*)$": "<rootDir>/node_modules/react/$1",
+      "^react-test-renderer$": "<rootDir>/node_modules/react-test-renderer",
+      "^react-test-renderer/(.*)$": "<rootDir>/node_modules/react-test-renderer/$1"
+    },
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/app/"

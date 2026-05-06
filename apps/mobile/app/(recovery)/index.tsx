@@ -4,10 +4,9 @@ import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
-import { api, ApiError, getTodayIntention, setIntention as setIntentionApi } from '../../lib/api'
+import { getTodayIntention, setIntention as setIntentionApi } from '../../lib/api'
 import { SkeletonCard } from '../../components/SkeletonCard'
 import { ErrorState } from '../../components/ErrorState'
-import { notifyWarning } from '../../lib/haptics'
 import { spacing, radii, type, layout } from '../../constants/theme'
 import { useLayout } from '../../hooks/useLayout'
 import {
@@ -19,6 +18,7 @@ import {
 } from '../../lib/streak'
 import { useCopy } from '../../lib/copy'
 import { AppHeader } from '../../components/AppHeader'
+import { useNotificationStore } from '../../store/notifications'
 import {
   shouldCelebrateSubstance,
   shouldCelebrateLife,
@@ -31,6 +31,8 @@ import { DailyPulseCard } from '../../components/feed/DailyPulseCard'
 import { MemoryCard } from '../../components/feed/MemoryCard'
 import { IntentionCard } from '../../components/feed/IntentionCard'
 import { StrugglingCard } from '../../components/feed/StrugglingCard'
+import { TodayCheckInCard } from '../../components/feed/TodayCheckInCard'
+import { StartFreshNudge } from '../../components/feed/StartFreshNudge'
 import { getPromptForDay } from '../../lib/reflectionPrompts'
 
 const MILESTONES_SUBSTANCE_LABEL: Record<number, string> = {
@@ -61,64 +63,18 @@ export default function RecoveryHome() {
   const copy = useCopy()
   const user = useAuthStore((s) => s.user)
   const setUser = useAuthStore((s) => s.setUser)
+  const unreadNotifications = useNotificationStore((s) => s.unreadCount)
   const [todayStatus, setTodayStatus] = useState<CheckInStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const hasLoaded = useRef(false)
   const lastFetchedAt = useRef(0)
-  const [sendingEmergency, setSendingEmergency] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [hasAnyCheckIns, setHasAnyCheckIns] = useState<boolean | null>(null)
   const [connectionCount, setConnectionCount] = useState<number>(0)
   const [totalCheckIns, setTotalCheckIns] = useState<number>(0)
   const [milestoneTakeoverVisible, setMilestoneTakeoverVisible] = useState(false)
   const [intention, setIntention] = useState<string | null>(null)
   const [oldEntry, setOldEntry] = useState<OldJournalEntry | null>(null)
-
-  async function handleGetSupport() {
-    Alert.alert(
-      'alert your supporters',
-      'this will notify all your supporters right now. continue?',
-      [
-        { text: 'cancel', style: 'cancel' },
-        {
-          text: 'yes, alert them',
-          style: 'destructive',
-          onPress: async () => {
-            notifyWarning()
-            setSendingEmergency(true)
-            try {
-              const result = await api<{ supporters_notified: number }>(
-                '/api/emergency',
-                { method: 'POST' },
-              )
-              if (result.supporters_notified === 0) {
-                Alert.alert(
-                  'no supporters yet',
-                  'add someone to your circle so they can be there for you.',
-                )
-              } else {
-                Alert.alert(
-                  'your supporters have been notified',
-                  `${result.supporters_notified} ${
-                    result.supporters_notified === 1 ? 'person has' : 'people have'
-                  } been alerted.`,
-                )
-              }
-            } catch (err) {
-              const message =
-                err instanceof ApiError
-                  ? 'something went wrong. please try again.'
-                  : 'check your connection and try again.'
-              Alert.alert('could not send alert', message)
-            } finally {
-              setSendingEmergency(false)
-            }
-          },
-        },
-      ],
-    )
-  }
 
   const days = useMemo(
     () => user?.sobrietyStartDate ? streakDays(user.sobrietyStartDate) : 0,
@@ -177,7 +133,6 @@ export default function RecoveryHome() {
     }
 
     setTodayStatus(checkInRes.data?.status ?? null)
-    setHasAnyCheckIns((totalCheckRes.count ?? 0) > 0)
     setConnectionCount(relationshipsRes.count ?? 0)
     setTotalCheckIns(totalCheckRes.count ?? 0)
     setOldEntry(oldJournalRes.data?.[0] ?? null)
@@ -320,108 +275,92 @@ export default function RecoveryHome() {
           avatarUrl: user?.avatarUrl ?? null,
         }}
         onAvatarPress={() => router.push('/(profile)')}
-        onMessagesPress={() => router.push('/(recovery)/chat')}
-        onSosPress={handleGetSupport}
+        onNotificationsPress={() => router.push('/(recovery)/notifications')}
+        unreadNotifications={unreadNotifications}
       />
 
-      {hasAnyCheckIns === false ? (
-        <View
-          style={[
-            styles.dayOneCard,
-            { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+      {/* §2.4 — pinned streak snapshot */}
+      <StreakCard
+        days={days}
+        next={next}
+        streakLabel={copy.dashboard.streakLabel}
+        showResetChip={user?.context === 'recovery'}
+      />
+
+      {/* spec §5.1 — today's check-in inline */}
+      <TodayCheckInCard onSaved={(row) => setTodayStatus(row.status)} />
+
+      {/* §4.2 — struggling card sits below the check-in */}
+      {todayStatus === 'struggling' && (
+        <StrugglingCard onGetSupport={() => Alert.alert(
+          'when you’re ready',
+          'press and hold the SOS button at the bottom of the screen to alert your supporters.',
+        )} />
+      )}
+
+      {/* spec §5.1 — start-fresh nudge moves out of the check-in screen */}
+      {todayStatus === 'struggling' && user?.context === 'recovery' && (
+        <StartFreshNudge />
+      )}
+
+      {/* §2.2 — milestone celebration (persistent until next) */}
+      {user?.context === 'recovery' && substanceHighest > 0 && (
+        <MilestoneFeedCard
+          badge={
+            MILESTONES_SUBSTANCE_LABEL[substanceHighest] ??
+            `${substanceHighest} days`
+          }
+          body={`${MILESTONES_SUBSTANCE_LABEL[substanceHighest] ?? `${substanceHighest} days`} clean. quiet wins matter.`}
+        />
+      )}
+      {user?.context === 'life' && lifeHighest > 0 && (
+        <MilestoneFeedCard
+          badge={`${lifeHighest} check-ins`}
+          body={`${lifeHighest} check-ins. showing up matters.`}
+        />
+      )}
+
+      {/* §2.2 — daily pulse: reflection or memory */}
+      {showMemory && oldEntry ? (
+        <MemoryCard
+          entryText={oldEntry.body}
+          daysAgo={oldEntryDaysAgo}
+          dayNumber={Math.max(days - oldEntryDaysAgo, 1)}
+        />
+      ) : (
+        <DailyPulseCard
+          prompt={reflectionPrompt}
+          onWriteAnswer={() =>
+            router.push({
+              pathname: '/(recovery)/journal-entry',
+              params: { prompt: reflectionPrompt },
+            })
+          }
+        />
+      )}
+
+      {/* §2.2 — intention slot, daily */}
+      <IntentionCard intention={intention} onSave={handleSaveIntention} />
+
+      {/* invite supporter nudge while user has zero connections */}
+      {connectionCount === 0 && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="invite someone who is in your corner"
+          onPress={() => router.push('/(recovery)/settings')}
+          style={({ pressed }) => [
+            styles.inviteCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              opacity: pressed ? 0.85 : 1,
+            },
           ]}
         >
-          <Text style={[styles.dayOneTitle, { color: colors.textPrimary }]}>
-            welcome. start with your first check-in.
+          <Text style={[styles.inviteText, { color: colors.textPrimary }]}>
+            {`invite someone who's in your corner →`}
           </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="check in"
-            onPress={() => router.push('/(recovery)/check-in')}
-            disabled={sendingEmergency}
-            style={({ pressed }) => [
-              styles.dayOneBtn,
-              { backgroundColor: colors.accent, opacity: pressed ? 0.85 : 1 },
-            ]}
-          >
-            <Text style={styles.dayOneBtnText}>check in →</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <>
-          {/* §2.4 — pinned streak snapshot */}
-          <StreakCard
-            days={days}
-            next={next}
-            streakLabel={copy.dashboard.streakLabel}
-            showResetChip={user?.context === 'recovery'}
-          />
-
-          {/* §4.2 — struggling card sits above all other cards */}
-          {todayStatus === 'struggling' && (
-            <StrugglingCard onGetSupport={handleGetSupport} />
-          )}
-
-          {/* §2.2 — milestone celebration (persistent until next) */}
-          {user?.context === 'recovery' && substanceHighest > 0 && (
-            <MilestoneFeedCard
-              badge={
-                MILESTONES_SUBSTANCE_LABEL[substanceHighest] ??
-                `${substanceHighest} days`
-              }
-              body={`${MILESTONES_SUBSTANCE_LABEL[substanceHighest] ?? `${substanceHighest} days`} clean. quiet wins matter.`}
-            />
-          )}
-          {user?.context === 'life' && lifeHighest > 0 && (
-            <MilestoneFeedCard
-              badge={`${lifeHighest} check-ins`}
-              body={`${lifeHighest} check-ins. showing up matters.`}
-            />
-          )}
-
-          {/* §2.2 — daily pulse: reflection or memory */}
-          {showMemory && oldEntry ? (
-            <MemoryCard
-              entryText={oldEntry.body}
-              daysAgo={oldEntryDaysAgo}
-              dayNumber={Math.max(days - oldEntryDaysAgo, 1)}
-            />
-          ) : (
-            <DailyPulseCard
-              prompt={reflectionPrompt}
-              onWriteAnswer={() =>
-                router.push({
-                  pathname: '/(recovery)/journal-entry',
-                  params: { prompt: reflectionPrompt },
-                })
-              }
-            />
-          )}
-
-          {/* §2.2 — intention slot, daily */}
-          <IntentionCard intention={intention} onSave={handleSaveIntention} />
-
-          {/* invite supporter nudge while user has zero connections */}
-          {connectionCount === 0 && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="invite someone who is in your corner"
-              onPress={() => router.push('/(recovery)/settings')}
-              style={({ pressed }) => [
-                styles.inviteCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  opacity: pressed ? 0.85 : 1,
-                },
-              ]}
-            >
-              <Text style={[styles.inviteText, { color: colors.textPrimary }]}>
-                {`invite someone who's in your corner →`}
-              </Text>
-            </Pressable>
-          )}
-        </>
+        </Pressable>
       )}
     </ScrollView>
     </KeyboardAvoidingView>
@@ -633,22 +572,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '500',
   },
-
-  // day-one empty state
-  dayOneCard: {
-    borderRadius: radii.xl,
-    borderWidth: 1,
-    padding: spacing.xl,
-    gap: spacing.lg,
-  },
-  dayOneTitle: { ...type.h2 },
-  dayOneBtn: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-    borderRadius: radii.pill,
-  },
-  dayOneBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' as const },
 
   inviteCard: {
     borderRadius: radii.lg,
