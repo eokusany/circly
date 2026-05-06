@@ -55,3 +55,16 @@ export function isMilestoneReached(days: number, milestone: Milestone): boolean 
 export function nextMilestone(days: number): Milestone | null {
   return MILESTONES.find((m) => days < m.days) ?? null
 }
+
+/**
+ * Returns the day count of the last reached milestone before `days`.
+ * Used for progress bar calculations in StreakCard.
+ */
+export function prevMilestoneDays(days: number): number {
+  let prev = 0
+  for (const m of MILESTONES) {
+    if (days < m.days) return prev
+    prev = m.days
+  }
+  return prev
+}
