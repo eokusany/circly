@@ -1,9 +1,11 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { useColors } from '../hooks/useColors'
 import { Icon } from './Icon'
 import { Badge } from './Badge'
-import { spacing } from '../constants/theme'
+import { spacing, radii } from '../constants/theme'
+import { Colors } from '../constants/colors'
 import type { IconName } from './Icon'
 import { useNotificationStore } from '../store/notifications'
 
@@ -13,6 +15,8 @@ const TABS: Array<{ name: string; label: string; icon: IconName }> = [
   { name: 'notifications', label: 'alerts',      icon: 'bell'  },
   { name: 'profile',       label: 'profile',     icon: 'user'  },
 ]
+
+const PILL_GRADIENT = ['rgba(217,167,102,0.18)', 'rgba(217,167,102,0.08)'] as const
 
 export function SupporterTabBar({ state, navigation, insets }: BottomTabBarProps) {
   const colors = useColors()
@@ -28,7 +32,6 @@ export function SupporterTabBar({ state, navigation, insets }: BottomTabBarProps
         const route = state.routes.find((r) => r.name === tabDef.name)
         if (!route) return null
         const isFocused = state.routes[state.index].key === route.key
-        const color = isFocused ? colors.accent : colors.textMuted
         const isAlerts = tabDef.name === 'notifications'
 
         return (
@@ -49,15 +52,34 @@ export function SupporterTabBar({ state, navigation, insets }: BottomTabBarProps
             accessibilityState={{ selected: isFocused }}
             style={styles.tab}
           >
-            <View style={styles.iconWrap}>
-              <Icon name={tabDef.icon} size={22} color={color} />
-              {isAlerts && unreadCount > 0 && (
-                <View style={styles.badgeWrap}>
-                  <Badge count={unreadCount} />
+            {isFocused ? (
+              <LinearGradient
+                colors={PILL_GRADIENT}
+                style={[styles.pill, styles.pillActive]}
+              >
+                <View style={styles.iconWrap}>
+                  <Icon name={tabDef.icon} size={22} color={Colors.dark.accent} />
+                  {isAlerts && unreadCount > 0 && (
+                    <View style={styles.badgeWrap}>
+                      <Badge count={unreadCount} />
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
-            <Text style={[styles.label, { color }]}>{tabDef.label}</Text>
+                <Text style={[styles.label, styles.labelActive]}>{tabDef.label}</Text>
+              </LinearGradient>
+            ) : (
+              <View style={styles.pill}>
+                <View style={styles.iconWrap}>
+                  <Icon name={tabDef.icon} size={22} color={Colors.dark.textSecondary} />
+                  {isAlerts && unreadCount > 0 && (
+                    <View style={styles.badgeWrap}>
+                      <Badge count={unreadCount} />
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.label, styles.labelInactive]}>{tabDef.label}</Text>
+              </View>
+            )}
           </Pressable>
         )
       })}
@@ -75,7 +97,17 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     alignItems: 'center',
+  },
+  pill: {
+    alignItems: 'center',
     gap: 3,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+  },
+  pillActive: {
+    borderWidth: 1,
+    borderColor: 'rgba(217,167,102,0.30)',
   },
   iconWrap: {
     position: 'relative',
@@ -89,5 +121,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.2,
+  },
+  labelActive: {
+    color: Colors.dark.textPrimary,
+  },
+  labelInactive: {
+    color: Colors.dark.textSecondary,
   },
 })
