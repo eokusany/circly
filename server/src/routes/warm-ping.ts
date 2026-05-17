@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { requireAuth } from '../middleware/auth'
 import { supabase } from '../lib/supabase'
+import { isUuid } from '../lib/validators'
 import { sendPushToUsers } from '../services/pushNotifications'
 
 export const warmPingRouter = Router()
@@ -9,7 +10,7 @@ const DAILY_LIMIT = 3
 
 warmPingRouter.post('/warm-ping', requireAuth, async (req, res) => {
   const recipientId = req.body?.recipient_id
-  if (typeof recipientId !== 'string' || !recipientId) {
+  if (!isUuid(recipientId)) {
     res.status(400).json({ error: 'missing_recipient_id' })
     return
   }

@@ -55,3 +55,12 @@ export const messageLimiter = make({
   windowMs: 60 * 1000,
   limit: 30,
 })
+
+// Defense-in-depth limiter mounted on /api before any router. requireAuth
+// hasn't run yet at this point, so keying falls back to IP (IPv6-safe). The
+// budget is intentionally generous — this catches bursts and credential
+// stuffing, not normal use.
+export const defaultApiLimiter = make({
+  windowMs: 60 * 1000,
+  limit: 300,
+})

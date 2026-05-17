@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
+import { Sentry } from '../../lib/sentry'
 import { getTodayIntention, setIntention as setIntentionApi } from '../../lib/api'
 import { SkeletonCard } from '../../components/SkeletonCard'
 import { ErrorState } from '../../components/ErrorState'
@@ -172,7 +173,8 @@ export default function RecoveryHome() {
     try {
       const result = await setIntentionApi(text)
       setIntention(result.intention)
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err)
       Alert.alert('could not save', 'check your connection and try again.')
     }
   }
