@@ -21,15 +21,15 @@ export default function ChangePasswordScreen() {
   async function handleSave() {
     if (!user) return
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('missing fields', 'please fill in all fields')
+      Alert.alert('Missing fields', 'Please fill in all fields')
       return
     }
     if (newPassword.length < 8) {
-      Alert.alert('weak password', 'new password must be at least 8 characters')
+      Alert.alert('Weak password', 'New password must be at least 8 characters')
       return
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('passwords do not match', 'please re-enter your new password')
+      Alert.alert('Passwords do not match', 'Please re-enter your new password')
       return
     }
 
@@ -45,7 +45,7 @@ export default function ChangePasswordScreen() {
     })
     if (reauthError) {
       setLoading(false)
-      Alert.alert('incorrect password', 'your current password is incorrect')
+      Alert.alert('Incorrect password', 'Your current password is incorrect')
       return
     }
 
@@ -53,11 +53,11 @@ export default function ChangePasswordScreen() {
 
     setLoading(false)
     if (error) {
-      Alert.alert('something went wrong', error.message)
+      Alert.alert('Something went wrong', error.message)
       return
     }
 
-    Alert.alert('password updated', 'your password has been changed.', [
+    Alert.alert('Password updated', 'Your password has been changed.', [
       { text: 'ok', onPress: () => router.back() },
     ])
   }
