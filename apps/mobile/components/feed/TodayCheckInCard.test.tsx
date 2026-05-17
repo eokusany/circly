@@ -4,10 +4,11 @@ import { TodayCheckInCard } from './TodayCheckInCard'
 import * as checkInsLib from '../../lib/checkIns'
 import { router } from 'expo-router'
 import { Colors } from '../../constants/colors'
+import type { AppUser } from '../../store/auth'
 
 jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children, style }: { children: React.ReactNode; style?: any }) => {
-    const { View } = require('react-native')
+  LinearGradient: ({ children, style }: { children: React.ReactNode; style?: object }) => {
+    const { View } = jest.requireActual('react-native')
     return <View style={style}>{children}</View>
   },
 }))
@@ -21,15 +22,20 @@ jest.mock('../../lib/sentry', () => ({
   Sentry: { captureException: jest.fn() },
 }))
 
-const mockUser: any = {
+const mockUser: AppUser = {
   id: 'u1',
+  email: 'u1@example.com',
+  displayName: 'u1',
+  avatarUrl: null,
+  role: 'recovery',
   context: 'recovery',
+  sobrietyStartDate: null,
   firstCheckinIntroSeen: true,
   firstCheckinCelebrationSeen: true,
 }
 
 jest.mock('../../store/auth', () => ({
-  useAuthStore: (sel: any) => sel({ user: mockUser }),
+  useAuthStore: (sel: (state: { user: AppUser }) => unknown) => sel({ user: mockUser }),
 }))
 
 const loadMock = checkInsLib.loadTodayCheckIn as jest.MockedFunction<typeof checkInsLib.loadTodayCheckIn>
