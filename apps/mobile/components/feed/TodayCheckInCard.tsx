@@ -35,10 +35,10 @@ export function TodayCheckInCard({ onSaved }: Props) {
   const [collapsed, setCollapsed] = useState(false)
   const [note, setNote] = useState('')
 
+  const userId = user?.id
   useEffect(() => {
-    if (!user) return
+    if (!userId) return
     let cancelled = false
-    const userId = user.id
     ;(async () => {
       try {
         const initial = await loadTodayCheckIn(userId)
@@ -51,7 +51,7 @@ export function TodayCheckInCard({ onSaved }: Props) {
       }
     })()
     return () => { cancelled = true }
-  }, [user?.id])
+  }, [userId])
 
   const handleChipTap = useCallback(async (status: CheckInStatus) => {
     if (!user) return
@@ -139,7 +139,7 @@ export function TodayCheckInCard({ onSaved }: Props) {
       end={{ x: 0, y: 1 }}
       style={styles.card}
     >
-      <Text style={[type.label, { color: colors.textMuted }]}>today's check-in</Text>
+      <Text style={[type.label, { color: colors.textMuted }]}>{"today's check-in"}</Text>
       <Text style={[type.body, { color: colors.textPrimary }]}>{copy.dashboard.checkInPrompt}</Text>
       <View style={styles.chips}>
         {STATUS_ORDER.map((status) => {

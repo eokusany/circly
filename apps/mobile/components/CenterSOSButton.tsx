@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, Pressable, Animated, StyleSheet, Platform } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -24,7 +24,7 @@ export function CenterSOSButton({ onArmed }: Props) {
   const armedRef = useRef(false)
   const armTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const ringProgress = useRef(new Animated.Value(0)).current
+  const ringProgress = useMemo(() => new Animated.Value(0), [])
 
   const cancelHold = useCallback(() => {
     if (armedRef.current) return
