@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth'
 import { messageLimiter } from '../middleware/rateLimit'
 import { supabase } from '../lib/supabase'
+import { Sentry } from '../lib/sentry'
 import { sendPushToUsers } from '../services/pushNotifications'
 
 export const messagesRouter = Router()
@@ -120,7 +121,7 @@ messagesRouter.post(
 
         if (notifications.length > 0) {
           const { error } = await supabase.from('notifications').insert(notifications)
-          if (error) console.warn('notification insert failed:', error)
+          if (error) Sentry.captureException(error)
 
           void sendPushToUsers(otherIds, {
             type: 'message',
@@ -128,7 +129,7 @@ messagesRouter.post(
           })
         }
       } catch (err) {
-        console.warn('notification flow failed:', err)
+        Sentry.captureException(err)
       }
     })()
   },

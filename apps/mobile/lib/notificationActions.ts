@@ -1,6 +1,8 @@
+import type { CheckInStatus } from './checkIns'
+
 export const NOTIFICATION_CATEGORY_ID = 'daily-checkin'
 
-export type CheckInStatus = 'good_day' | 'sober' | 'struggling'
+export type { CheckInStatus }
 
 const ACTION_TO_STATUS: Record<string, CheckInStatus> = {
   'mood-good': 'good_day',

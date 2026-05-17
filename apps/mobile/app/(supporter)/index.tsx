@@ -27,6 +27,7 @@ import { ErrorState } from '../../components/ErrorState'
 import { Icon, type IconName } from '../../components/Icon'
 import { tapMedium, notifySuccess } from '../../lib/haptics'
 import { streakDays, toISODate, type MilestoneType } from '../../lib/streak'
+import type { CheckInStatus } from '../../lib/checkIns'
 import { spacing, radii, type as t, layout } from '../../constants/theme'
 import { MilestoneFeedCard } from '../../components/MilestoneFeedCard'
 import { StartedFreshFeedCard } from '../../components/StartedFreshFeedCard'
@@ -49,8 +50,6 @@ const SUBSTANCE_LABEL: Record<number, string> = {
   1460: '4 years',
   1825: '5 years',
 }
-
-type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
 interface LinkedPerson {
   relationship_id: string

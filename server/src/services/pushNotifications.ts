@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { Sentry } from '../lib/sentry'
 
 interface ExpoPushMessage {
   to: string
@@ -78,7 +79,8 @@ export async function sendPushToUsers(
       .select('token')
       .in('user_id', recipientIds)
     tokens = result.data as { token: string }[] | null
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err)
     return
   }
 
@@ -98,8 +100,8 @@ export async function sendPushToUsers(
 
   try {
     await sendExpoPush(messages)
-  } catch {
-    // Push delivery is best-effort; don't fail the request
-    console.error('[push] failed to send push notifications')
+  } catch (err) {
+    // Push delivery is best-effort; don't fail the request, but surface to Sentry.
+    Sentry.captureException(err)
   }
 }
