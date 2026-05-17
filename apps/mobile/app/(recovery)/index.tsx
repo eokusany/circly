@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/auth'
 import { supabase } from '../../lib/supabase'
 import { Sentry } from '../../lib/sentry'
 import { getTodayIntention, setIntention as setIntentionApi } from '../../lib/api'
+import type { CheckInStatus } from '../../lib/checkIns'
 import { SkeletonCard } from '../../components/SkeletonCard'
 import { ErrorState } from '../../components/ErrorState'
 import { spacing, radii, type, layout } from '../../constants/theme'
@@ -49,8 +50,6 @@ const MILESTONES_SUBSTANCE_LABEL: Record<number, string> = {
   1460: '4 years',
   1825: '5 years',
 }
-
-type CheckInStatus = 'sober' | 'struggling' | 'good_day'
 
 interface OldJournalEntry {
   body: string
