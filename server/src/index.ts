@@ -6,6 +6,9 @@ initSentry()
 import { app } from './app'
 import { detectSilentUsers } from './services/silenceDetector'
 
+// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are guarded at the supabase
+// module itself, which loads via app.ts before this file's body runs.
+
 if (process.env.NODE_ENV === 'production') {
   const missing: string[] = []
   if (!process.env.CORS_ORIGIN) missing.push('CORS_ORIGIN')
