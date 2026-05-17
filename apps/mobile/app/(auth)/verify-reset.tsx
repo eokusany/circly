@@ -17,19 +17,19 @@ export default function VerifyResetScreen() {
 
   async function handleVerify() {
     if (!email) {
-      Alert.alert('missing email', 'please restart the reset flow.')
+      Alert.alert('Missing email', 'Please restart the reset flow.')
       return
     }
     if (!code.trim()) {
-      Alert.alert('missing code', 'enter the code from your email.')
+      Alert.alert('Missing code', 'Enter the code from your email.')
       return
     }
     if (password.length < 8) {
-      Alert.alert('password too short', 'use at least 8 characters.')
+      Alert.alert('Password too short', 'Use at least 8 characters.')
       return
     }
     if (password !== confirm) {
-      Alert.alert('passwords do not match', 'please re-enter the same password.')
+      Alert.alert('Passwords do not match', 'Please re-enter the same password.')
       return
     }
 
@@ -43,7 +43,7 @@ export default function VerifyResetScreen() {
 
     if (otpError) {
       setLoading(false)
-      Alert.alert('invalid code', otpError.message)
+      Alert.alert('Invalid code', otpError.message)
       return
     }
 
@@ -51,12 +51,12 @@ export default function VerifyResetScreen() {
     setLoading(false)
 
     if (updateError) {
-      Alert.alert('update failed', updateError.message)
+      Alert.alert('Update failed', updateError.message)
       return
     }
 
     await supabase.auth.signOut()
-    Alert.alert('password updated', 'sign in with your new password.', [
+    Alert.alert('Password updated', 'Sign in with your new password.', [
       { text: 'OK', onPress: () => router.replace('/(auth)/sign-in') },
     ])
   }

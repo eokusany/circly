@@ -16,7 +16,7 @@ export default function ForgotPasswordScreen() {
   async function handleReset() {
     const trimmed = email.trim()
     if (!trimmed) {
-      Alert.alert('missing email', 'please enter your email address.')
+      Alert.alert('Missing email', 'Please enter your email address.')
       return
     }
 
@@ -25,7 +25,7 @@ export default function ForgotPasswordScreen() {
     setLoading(false)
 
     if (error) {
-      Alert.alert('reset failed', error.message)
+      Alert.alert('Reset failed', error.message)
       return
     }
 
