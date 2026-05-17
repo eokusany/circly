@@ -121,27 +121,30 @@ export function StreakCard({
           const isCurrent = !reached && next?.days === m.days
           return (
             <View key={m.type} style={styles.dotItem}>
-              <View
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor: reached
-                      ? Colors.dark.success
-                      : isCurrent
-                        ? Colors.dark.accentSoft
-                        : 'transparent',
-                    borderColor: reached
-                      ? Colors.dark.success
-                      : isCurrent
-                        ? Colors.dark.accent
-                        : Colors.dark.border,
-                    borderWidth: isCurrent ? 2 : 1,
-                  },
-                ]}
-              />
+              <View style={isCurrent ? styles.dotHalo : null}>
+                <View
+                  style={[
+                    isCurrent ? styles.dotCurrent : styles.dot,
+                    {
+                      backgroundColor: reached
+                        ? Colors.dark.success
+                        : isCurrent
+                          ? Colors.dark.accentSoft
+                          : 'transparent',
+                      borderColor: reached
+                        ? Colors.dark.success
+                        : isCurrent
+                          ? Colors.dark.accent
+                          : Colors.dark.border,
+                      borderWidth: isCurrent ? 2 : 1,
+                    },
+                  ]}
+                />
+              </View>
               <Text
                 style={[
                   styles.dotLabel,
+                  isCurrent && styles.dotLabelCurrent,
                   {
                     color: reached
                       ? Colors.dark.textPrimary
@@ -212,7 +215,9 @@ const styles = StyleSheet.create({
   },
   pill: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(217,167,102,0.12)',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.dark.accent,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
@@ -249,8 +254,21 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
   },
+  dotCurrent: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+  },
+  dotHalo: {
+    padding: 4,
+    borderRadius: 11,
+    backgroundColor: 'rgba(217,167,102,0.15)',
+  },
   dotLabel: {
     fontSize: 10,
     fontWeight: '500',
+  },
+  dotLabelCurrent: {
+    fontWeight: '600',
   },
 })
