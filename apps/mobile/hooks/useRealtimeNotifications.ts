@@ -43,7 +43,7 @@ export function useRealtimeNotifications(userId: string | undefined) {
             playEmergencySound()
             Vibration.vibrate([0, 500, 200, 500, 200, 500])
             const name = newNotif.payload?.from_display_name ?? 'someone'
-            Alert.alert('emergency', `${name} needs support right now.`)
+            Alert.alert('Emergency', `${name} needs support right now.`)
           } else {
             notifySuccess()
           }

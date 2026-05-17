@@ -175,7 +175,7 @@ export default function RecoveryHome() {
       setIntention(result.intention)
     } catch (err) {
       Sentry.captureException(err)
-      Alert.alert('could not save', 'check your connection and try again.')
+      Alert.alert('Could not save', 'Check your connection and try again.')
     }
   }
 
@@ -294,8 +294,8 @@ export default function RecoveryHome() {
       {/* §4.2 — struggling card sits below the check-in */}
       {todayStatus === 'struggling' && (
         <StrugglingCard onGetSupport={() => Alert.alert(
-          'when you’re ready',
-          'press and hold the SOS button at the bottom of the screen to alert your supporters.',
+          'When you’re ready',
+          'Press and hold the SOS button at the bottom of the screen to alert your supporters.',
         )} />
       )}
 

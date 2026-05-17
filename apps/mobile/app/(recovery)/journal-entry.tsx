@@ -113,7 +113,7 @@ export default function JournalEntryScreen() {
     if (!user) return
     const trimmed = body.trim()
     if (!trimmed) {
-      Alert.alert('empty entry', 'write something first')
+      Alert.alert('Empty entry', 'Write something first')
       return
     }
 
@@ -151,7 +151,7 @@ export default function JournalEntryScreen() {
     if (error) {
       setSaving(false)
       console.error('[journal] save failed:', error.message)
-      Alert.alert('something went wrong', 'your entry could not be saved. please try again.')
+      Alert.alert('Something went wrong', 'Your entry could not be saved. Please try again.')
       return
     }
 
@@ -178,7 +178,7 @@ export default function JournalEntryScreen() {
       Animated.timing(deleteShake, { toValue: -2, duration: 40, useNativeDriver: true }),
       Animated.timing(deleteShake, { toValue: 0, duration: 40, useNativeDriver: true }),
     ]).start(() => {
-      Alert.alert('delete this entry?', 'this cannot be undone', [
+      Alert.alert('Delete this entry?', 'This cannot be undone', [
         { text: 'cancel', style: 'cancel' },
         {
           text: 'delete',
@@ -191,7 +191,7 @@ export default function JournalEntryScreen() {
               .eq('user_id', user.id)
             if (error) {
               console.error('[journal] delete failed:', error.message)
-              Alert.alert('something went wrong', 'your entry could not be deleted. please try again.')
+              Alert.alert('Something went wrong', 'Your entry could not be deleted. Please try again.')
               return
             }
             router.back()

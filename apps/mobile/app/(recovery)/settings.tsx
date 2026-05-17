@@ -95,9 +95,9 @@ export default function RecoverySettings() {
     } catch (err) {
       const message =
         err instanceof ApiError
-          ? 'something went wrong. please try again.'
-          : 'check your connection and try again.'
-      Alert.alert('could not generate code', message)
+          ? 'Something went wrong. Please try again.'
+          : 'Check your connection and try again.'
+      Alert.alert('Could not generate code', message)
     } finally {
       setGenerating(false)
     }
@@ -106,7 +106,7 @@ export default function RecoverySettings() {
   async function handleAcceptCode() {
     const trimmed = acceptCode.trim().toUpperCase()
     if (trimmed.length !== 6) {
-      Alert.alert('invalid code', 'invite codes are 6 characters.')
+      Alert.alert('Invalid code', 'Invite codes are 6 characters.')
       return
     }
     setAccepting(true)
@@ -117,7 +117,7 @@ export default function RecoverySettings() {
       })
       setAccepting(false)
       setAcceptCode('')
-      Alert.alert('connected', 'a new supporter has joined your circle.')
+      Alert.alert('Connected', 'A new supporter has joined your circle.')
       loadSupporters()
     } catch (err) {
       setAccepting(false)
@@ -128,15 +128,15 @@ export default function RecoverySettings() {
             : null
         const message =
           errorCode === 'invalid_or_used_code'
-            ? "that code doesn't exist or has already been used."
+            ? "That code doesn't exist or has already been used."
             : errorCode === 'self_invite'
-              ? "you can't use your own invite code."
+              ? "You can't use your own invite code."
               : errorCode === 'already_linked'
-                ? "you're already connected to this person."
-                : 'something went wrong. please try again.'
-        Alert.alert('could not connect', message)
+                ? "You're already connected to this person."
+                : 'Something went wrong. Please try again.'
+        Alert.alert('Could not connect', message)
       } else {
-        Alert.alert('could not connect', 'check your connection and try again.')
+        Alert.alert('Could not connect', 'Check your connection and try again.')
       }
     }
   }
