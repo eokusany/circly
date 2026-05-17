@@ -24,12 +24,24 @@ intentionsRouter.get('/intentions/today', async (req, res) => {
   res.json({ intention: data?.intention ?? null, date: today })
 })
 
+const MAX_INTENTION_LEN = 500
+
 intentionsRouter.post('/intentions', async (req, res) => {
   const userId = req.user!.id
   const { intention } = req.body as { intention?: string }
 
-  if (!intention || typeof intention !== 'string' || intention.trim().length === 0) {
+  if (!intention || typeof intention !== 'string') {
     res.status(400).json({ error: 'intention is required' })
+    return
+  }
+
+  const trimmed = intention.trim()
+  if (trimmed.length === 0) {
+    res.status(400).json({ error: 'intention is required' })
+    return
+  }
+  if (trimmed.length > MAX_INTENTION_LEN) {
+    res.status(400).json({ error: 'intention is too long' })
     return
   }
 
@@ -37,7 +49,7 @@ intentionsRouter.post('/intentions', async (req, res) => {
   const { data, error } = await supabase
     .from('daily_intentions')
     .upsert(
-      { user_id: userId, intention: intention.trim(), date: today },
+      { user_id: userId, intention: trimmed, date: today },
       { onConflict: 'user_id,date' }
     )
     .select('intention, date')

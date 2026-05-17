@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { randomUUID } from 'node:crypto'
 import request from 'supertest'
+
+const RECIPIENT_UID = '00000000-0000-4000-8000-000000000002'
 
 const { getUserMock, fromMock } = vi.hoisted(() => ({
   getUserMock: vi.fn(),
@@ -16,9 +19,8 @@ vi.mock('../lib/supabase', () => ({
 import { _clearTokenCache } from '../middleware/auth'
 import { app } from '../app'
 
-let uidCounter = 0
 function authedAs(id?: string) {
-  const userId = id ?? `u-${uidCounter++}-${Date.now()}`
+  const userId = id ?? randomUUID()
   getUserMock.mockResolvedValueOnce({
     data: { user: { id: userId, email: 'test@example.com' } },
     error: null,
@@ -122,8 +124,18 @@ describe('POST /api/warm-ping', () => {
     expect(res.body.error).toBe('missing_recipient_id')
   })
 
+  it('returns 400 when recipient_id is not a UUID', async () => {
+    authedAs()
+    const res = await request(app)
+      .post('/api/warm-ping')
+      .set('Authorization', 'Bearer v')
+      .send({ recipient_id: 'not-a-uuid' })
+    expect(res.status).toBe(400)
+    expect(res.body.error).toBe('missing_recipient_id')
+  })
+
   it('returns 400 when pinging self', async () => {
-    const uid = authedAs('self-user')
+    const uid = authedAs('00000000-0000-4000-8000-000000000001')
     const res = await request(app)
       .post('/api/warm-ping')
       .set('Authorization', 'Bearer v')
@@ -140,7 +152,7 @@ describe('POST /api/warm-ping', () => {
     const res = await request(app)
       .post('/api/warm-ping')
       .set('Authorization', 'Bearer v')
-      .send({ recipient_id: 'recipient-1' })
+      .send({ recipient_id: RECIPIENT_UID })
     expect(res.status).toBe(404)
     expect(res.body.error).toBe('no_active_relationship')
   })
@@ -153,7 +165,7 @@ describe('POST /api/warm-ping', () => {
     const res = await request(app)
       .post('/api/warm-ping')
       .set('Authorization', 'Bearer v')
-      .send({ recipient_id: 'recipient-1' })
+      .send({ recipient_id: RECIPIENT_UID })
     expect(res.status).toBe(500)
     expect(res.body.error).toBe('relationship_lookup_failed')
   })
@@ -169,7 +181,7 @@ describe('POST /api/warm-ping', () => {
     const res = await request(app)
       .post('/api/warm-ping')
       .set('Authorization', 'Bearer v')
-      .send({ recipient_id: 'recipient-1' })
+      .send({ recipient_id: RECIPIENT_UID })
     expect(res.status).toBe(429)
     expect(res.body.error).toBe('daily_limit_reached')
   })
@@ -183,7 +195,7 @@ describe('POST /api/warm-ping', () => {
     const res = await request(app)
       .post('/api/warm-ping')
       .set('Authorization', 'Bearer v')
-      .send({ recipient_id: 'recipient-1' })
+      .send({ recipient_id: RECIPIENT_UID })
     expect(res.status).toBe(200)
     expect(res.body).toEqual({ ok: true })
   })
@@ -198,7 +210,7 @@ describe('POST /api/warm-ping', () => {
     const res = await request(app)
       .post('/api/warm-ping')
       .set('Authorization', 'Bearer v')
-      .send({ recipient_id: 'recipient-1' })
+      .send({ recipient_id: RECIPIENT_UID })
     expect(res.status).toBe(500)
     expect(res.body.error).toBe('insert_failed')
   })
@@ -212,7 +224,7 @@ describe('POST /api/warm-ping', () => {
     const res = await request(app)
       .post('/api/warm-ping')
       .set('Authorization', 'Bearer v')
-      .send({ recipient_id: 'recipient-1' })
+      .send({ recipient_id: RECIPIENT_UID })
     expect(res.status).toBe(500)
     expect(res.body.error).toBe('count_lookup_failed')
   })
