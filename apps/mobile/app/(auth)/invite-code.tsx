@@ -26,7 +26,7 @@ export default function InviteCodeScreen() {
   async function handleContinue() {
     const trimmed = code.trim().toUpperCase()
     if (trimmed.length !== 6) {
-      Alert.alert('invalid code', 'invite codes are 6 characters.')
+      Alert.alert('Invalid code', 'Invite codes are 6 characters.')
       return
     }
 
@@ -47,17 +47,17 @@ export default function InviteCodeScreen() {
             : null
         const message =
           errorCode === 'invalid_code'
-            ? "that code doesn't exist. check it and try again."
+            ? "That code doesn't exist. Check it and try again."
             : errorCode === 'code_expired'
-              ? 'that code has expired. ask for a new one.'
+              ? 'That code has expired. Ask for a new one.'
               : errorCode === 'code_used'
-                ? 'that code has already been used.'
+                ? 'That code has already been used.'
                 : errorCode === 'self_invite'
-                  ? "you can't use your own invite code."
-                  : 'something went wrong. please try again.'
-        Alert.alert('could not join', message)
+                  ? "You can't use your own invite code."
+                  : 'Something went wrong. Please try again.'
+        Alert.alert('Could not join', message)
       } else {
-        Alert.alert('could not join', 'check your connection and try again.')
+        Alert.alert('Could not join', 'Check your connection and try again.')
       }
     }
   }
