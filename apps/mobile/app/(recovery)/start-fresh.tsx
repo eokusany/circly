@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Text, StyleSheet, Pressable, Alert, Modal } from 'react-native'
+import { Text, StyleSheet, Pressable, Alert, View } from 'react-native'
 import { router } from 'expo-router'
 import { useColors } from '../../hooks/useColors'
 import { useAuthStore } from '../../store/auth'
@@ -15,7 +15,7 @@ export default function StartFreshScreen() {
   const [submitting, setSubmitting] = useState(false)
 
   if (!user || user.context !== 'recovery') {
-    setTimeout(() => router.back(), 0)
+    setTimeout(() => router.replace('/(recovery)'), 0)
     return null
   }
 
@@ -52,17 +52,12 @@ export default function StartFreshScreen() {
     })
     setSubmitting(false)
     notifySuccess()
-    router.back()
+    router.replace('/(recovery)')
   }
 
   return (
-    <Modal
-      visible
-      animationType="slide"
-      transparent
-      onRequestClose={() => router.back()}
-    >
-      <Pressable style={styles.backdrop} onPress={() => router.back()}>
+    <View style={styles.root}>
+      <Pressable style={styles.backdrop} onPress={() => router.replace('/(recovery)')}>
         <Pressable
           style={[
             styles.sheet,
@@ -99,7 +94,7 @@ export default function StartFreshScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="cancel"
-            onPress={() => router.back()}
+            onPress={() => router.replace('/(recovery)')}
             style={({ pressed }) => [styles.cancel, { opacity: pressed ? 0.6 : 1 }]}
           >
             <Text style={[styles.cancelText, { color: colors.textSecondary }]}>
@@ -108,11 +103,12 @@ export default function StartFreshScreen() {
           </Pressable>
         </Pressable>
       </Pressable>
-    </Modal>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
