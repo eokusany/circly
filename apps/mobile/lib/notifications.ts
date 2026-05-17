@@ -124,6 +124,17 @@ async function getCachedUserId(): Promise<string | null> {
 
 const DEFAULT_ACTION = 'expo.modules.notifications.actions.DEFAULT'
 
+// Allowlist of routes that may be opened from a notification tap. Push
+// payloads are server-supplied; without this list a compromised or malicious
+// server could deep-link into any screen, including ones that perform actions.
+const ALLOWED_TAP_ROUTES = new Set<string>([
+  '/(recovery)/chat',
+  '/(recovery)/notifications',
+  '/(recovery)/index',
+  '/(supporter)/index',
+  '/(supporter)/notifications',
+])
+
 export function setupNotificationResponseListener(): { remove: () => void } {
   const sub = Notifications.addNotificationResponseReceivedListener((response) => {
     // Plain notification tap on a confirmation that carries a deep-link payload
@@ -132,7 +143,7 @@ export function setupNotificationResponseListener(): { remove: () => void } {
       const data = response.notification.request.content.data as
         | { tapRoute?: string }
         | undefined
-      if (data?.tapRoute) {
+      if (data?.tapRoute && ALLOWED_TAP_ROUTES.has(data.tapRoute)) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         router.push(data.tapRoute as any)
       }

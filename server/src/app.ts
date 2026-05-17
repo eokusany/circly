@@ -13,12 +13,40 @@ import { internalRouter } from './routes/internal'
 import { messagesRouter } from './routes/messages'
 import { pushTokenRouter } from './routes/push-token'
 import { intentionsRouter } from './routes/intentions'
+import { defaultApiLimiter } from './middleware/rateLimit'
 
 export const app = express()
 
-app.use(helmet())
-app.use(cors({ origin: process.env.CORS_ORIGIN ?? '*' }))
-app.use(express.json())
+// In production we require an explicit CORS_ORIGIN (no '*' fallback) — boot
+// fails fast in index.ts. In dev we allow '*' to keep local tooling simple.
+const corsOrigin =
+  process.env.CORS_ORIGIN ??
+  (process.env.NODE_ENV === 'production' ? '' : '*')
+
+app.use(
+  helmet({
+    // /privacy serves HTML with an inline <style> block. Lock everything else
+    // down; styleSrc allows 'unsafe-inline' only because that one page needs it.
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:'],
+        baseUri: ["'none'"],
+        formAction: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    referrerPolicy: { policy: 'no-referrer' },
+  }),
+)
+app.use(cors({ origin: corsOrigin }))
+app.use(express.json({ limit: '100kb' }))
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' })
@@ -82,6 +110,7 @@ h1{font-size:28px}h2{font-size:18px;margin-top:32px}p,ul{font-size:15px;color:#4
 </body></html>`)
 })
 
+app.use('/api', defaultApiLimiter)
 app.use('/api', meRouter)
 app.use('/api', emergencyRouter)
 app.use('/api', invitesRouter)

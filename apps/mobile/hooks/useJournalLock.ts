@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Platform } from 'react-native'
 import * as SecureStore from 'expo-secure-store'
 import * as LocalAuthentication from 'expo-local-authentication'
+import { hashPin, isLegacyPinStorage, verifyPin } from '../lib/pinHash'
 
 const PIN_KEY = 'journal_pin'
 const BIO_KEY = 'journal_biometric'
@@ -77,7 +78,8 @@ export function useJournalLock() {
   }, [])
 
   const savePin = useCallback(async (pin: string) => {
-    await SecureStore.setItemAsync(PIN_KEY, pin)
+    const hashed = await hashPin(pin)
+    await SecureStore.setItemAsync(PIN_KEY, hashed)
     setState('unlocked')
   }, [])
 
@@ -85,7 +87,13 @@ export function useJournalLock() {
     if (cooldownUntil && Date.now() < cooldownUntil) return false
 
     const stored = await SecureStore.getItemAsync(PIN_KEY)
-    if (attempt === stored) {
+    if (stored && (await verifyPin(attempt, stored))) {
+      // Lazy migration: upgrade legacy plaintext PINs to hashed storage on
+      // the first successful entry. New installs go straight to v2.
+      if (isLegacyPinStorage(stored)) {
+        const upgraded = await hashPin(attempt)
+        await SecureStore.setItemAsync(PIN_KEY, upgraded)
+      }
       setFailCount(0)
       setCooldownUntil(null)
       await Promise.all([
