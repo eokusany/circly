@@ -212,7 +212,9 @@ const styles = StyleSheet.create({
   },
   pill: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(217,167,102,0.12)',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.dark.accent,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
