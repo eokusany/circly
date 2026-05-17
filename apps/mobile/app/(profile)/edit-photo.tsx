@@ -23,7 +23,7 @@ export default function EditPhotoScreen() {
   async function pick() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!perm.granted) {
-      Alert.alert('permission needed', 'allow photo library access in settings to upload a photo.')
+      Alert.alert('Permission needed', 'Allow photo library access in settings to upload a photo.')
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -53,7 +53,7 @@ export default function EditPhotoScreen() {
       router.back()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'something went wrong'
-      Alert.alert('could not upload', msg)
+      Alert.alert('Could not upload', msg)
     } finally {
       setBusy(false)
     }

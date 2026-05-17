@@ -20,7 +20,7 @@ export default function ChangeEmailScreen() {
     if (!user) return
     const trimmed = email.trim().toLowerCase()
     if (!trimmed || !trimmed.includes('@')) {
-      Alert.alert('invalid email', 'please enter a valid email address')
+      Alert.alert('Invalid email', 'Please enter a valid email address')
       return
     }
     if (trimmed === user.email) {
@@ -37,13 +37,13 @@ export default function ChangeEmailScreen() {
 
     setLoading(false)
     if (error) {
-      Alert.alert('something went wrong', error.message)
+      Alert.alert('Something went wrong', error.message)
       return
     }
 
     Alert.alert(
-      'check your inbox',
-      `we sent a confirmation link to ${trimmed}. your email will update once you confirm it.`,
+      'Check your inbox',
+      `We sent a confirmation link to ${trimmed}. Your email will update once you confirm it.`,
       [{ text: 'ok', onPress: () => router.back() }]
     )
   }

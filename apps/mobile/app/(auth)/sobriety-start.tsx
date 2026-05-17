@@ -63,7 +63,7 @@ export default function SobrietyStartScreen() {
     if (!user) return
     const iso = resolveStartDate()
     if (!iso) {
-      Alert.alert('invalid date', 'please enter a valid date that is not in the future')
+      Alert.alert('Invalid date', 'Please enter a valid date that is not in the future')
       return
     }
 
@@ -75,7 +75,7 @@ export default function SobrietyStartScreen() {
 
     if (error) {
       setLoading(false)
-      Alert.alert('something went wrong', error.message)
+      Alert.alert('Something went wrong', error.message)
       return
     }
 

@@ -21,12 +21,12 @@ export function useEmergencyAlert(): UseEmergencyAlertResult {
       )
       if (result.supporters_notified === 0) {
         Alert.alert(
-          'no supporters yet',
-          'add someone to your circle so they can be there for you.',
+          'No supporters yet',
+          'Add someone to your circle so they can be there for you.',
         )
       } else {
         Alert.alert(
-          'your supporters have been notified',
+          'Your supporters have been notified',
           `${result.supporters_notified} ${
             result.supporters_notified === 1 ? 'person has' : 'people have'
           } been alerted.`,
@@ -35,9 +35,9 @@ export function useEmergencyAlert(): UseEmergencyAlertResult {
     } catch (err) {
       const message =
         err instanceof ApiError
-          ? 'something went wrong. please try again.'
-          : 'check your connection and try again.'
-      Alert.alert('could not send alert', message)
+          ? 'Something went wrong. Please try again.'
+          : 'Check your connection and try again.'
+      Alert.alert('Could not send alert', message)
     } finally {
       setSending(false)
     }

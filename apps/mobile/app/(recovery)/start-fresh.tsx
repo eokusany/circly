@@ -36,7 +36,7 @@ export default function StartFreshScreen() {
 
     if (profileErr) {
       setSubmitting(false)
-      Alert.alert('something went wrong', profileErr.message)
+      Alert.alert('Something went wrong', profileErr.message)
       return
     }
 

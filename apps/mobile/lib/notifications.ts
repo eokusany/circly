@@ -28,8 +28,8 @@ export async function scheduleOkayReminder(hour: number, minute: number): Promis
   await Notifications.scheduleNotificationAsync({
     identifier: OKAY_REMINDER_ID,
     content: {
-      title: 'circly',
-      body: "how's today going? tap below to check in.",
+      title: 'Circly',
+      body: "How's today going? Tap below to check in.",
       categoryIdentifier: NOTIFICATION_CATEGORY_ID,
       ...(Platform.OS === 'android' && { channelId: 'default' }),
     },
@@ -85,7 +85,7 @@ export async function fireCheckinConfirmation(status: CheckInStatus): Promise<vo
   await Notifications.scheduleNotificationAsync({
     identifier: CONFIRM_ID,
     content: {
-      title: 'circly',
+      title: 'Circly',
       body: copy.body,
       data: copy.tapRoute ? { tapRoute: copy.tapRoute } : {},
       ...(Platform.OS === 'android' && { channelId: 'default' }),
@@ -109,8 +109,8 @@ async function fireSignedOutPrompt(): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     identifier: SIGNED_OUT_ID,
     content: {
-      title: 'circly',
-      body: 'open the app to check in',
+      title: 'Circly',
+      body: 'Open the app to check in',
       ...(Platform.OS === 'android' && { channelId: 'default' }),
     },
     trigger: null,
