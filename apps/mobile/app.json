@@ -81,7 +81,7 @@
       "eas": {
         "projectId": "cd6c72c6-4683-49cf-b83c-a2c983176187"
       },
-      "privacyPolicyUrl": "https://circly.app/privacy",
+      "privacyPolicyUrl": "https://circlyserver-production.up.railway.app/privacy",
       "router": {}
     },
     "plugins": [
