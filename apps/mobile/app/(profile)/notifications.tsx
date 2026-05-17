@@ -70,7 +70,7 @@ export default function NotificationsScreen() {
     if (error) {
       // Roll back on failure so the UI stays in sync with the DB.
       setPrefs(prefs)
-      Alert.alert('could not save', error.message)
+      Alert.alert('Could not save', error.message)
     }
   }
 
