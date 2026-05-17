@@ -74,10 +74,12 @@ export default function RecoveryHome() {
   const [milestoneTakeoverVisible, setMilestoneTakeoverVisible] = useState(false)
   const [intention, setIntention] = useState<string | null>(null)
   const [oldEntry, setOldEntry] = useState<OldJournalEntry | null>(null)
+  const [oldEntryDaysAgo, setOldEntryDaysAgo] = useState(0)
 
+  const sobrietyStartDate = user?.sobrietyStartDate
   const days = useMemo(
-    () => user?.sobrietyStartDate ? streakDays(user.sobrietyStartDate) : 0,
-    [user?.sobrietyStartDate],
+    () => sobrietyStartDate ? streakDays(sobrietyStartDate) : 0,
+    [sobrietyStartDate],
   )
   const next = useMemo(() => nextMilestone(days), [days])
 
@@ -131,10 +133,16 @@ export default function RecoveryHome() {
       return
     }
 
+    const fetchedOldEntry = oldJournalRes.data?.[0] ?? null
     setTodayStatus(checkInRes.data?.status ?? null)
     setConnectionCount(relationshipsRes.count ?? 0)
     setTotalCheckIns(totalCheckRes.count ?? 0)
-    setOldEntry(oldJournalRes.data?.[0] ?? null)
+    setOldEntry(fetchedOldEntry)
+    setOldEntryDaysAgo(
+      fetchedOldEntry
+        ? Math.floor((Date.now() - new Date(fetchedOldEntry.created_at).getTime()) / 86400000)
+        : 0,
+    )
     setIntention(intentionData.intention)
     setLoading(false)
     hasLoaded.current = true
@@ -245,9 +253,6 @@ export default function RecoveryHome() {
   // 3rd day once the user has enough history.
   const showMemory = oldEntry !== null && days >= 7 && days % 3 === 0
   const reflectionPrompt = getPromptForDay(days)
-  const oldEntryDaysAgo = oldEntry
-    ? Math.floor((Date.now() - new Date(oldEntry.created_at).getTime()) / 86400000)
-    : 0
 
   return (
     <KeyboardAvoidingView

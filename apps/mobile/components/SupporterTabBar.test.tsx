@@ -1,9 +1,10 @@
 import { render } from '@testing-library/react-native'
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import { SupporterTabBar } from './SupporterTabBar'
 
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children, style }: { children: React.ReactNode; style?: object }) => {
-    const { View } = require('react-native')
+    const { View } = jest.requireActual('react-native')
     return <View style={style} testID="linear-gradient">{children}</View>
   },
 }))
@@ -26,7 +27,7 @@ function makeProps(activeIndex: number) {
     },
     insets: { top: 0, right: 0, bottom: 0, left: 0 },
     descriptors: {},
-  } as any
+  } as unknown as BottomTabBarProps
 }
 
 describe('<SupporterTabBar />', () => {
