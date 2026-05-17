@@ -18,7 +18,7 @@ export function MilestoneFeedCard({
     <View
       style={[
         styles.card,
-        { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+        { backgroundColor: colors.accentSoft, borderColor: colors.border },
       ]}
       accessibilityLabel={`milestone: ${badge}`}
     >
