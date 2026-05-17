@@ -6,6 +6,17 @@ initSentry()
 import { app } from './app'
 import { detectSilentUsers } from './services/silenceDetector'
 
+if (process.env.NODE_ENV === 'production') {
+  const missing: string[] = []
+  if (!process.env.CORS_ORIGIN) missing.push('CORS_ORIGIN')
+  if (!process.env.INTERNAL_API_KEY) missing.push('INTERNAL_API_KEY')
+  if (missing.length > 0) {
+    throw new Error(
+      `Refusing to boot in production without: ${missing.join(', ')}`,
+    )
+  }
+}
+
 const PORT = process.env.PORT ?? 3000
 
 const DETECTION_INTERVAL_MS = 60 * 60 * 1000 // 1 hour
