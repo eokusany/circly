@@ -20,15 +20,15 @@ export interface ConfirmationCopy {
 
 const CONFIRMATIONS: Record<CheckInStatus, ConfirmationCopy> = {
   good_day: {
-    body: 'logged. have a good one. ✓',
+    body: 'Logged. Have a good one. ✓',
     tappable: false,
   },
   sober: {
-    body: 'logged. one foot in front of the other. ✓',
+    body: 'Logged. One foot in front of the other. ✓',
     tappable: false,
   },
   struggling: {
-    body: 'logged. your circle has been notified. tap to talk →',
+    body: 'Logged. Your circle has been notified. Tap to talk →',
     tappable: true,
     tapRoute: '/(recovery)/chat',
   },
