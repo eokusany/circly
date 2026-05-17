@@ -21,7 +21,7 @@ export default function EditNameScreen() {
     if (!user) return
     const trimmed = name.trim()
     if (!trimmed) {
-      Alert.alert('name required', 'please enter a name')
+      Alert.alert('Name required', 'Please enter a name')
       return
     }
     if (trimmed === user.displayName) {
@@ -37,7 +37,7 @@ export default function EditNameScreen() {
 
     if (error) {
       setLoading(false)
-      Alert.alert('something went wrong', error.message)
+      Alert.alert('Something went wrong', error.message)
       return
     }
 

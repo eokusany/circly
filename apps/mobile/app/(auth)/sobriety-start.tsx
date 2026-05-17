@@ -75,7 +75,7 @@ export default function SobrietyStartScreen() {
 
     if (error) {
       setLoading(false)
-      Alert.alert('something went wrong', error.message)
+      Alert.alert('Something went wrong', error.message)
       return
     }
 
