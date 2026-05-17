@@ -22,3 +22,17 @@ docs/SCALING_ROADMAP.md
 npm-debug.log*
 .worktrees/
 .superpowers/
+
+# AI / editor tooling caches
+.claude/
+.cursor/
+.aider/
+.aider.chat.history.md
+.aider.input.history
+.continue/
+.ai/
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+.vscode/
+.idea/
