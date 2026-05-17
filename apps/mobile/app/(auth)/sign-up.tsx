@@ -20,15 +20,15 @@ export default function SignUpScreen() {
 
   async function handleSignUp() {
     if (!name.trim() || !email.trim() || !password) {
-      Alert.alert('missing fields', 'please fill in all fields.')
+      Alert.alert('Missing fields', 'Please fill in all fields.')
       return
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      Alert.alert('invalid email', 'please enter a valid email address.')
+      Alert.alert('Invalid email', 'Please enter a valid email address.')
       return
     }
     if (password.length < 8) {
-      Alert.alert('weak password', 'password must be at least 8 characters.')
+      Alert.alert('Weak password', 'Password must be at least 8 characters.')
       return
     }
 
@@ -37,7 +37,7 @@ export default function SignUpScreen() {
     setLoading(false)
 
     if (error) {
-      Alert.alert('sign up failed', error.message)
+      Alert.alert('Sign up failed', error.message)
       return
     }
 

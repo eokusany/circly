@@ -132,13 +132,13 @@ export default function SupporterHome() {
         body: JSON.stringify({ recipient_id: person.recovery_user_id }),
       })
       notifySuccess()
-      Alert.alert('sent', `${person.display_name} will feel your warmth.`)
+      Alert.alert('Sent', `${person.display_name} will feel your warmth.`)
     } catch (err) {
       const msg =
         err instanceof ApiError && (err.body as { error?: string })?.error === 'daily_limit_reached'
-          ? "you've reached today's limit for this person."
-          : 'something went wrong. try again.'
-      Alert.alert('could not send', msg)
+          ? "You've reached today's limit for this person."
+          : 'Something went wrong. Try again.'
+      Alert.alert('Could not send', msg)
     }
   }
 
@@ -414,7 +414,7 @@ export default function SupporterHome() {
                     await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', n.id)
                     setNudges((prev) => prev.filter((x) => x.id !== n.id))
                   } catch {
-                    Alert.alert('could not send', 'something went wrong. try again.')
+                    Alert.alert('Could not send', 'Something went wrong. Try again.')
                   }
                 }}
                 onDismiss={async () => {
@@ -744,14 +744,14 @@ function EncouragementSheet({
       setCustom('')
       onClose()
       notifySuccess()
-      Alert.alert('sent', `${person.display_name} will see this soon.`)
+      Alert.alert('Sent', `${person.display_name} will see this soon.`)
     } catch (err) {
       setSending(false)
       const msg =
         err instanceof ApiError
-          ? 'something went wrong. please try again.'
-          : 'check your connection and try again.'
-      Alert.alert('could not send', msg)
+          ? 'Something went wrong. Please try again.'
+          : 'Check your connection and try again.'
+      Alert.alert('Could not send', msg)
     }
   }
 

@@ -37,20 +37,20 @@ import { confirmationFor } from './notificationActions'
 describe('confirmationFor', () => {
   it('returns non-tappable copy for good_day', () => {
     const c = confirmationFor('good_day')
-    expect(c.body).toBe('logged. have a good one. ✓')
+    expect(c.body).toBe('Logged. Have a good one. ✓')
     expect(c.tappable).toBe(false)
     expect(c.tapRoute).toBeUndefined()
   })
 
   it('returns non-tappable copy for sober', () => {
     const c = confirmationFor('sober')
-    expect(c.body).toBe('logged. one foot in front of the other. ✓')
+    expect(c.body).toBe('Logged. One foot in front of the other. ✓')
     expect(c.tappable).toBe(false)
   })
 
   it('returns tappable copy for struggling that deep-links to chat', () => {
     const c = confirmationFor('struggling')
-    expect(c.body).toBe('logged. your circle has been notified. tap to talk →')
+    expect(c.body).toBe('Logged. Your circle has been notified. Tap to talk →')
     expect(c.tappable).toBe(true)
     expect(c.tapRoute).toBe('/(recovery)/chat')
   })

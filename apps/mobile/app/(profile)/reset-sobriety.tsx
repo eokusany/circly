@@ -77,7 +77,7 @@ export default function ResetSobrietyScreen() {
     if (!user) return
     const iso = resolveDate()
     if (!iso) {
-      Alert.alert('invalid date', 'please enter a valid date that is not in the future')
+      Alert.alert('Invalid date', 'Please enter a valid date that is not in the future')
       return
     }
     if (iso === user.sobrietyStartDate) {
@@ -86,8 +86,8 @@ export default function ResetSobrietyScreen() {
     }
 
     Alert.alert(
-      'start fresh?',
-      'your current streak will reset. every day you spent on this journey still counts. it brought you here.',
+      'Start fresh?',
+      'Your current streak will reset. Every day you spent on this journey still counts. It brought you here.',
       [
         { text: 'cancel', style: 'cancel' },
         {
@@ -104,7 +104,7 @@ export default function ResetSobrietyScreen() {
 
             if (error) {
               setLoading(false)
-              Alert.alert('something went wrong', error.message)
+              Alert.alert('Something went wrong', error.message)
               return
             }
 

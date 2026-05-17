@@ -77,7 +77,7 @@ export default function SilenceSettingsScreen() {
         await scheduleOkayReminder(hour, minute)
       }
     } catch {
-      Alert.alert('could not save', 'check your connection and try again.')
+      Alert.alert('Could not save', 'Check your connection and try again.')
     } finally {
       setSaving(false)
     }

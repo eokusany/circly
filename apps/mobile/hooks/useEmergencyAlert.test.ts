@@ -27,7 +27,7 @@ describe('useEmergencyAlert', () => {
 
     expect(apiMock).toHaveBeenCalledWith('/api/emergency', { method: 'POST' })
     expect(alertSpy).toHaveBeenCalledWith(
-      'your supporters have been notified',
+      'Your supporters have been notified',
       expect.stringContaining('3'),
     )
   })
@@ -37,8 +37,8 @@ describe('useEmergencyAlert', () => {
     const { result } = renderHook(() => useEmergencyAlert())
     await act(async () => { await result.current.trigger() })
     expect(alertSpy).toHaveBeenCalledWith(
-      'no supporters yet',
-      expect.stringContaining('add someone to your circle'),
+      'No supporters yet',
+      expect.stringContaining('Add someone to your circle'),
     )
   })
 
@@ -47,8 +47,8 @@ describe('useEmergencyAlert', () => {
     const { result } = renderHook(() => useEmergencyAlert())
     await act(async () => { await result.current.trigger() })
     expect(alertSpy).toHaveBeenCalledWith(
-      'could not send alert',
-      'check your connection and try again.',
+      'Could not send alert',
+      'Check your connection and try again.',
     )
   })
 
