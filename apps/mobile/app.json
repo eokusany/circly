@@ -97,7 +97,7 @@
         "@sentry/react-native/expo",
         {
           "organization": "circly-ay",
-          "project": "circly-mobile"
+          "project": "react-native"
         }
       ]
     ],
