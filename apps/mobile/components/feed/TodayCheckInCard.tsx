@@ -73,7 +73,7 @@ export function TodayCheckInCard({ onSaved }: Props) {
       }
     } catch (err) {
       Sentry.captureException(err)
-      Alert.alert('couldn\u2019t save check-in', 'please try again in a moment.')
+      Alert.alert('Couldn\u2019t save check-in', 'Please try again in a moment.')
     } finally {
       setSaving(false)
     }
@@ -89,7 +89,7 @@ export function TodayCheckInCard({ onSaved }: Props) {
       onSaved?.(next)
     } catch (err) {
       Sentry.captureException(err)
-      Alert.alert('couldn\u2019t save check-in', 'please try again in a moment.')
+      Alert.alert('Couldn\u2019t save check-in', 'Please try again in a moment.')
     } finally {
       setSaving(false)
     }

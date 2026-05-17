@@ -53,7 +53,7 @@ export default function SupporterSettingsScreen() {
 
     if (error || !data) {
       setLoading(false)
-      Alert.alert('could not load', 'this supporter could not be found.')
+      Alert.alert('Could not load', 'This supporter could not be found.')
       router.back()
       return
     }
@@ -89,14 +89,14 @@ export default function SupporterSettingsScreen() {
     setSaving(false)
     if (error) {
       setPermissions(prev)
-      Alert.alert('could not save', error.message)
+      Alert.alert('Could not save', error.message)
     }
   }
 
   function handleRemove() {
     Alert.alert(
-      `remove ${displayName}?`,
-      "they won't see your updates anymore. you can always invite them again.",
+      `Remove ${displayName}?`,
+      "They won't see your updates anymore. You can always invite them again.",
       [
         { text: 'cancel', style: 'cancel' },
         {
@@ -110,7 +110,7 @@ export default function SupporterSettingsScreen() {
               .eq('id', id)
             setRemoving(false)
             if (error) {
-              Alert.alert('could not remove', error.message)
+              Alert.alert('Could not remove', error.message)
               return
             }
             router.back()
