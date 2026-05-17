@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react-native'
 import { Alert } from 'react-native'
 import { useEmergencyAlert } from './useEmergencyAlert'
-import { api, ApiError } from '../lib/api'
+import { api } from '../lib/api'
 
 jest.mock('../lib/api', () => {
   const ApiError = class extends Error {}

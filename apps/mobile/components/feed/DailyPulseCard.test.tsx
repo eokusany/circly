@@ -2,8 +2,8 @@ import { render } from '@testing-library/react-native'
 import { DailyPulseCard } from './DailyPulseCard'
 
 jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children, style }: { children: React.ReactNode; style?: any }) => {
-    const { View } = require('react-native')
+  LinearGradient: ({ children, style }: { children: React.ReactNode; style?: object }) => {
+    const { View } = jest.requireActual('react-native')
     return <View style={style}>{children}</View>
   },
 }))
