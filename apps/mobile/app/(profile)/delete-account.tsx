@@ -33,15 +33,15 @@ export default function DeleteAccountScreen() {
     if (!user) return
     if (confirmText.trim().toLowerCase() !== CONFIRM_PHRASE) {
       Alert.alert(
-        'confirmation required',
-        `please type "${CONFIRM_PHRASE}" exactly to confirm`
+        'Confirmation required',
+        `Please type "${CONFIRM_PHRASE}" exactly to confirm`
       )
       return
     }
 
     Alert.alert(
-      'delete account permanently?',
-      'this will remove your profile, check-ins, journals, and relationships. this cannot be undone.',
+      'Delete account permanently?',
+      'This will remove your profile, check-ins, journals, and relationships. This cannot be undone.',
       [
         { text: 'cancel', style: 'cancel' },
         {
@@ -53,7 +53,7 @@ export default function DeleteAccountScreen() {
 
             if (error) {
               setLoading(false)
-              Alert.alert('something went wrong', error.message)
+              Alert.alert('Something went wrong', error.message)
               return
             }
 
